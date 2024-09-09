@@ -76,7 +76,7 @@ spec:
         - FailOnSharedResource=true
         - RespectIgnoreDifferences=true
         - CreateNamespace=false
-        syncPolicyRetry:
+        retry:
           limit: -1 # number of failed sync attempt retries; unlimited number of attempts if less than 0
           backoff:
             duration: 5s # the amount to back off. Default unit is seconds, but could also be a duration (e.g. "2m", "1h")
