@@ -17,7 +17,6 @@ projects:
       - group: '*'
         kind: '*'
 
-
 applications: 
 
 # basic
@@ -28,14 +27,14 @@ applications:
     destination:
       namespace: open-cluster-management
     source:
-      path: .boostrap/clusters/hub/acm-operator
+      path: .bootstrap/clusters/hub/acm-operator
 
   acm-instance:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     source:
-      path: .boostrap/clusters/hub/acm-instance
+      path: .bootstrap/clusters/hub/acm-instance
 
 
   acm-configuration:
@@ -43,7 +42,7 @@ applications:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '25'
     source:
-      path: .boostrap/clusters/hub/acm-configuration      
+      path: .bootstrap/clusters/hub/acm-configuration      
 
 
                           
