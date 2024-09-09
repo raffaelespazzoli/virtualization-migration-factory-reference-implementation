@@ -4,4 +4,6 @@ kind: Kustomization
 resources:
   - applicationset.yaml
   - gitops-cluster.yaml
-  - placement.yaml
+  - placements.yaml
+  - managed-clusterset-binding.yaml
+  - configmap.yaml
