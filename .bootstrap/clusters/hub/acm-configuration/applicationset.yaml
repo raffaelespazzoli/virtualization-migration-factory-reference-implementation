@@ -44,7 +44,7 @@ spec:
           configMapRef: ocm-placement
           labelSelector:
             matchLabels:
-              cluster.open-cluster-management.io/placement: "{{placement}}"
+              cluster.open-cluster-management.io/placement: "all-clusters"
           requeueAfterSeconds: 30
   template:
     metadata:
