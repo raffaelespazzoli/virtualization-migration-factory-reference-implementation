@@ -6,4 +6,3 @@ resources:
   - gitops-cluster.yaml
   - placements.yaml
   - managed-clusterset-binding.yaml
-  - configmap.yaml

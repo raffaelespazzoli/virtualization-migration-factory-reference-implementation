@@ -39,7 +39,7 @@ spec:
           files:
           - path: "components/*/argocd-app-config.yaml"      
       - clusterDecisionResource:
-          configMapRef: ocm-placement
+          configMapRef: acm-placement
           labelSelector:
             matchLabels:
               cluster.open-cluster-management.io/placement: "{{placement}}"
