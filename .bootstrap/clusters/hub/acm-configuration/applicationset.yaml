@@ -4,8 +4,8 @@ metadata:
   name: day2-app-set
   namespace: openshift-gitops
 spec:
-  syncPolicy:
-    applicationsSync: sync
+  # syncPolicy:
+  #   applicationsSync: sync
   strategy:
     type: RollingSync
     rollingSync:
