@@ -36,10 +36,8 @@ spec:
       - git:
           repoURL: ${INFRA_GITOPS_REPO}
           revision: HEAD
-          directories:
-            - path: components/*
           files:
-          - path: "components/*/app-config.yaml"      
+          - path: "components/*/argocd-app-config.yaml"      
       - clusterDecisionResource:
           configMapRef: ocm-placement
           labelSelector:
