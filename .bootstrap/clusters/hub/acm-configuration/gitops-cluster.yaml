@@ -10,4 +10,4 @@ spec:
   placementRef:
     kind: Placement
     apiVersion: cluster.open-cluster-management.io/v1beta1
-    name: all-openshift-clusters
+    name: all-clusters

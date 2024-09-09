@@ -9,6 +9,8 @@ spec:
       operator: Exists
     - key: cluster.open-cluster-management.io/unavailable
       operator: Exists
+  clusterSets:
+    - default
 ---
 apiVersion: cluster.open-cluster-management.io/v1beta1
 kind: Placement
@@ -26,6 +28,8 @@ spec:
       labelSelector:
         matchLabels:
           local-cluster: "true"
+  clusterSets:
+    - default          
 ---
 apiVersion: cluster.open-cluster-management.io/v1beta1
 kind: Placement
@@ -42,4 +46,6 @@ spec:
   - requiredClusterSelector:
       labelSelector:
         matchLabels:
-          prod: "true"                  
+          prod: "true"
+  clusterSets:
+    - default                            
