@@ -41,7 +41,7 @@ spec:
           files:
           - path: "components/*/app-config.yaml"      
       - clusterDecisionResource:
-          configMapRef: ocm-placement-generator
+          configMapRef: ocm-placement
           labelSelector:
             matchLabels:
               cluster.open-cluster-management.io/placement: "{{placement}}"
