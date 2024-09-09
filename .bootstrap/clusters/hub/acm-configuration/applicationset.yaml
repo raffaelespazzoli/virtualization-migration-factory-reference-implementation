@@ -33,19 +33,19 @@ spec:
   generators:
   - matrix:
       generators:
-      - clusterDecisionResource:
-          configMapRef: ocm-placement-generator
-          labelSelector:
-            matchLabels:
-              cluster.open-cluster-management.io/placement: aws-app-placement
-          requeueAfterSeconds: 30
       - git:
           repoURL: ${INFRA_GITOPS_REPO}
           revision: HEAD
           directories:
             - path: components/*
           files:
-          - path: "components/*/app-config.yaml"          
+          - path: "components/*/app-config.yaml"      
+      - clusterDecisionResource:
+          configMapRef: ocm-placement-generator
+          labelSelector:
+            matchLabels:
+              cluster.open-cluster-management.io/placement: "{{placement}}"
+          requeueAfterSeconds: 30
   template:
     metadata:
       annotations:
