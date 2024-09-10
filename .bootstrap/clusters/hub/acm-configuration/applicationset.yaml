@@ -55,11 +55,11 @@ spec:
       labels:
         apps.open-cluster-management.io/pull-to-ocm-managed-cluster: "true"
         sync-phase: "{{ .syncPhase }}"
-      name: '{{ .path.basename }}'
+      name: '{{ .path.basename }}-{{ .clusterName }}'
     spec:
       destination:
         namespace: "{{ .namespace }}"
-        server: '{{ .clusterName }}'
+        server: https://kubernetes.default.svc
       project: default
       source: 
         repoURL: ${INFRA_GITOPS_REPO}
