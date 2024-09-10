@@ -51,7 +51,7 @@ spec:
       annotations:
         apps.open-cluster-management.io/ocm-managed-cluster: '{{ .clusterName }}'
         apps.open-cluster-management.io/ocm-managed-cluster-app-namespace: openshift-gitops
-        argocd.argoproj.io/skip-reconcile: '{{ (eq "local-cluster" .clusterName) | toString }}'
+        argocd.argoproj.io/skip-reconcile: '{{ (not (eq "local-cluster" .clusterName)) | toString }}'
       labels:
         apps.open-cluster-management.io/pull-to-ocm-managed-cluster: '{{ (not (eq "local-cluster" .clusterName)) | toString }}'
         sync-phase: "{{ .syncPhase }}"
