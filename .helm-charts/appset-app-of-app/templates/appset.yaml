@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: {{ .Values.name }}
+  name: "{{ .Values.path.basename }}"
   namespace: openshift-gitops
   labels:
     {{- include "appset-app-of-app.labels" . | nindent 4 }}  
@@ -22,12 +22,12 @@ spec:
   template:
     metadata:
       annotations:
-        apps.open-cluster-management.io/ocm-managed-cluster: '{{ {{ }} .clusterName {{ }} }}'
+        apps.open-cluster-management.io/ocm-managed-cluster: '{{ "{{" }} .clusterName {{ "}}" }}'
         apps.open-cluster-management.io/ocm-managed-cluster-app-namespace: openshift-gitops
-        argocd.argoproj.io/skip-reconcile: '{{ {{ }} (not (eq "local-cluster" .clusterName)) | toString {{ }} }}'
+        argocd.argoproj.io/skip-reconcile: '{{ "{{" }} (not (eq "local-cluster" .clusterName)) | toString {{ "}}" }}'
       labels:
-        apps.open-cluster-management.io/pull-to-ocm-managed-cluster: '{{ {{ }} (not (eq "local-cluster" .clusterName)) | toString {{ }} }}'
-      name: '{{ .Values.path.basename }}-{{ {{ }} .clusterName {{ }} }}'
+        apps.open-cluster-management.io/pull-to-ocm-managed-cluster: '{{ "{{" }} (not (eq "local-cluster" .clusterName)) | toString {{ "}}" }}'
+      name: '{{ .Values.path.basename }}-{{ "{{" }} .clusterName {{ "}}" }}'
     spec:
       destination:
         namespace: "{{ .Values.namespace }}"
