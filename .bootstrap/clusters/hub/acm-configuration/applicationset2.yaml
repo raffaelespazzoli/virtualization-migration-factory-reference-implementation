@@ -51,6 +51,7 @@ spec:
       source:
         helm:
           values: |
+            gitopsRepo: ${INFRA_GITOPS_REPO}
             placement: "{{ .placement }}"
             namespace: "{{ .namespace }}"
             path:

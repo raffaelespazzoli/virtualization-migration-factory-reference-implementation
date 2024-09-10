@@ -1,3 +1,4 @@
+gitopsRepo: no-repo
 placement: no-clusters
 namespace: no-namespace
 path:

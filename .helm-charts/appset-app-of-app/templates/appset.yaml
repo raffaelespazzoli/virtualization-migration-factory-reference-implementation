@@ -34,7 +34,7 @@ spec:
         server: https://kubernetes.default.svc
       project: default
       source: 
-        repoURL: ${INFRA_GITOPS_REPO}
+        repoURL: "{{ .Values.gitopsRepo }}"
         targetRevision: HEAD
         path: "{{ .Values.path.path }}"
       syncPolicy: 
