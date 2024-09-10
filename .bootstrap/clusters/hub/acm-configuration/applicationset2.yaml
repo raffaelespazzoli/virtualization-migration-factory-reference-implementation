@@ -50,16 +50,17 @@ spec:
         namespace: "openshift-gitops"
         server: https://kubernetes.default.svc
       project: default
-      helm:
-        values:
-          placement: "{{ .placement }}"
-          namespace: "{{ .namespace }}"
-          path:
-            path: "{{ .path.path }}"
-            basename: "{{ .path.basename }}"
-      path: ./helm-charts/appset-app-of-app
-      repoURL: ${INFRA_GITOPS_REPO}
-      targetRevision: HEAD
+      source:
+        helm:
+          values: |
+            placement: "{{ .placement }}"
+            namespace: "{{ .namespace }}"
+            path:
+              path: "{{ .path.path }}"
+              basename: "{{ .path.basename }}"
+        path: ./helm-charts/appset-app-of-app
+        repoURL: ${INFRA_GITOPS_REPO}
+        targetRevision: HEAD
       syncPolicy: 
         automated:
           selfHeal: true
