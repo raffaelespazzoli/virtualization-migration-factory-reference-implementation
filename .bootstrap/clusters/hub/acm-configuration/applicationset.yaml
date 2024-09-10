@@ -4,6 +4,8 @@ metadata:
   name: day2-app-set
   namespace: openshift-gitops
 spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
   syncPolicy:
     applicationsSync: sync
   strategy:
