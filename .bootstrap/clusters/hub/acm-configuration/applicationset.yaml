@@ -47,22 +47,22 @@ spec:
   template:
     metadata:
       annotations:
-        apps.open-cluster-management.io/ocm-managed-cluster: '{{name}}'
+        apps.open-cluster-management.io/ocm-managed-cluster: '{{.clusterName}}'
         apps.open-cluster-management.io/ocm-managed-cluster-app-namespace: openshift-gitops
         argocd.argoproj.io/skip-reconcile: "true"
       labels:
         apps.open-cluster-management.io/pull-to-ocm-managed-cluster: "true"
-        sync-phase: "{{sync-phase}}"
-      name: '{{.path.basenameNormalized}}'
+        sync-phase: "{{ .sync-phase }}"
+      name: '{{ .path.basename }}'
     spec:
       destination:
-        namespace: "{{ namespace }}"
-        server: https://kubernetes.default.svc
+        namespace: "{{ .namespace }}"
+        server: '{{ .clusterName }}'
       project: default
       source: 
         repoURL: ${INFRA_GITOPS_REPO}
         targetRevision: HEAD
-        path: "{{.path.path}}"
+        path: "{{ .path.path }}"
       syncPolicy: 
         automated:
           selfHeal: true
