@@ -54,7 +54,7 @@ spec:
         argocd.argoproj.io/skip-reconcile: "true"
       labels:
         apps.open-cluster-management.io/pull-to-ocm-managed-cluster: "true"
-        sync-phase: "{{ .sync-phase }}"
+        sync-phase: "{{ .syncPhase }}"
       name: '{{ .path.basename }}'
     spec:
       destination:
