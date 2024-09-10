@@ -44,12 +44,12 @@ spec:
           configMapRef: acm-placement
           labelSelector:
             matchLabels:
-              cluster.open-cluster-management.io/placement: "{{placement}}"
+              cluster.open-cluster-management.io/placement: "{{ .placement }}"
           requeueAfterSeconds: 30
   template:
     metadata:
       annotations:
-        apps.open-cluster-management.io/ocm-managed-cluster: '{{.clusterName}}'
+        apps.open-cluster-management.io/ocm-managed-cluster: '{{ .clusterName }}'
         apps.open-cluster-management.io/ocm-managed-cluster-app-namespace: openshift-gitops
         argocd.argoproj.io/skip-reconcile: "true"
       labels:
