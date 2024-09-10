@@ -52,11 +52,11 @@ spec:
       project: default
       helm:
         values:
-          placement: {{ .placement }}
-          namespace: {{ .namespace }}
+          placement: "{{ .placement }}"
+          namespace: "{{ .namespace }}"
           path:
-            path: {{ .path.path }}
-            basename: {{ .path.basename }}
+            path: "{{ .path.path }}"
+            basename: "{{ .path.basename }}"
       path: ./helm-charts/appset-app-of-app
       repoURL: ${INFRA_GITOPS_REPO}
       targetRevision: HEAD
