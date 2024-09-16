@@ -8,5 +8,5 @@ roleRef:
   name: system:openshift:scc:nonroot-v2
 subjects:
 - kind: ServiceAccount
-  name: acmo
+  name: acmo-sa
   namespace: open-cluster-management-observability
