@@ -37,7 +37,7 @@ applications:
     destination:
       namespace: netapp-trident
     source:
-      path: misc4.0/etl/etl4/components/trident-operator
+      path: components/trident-operator
 
   trident-configuration:
     annotations:
@@ -46,7 +46,7 @@ applications:
     destination:
       namespace: netapp-trident
     source:
-      path: misc4.0/etl/etl4/components/trident-configuration
+      path: components/trident-configuration
 
   minio-operator:
     annotations:
@@ -55,7 +55,7 @@ applications:
     destination:
       namespace: minio-operator           
     source:
-      path: misc4.0/etl/etl4/components/minio-operator      
+      path: components/minio-operator      
 
 
                           
