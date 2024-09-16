@@ -1,0 +1,18 @@
+tenant:
+  configSecret:
+    name: acm-observability-env-configuration
+    accessKey: acmo 
+    secretKey: acmoacmo  
+  configuration:
+    name: acm-observability-env-configuration
+  name: acmo  
+  pools:
+    - name: pool-0
+      servers: 1
+  buckets:
+    - name: acmo
+      objectLock: false
+  certificate:    
+    requestAutoCert: false         
+
+                        

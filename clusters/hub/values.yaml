@@ -37,7 +37,14 @@ applications:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '25'
     source:
-      path: components/acm-configuration  
+      path: components/acm-configuration
+
+  acm-observability:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '25'
+    source:
+      path: components/acm-observability        
 
 # Storage
 
