@@ -1,0 +1,13 @@
+apiVersion: operator.openshift.io/v1
+kind: Console
+metadata:
+  annotations:
+    argocd.argoproj.io/sync-options: Delete=false,ServerSideApply=true
+  name: cluster
+spec:
+  plugins:
+  - gitops-plugin
+  - monitoring-plugin
+  - acm
+  - mce
+  - forklift-console-plugin

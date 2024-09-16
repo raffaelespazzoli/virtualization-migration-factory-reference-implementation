@@ -3,6 +3,17 @@ projects: {}
 
 applications: 
 
+# Basics
+
+  openshift-config:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: openshift-config      
+    source:
+      path: components/opensift-config
+
 # ACM
   acm-operator:
     annotations:
