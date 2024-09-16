@@ -6,7 +6,7 @@ metadata:
     {{- toYaml . | nindent 4 }}
     {{- end }}
     name: {{ .Release.Name }}
-    cluster.open-cluster-management.io/clusterset: 'production'
+    cluster.open-cluster-management.io/clusterset: {{ .Values.clusterSet }}
     {{- include "cluster-registration.labels" . | nindent 4 }}
   name: {{ .Release.Name }}  
 spec:

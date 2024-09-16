@@ -11,7 +11,13 @@ spec:
       labelSelector:
         matchExpressions:
         - key: gitops
-          operator: Exists
+          operator: In
+          values:
+            - deploy
+        - key: local-cluster
+          operator: NotIn
+          values:
+          - "true"
 ---
 apiVersion: policy.open-cluster-management.io/v1
 kind: PlacementBinding
