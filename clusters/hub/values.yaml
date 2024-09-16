@@ -12,7 +12,7 @@ applications:
     destination:
       namespace: openshift-config      
     source:
-      path: components/opensift-config
+      path: components/openshift-config
 
 # ACM
   acm-operator:
