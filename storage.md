@@ -13,3 +13,7 @@ The cluster default storage class is set on the NAS (NFS in NEtApp) and the Open
 Many components of this setup require also object storage. For that we used Minio and deployed the [minio operator](./components/minio-operator/). Every time we need to deploy a bucket we will use the Minio Tenant helm chart to do so.
 
 In your setup you'll have to discuss with your customer on how to procure object storage and replace the Minio Tenant-provided buckets with something else.
+
+Components that use a object storage:
+
+- [acm-observability](./components/acm-observability/)

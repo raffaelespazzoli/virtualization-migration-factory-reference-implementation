@@ -44,7 +44,15 @@ applications:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '25'
     source:
-      path: components/acm-observability        
+      path: components/acm-observability
+
+  gitops-boostrap-policy:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    namespace: acm-policies  
+    source:
+      path: components/gitops-boostrap-policy
 
 # Storage
 

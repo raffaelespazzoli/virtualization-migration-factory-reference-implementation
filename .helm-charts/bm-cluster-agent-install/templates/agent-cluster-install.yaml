@@ -1,0 +1,24 @@
+apiVersion: extensions.hive.openshift.io/v1beta1
+kind: AgentClusterInstall
+metadata:
+  name: '{{ .Release.Name }}'
+  labels:
+    agentclusterinstalls.extensions.hive.openshift.io/location: {{ .Values.location }}
+    {{- include "bm-cluster-agent-install.labels" . | nindent 4 }}
+spec:
+  clusterDeploymentRef:
+    name: '{{ .Release.Name }}'
+  #holdInstallation: false
+  provisionRequirements:
+    workerAgents: {{. Values.workerNumber }}
+    controlPlaneAgents: 3
+  imageSetRef:
+    name: {{. Values.imageSet }}
+  networking:
+    clusterNetwork:
+    - cidr: {{ .Values.networking.podCIDR }}
+      hostPrefix: {{ .Values.networking.hostPrefix }}
+    serviceNetwork:
+    - {{ .Values.networking.serviceCIDR }}
+  ingressVIP: {{ .Values.networking.ingressVIP }}
+  apiVIP: {{ .Values.networking.apiVIP }}

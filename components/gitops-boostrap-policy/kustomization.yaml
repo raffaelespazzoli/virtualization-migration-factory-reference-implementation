@@ -1,0 +1,9 @@
+namespace: acm-policies
+
+resources:
+- namespace.yaml
+- placement.yaml
+- managedclustersetbinding.yaml
+
+generators:
+- policy-generator-config.yaml

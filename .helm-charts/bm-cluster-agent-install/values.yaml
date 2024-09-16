@@ -1,0 +1,11 @@
+location: mylab
+workerNumber: 0
+imageSet: none
+clusterSet: default
+sshKey: none
+networking:
+  podCIDR: 0.0.0.0/0
+  serviceCIDR: 0.0.0.0/0
+  hostPrefix: 24
+  ingressVIP: "0.0.0.0"
+  apiVIP: "0.0.0.0"
