@@ -32,7 +32,7 @@ We can see that we will have three clusters:
 
 ## GitOps Approach
 
-This repository uses the [ACM Pull model](https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.11/html/gitops/gitops-overview#arch-pull) approach for controlling the configuration.
+This repository uses the [CoP ArgoCD Model](https://github.com/redhat-cop/gitops-standards-repo-template) approach for controlling the configuration.
 Each configuration folder that contains non-trivial configuration, will have a short readme explaining the configuration and pointing out the expected customization expected when running in a different environment.
 
 ## Cluster Provisioning
@@ -45,7 +45,7 @@ This repository will configure the following networks:
 
 1. node network. This network is realized with the bonding of two NICs fir HA.
 2. storage network. Also this network is realized with the bonding of two NICs.
-3. Virtual Machine network. This is where all of the VM networks (VLANs) will live. This network is on a single NIC for limitations due to the hardware available, but in a well-arhcietcted installation this network would also be build on a bond.
+3. Virtual Machine network. This is where all of the VM networks (VLANs) will live. This network is on a single NIC for limitations due to the hardware available, but in a well-architected installation this network would also be build on a bond.
 
 The networking setup will look similar to the following image:
 

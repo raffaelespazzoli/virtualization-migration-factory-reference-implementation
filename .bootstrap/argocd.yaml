@@ -528,21 +528,9 @@ spec:
     sidecarContainers:
       - name: setenv-plugin
         command: [/var/run/argocd/argocd-cmp-server]
-        env:
-          - name: KUSTOMIZE_PLUGIN_HOME
-            value: /etc/kustomize/plugin
-          - name: CLUSTER_NAME
-            value: '${cluster_name}'
-          - name: CLUSTER_BASE_DOMAIN
-            value: '${cluster_base_domain}'
-          # all created clusters base domain should be <cluster-name>.<PLATFORM_BASE_DOMAIN> 
-          - name: PLATFORM_BASE_DOMAIN
-            value: '${platform_base_domain}'
-          - name: HUB_BASE_DOMAIN
-            value: '${cluster_base_domain}'
-          - name: INFRA_GITOPS_REPO
-            value: '${gitops_repo}'                                                           
-        # image: quay.io/gnunn/tools:latest
+        envFrom:
+        - configMapRef:
+            name: environment-variables
         image: quay.io/raffaelespazzoli/raffa-envsub:latest
         imagePullPolicy: Always
         securityContext:
@@ -645,4 +633,18 @@ data:
           - "set -o pipefail && kustomize build --load-restrictor LoadRestrictionsNone --enable-helm --enable-alpha-plugins . | envsub"
       discover:
         find:
-          command: [sh, -c, 'find . -maxdepth 1 -name kustomization.yaml']      
+          command: [sh, -c, 'find . -maxdepth 1 -name kustomization.yaml']   
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: environment-variables
+  namespace: openshift-gitops
+data:
+  KUSTOMIZE_PLUGIN_HOME: /etc/kustomize/plugin
+  CLUSTER_NAME: '${cluster_name}'
+  CLUSTER_BASE_DOMAIN: '${cluster_base_domain}'
+          # all created clusters base domain should be <cluster-name>.<PLATFORM_BASE_DOMAIN> 
+  PLATFORM_BASE_DOMAIN: '${platform_base_domain}'
+  HUB_BASE_DOMAIN: '${cluster_base_domain}'
+  INFRA_GITOPS_REPO: '${gitops_repo}'              
