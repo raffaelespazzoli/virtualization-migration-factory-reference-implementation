@@ -66,6 +66,7 @@ applications:
       argocd.argoproj.io/sync-wave: '5'
     destination:
       namespace: aap
+    source:      
       path: components/aap-operator
 
   aap-configuration:
@@ -85,6 +86,7 @@ applications:
       argocd.argoproj.io/sync-wave: '5'
     destination:
       namespace: openshift-mtv
+    source:
       path: components/mtv-operator
 
   mtv-configuration:
