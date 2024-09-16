@@ -1,3 +1,0 @@
-namespace: openshift-keda
-syncPhase: operator
-placement: all-clusters

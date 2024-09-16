@@ -3,7 +3,12 @@ A well-architected virtualization migration factory deployment aimed at making i
 
 ## TL/DR Getting started 
 
-Run the following:
+You will have to customize the following before you can get started:
+
+- The storage layer, see more [here](#storage-architecture) and [here](./storage.md)
+- more
+
+Once you have performed the above customization you can run the following:
 
 ```sh
 export gitops_repo=https://github.com/raffaelespazzoli/virtualization-migration-factory-reference-implementation.git #<your newly created repo>
@@ -78,6 +83,8 @@ The component that depend on storage will use the default storage class. So it i
 
 - cluster default storage class: `storageclass.kubernetes.io/is-default-class: "true"`
 - OpenShift Virtualization default storage class: `storageclass.kubevirt.io/is-default-virt-class: "true"`
+
+For more information about the storage setup for this particular repo see here.
 
 ## VM Backup and Restore
 
