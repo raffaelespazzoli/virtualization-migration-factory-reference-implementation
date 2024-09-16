@@ -57,13 +57,24 @@ With the exception that we didn't create a network dedicated to VLAN migration. 
 
 Typically customer attach their VMs to a SAN system. This repository assumes you have a SAN system and we used NetApp. You will have to customize this repository to use your customer's particular setup.
 
-Storage can be setup using one of the following three approaches:
+Storage can be setup using either a direct CSI driver or a SDS approach:
 
-![storage](media/storage.png)
+| Approach | Pros | Cons |
+| :-------- | :------- | :------- |
+| CSI Driver | - Kubernetes Native</br> - Can leverage the full SAN product capabilities | - CSI drivers not always ready (buggy, untested at scale, not having the features  needed for KubeVirt) </br> - Some SANs can only support a limited number of LUNs </br> - Some storage organizations do not want to give OCP credentials to provision LUNs |
+| SDS | - Same behavior irrespective of the underlying SAN </br> - SDS solutions work typically well with KubeVirt | - Additional licensing costs </br> - Additional latency </br> - Write amplification: SDSs write the same data multiple times (ODF 3 times), increasing the storage needed on the SAN. This jeopardizes the migration business case |
 
-We will implement all of them (the one based on KubeSAN, when it becomes available) as multiple storage systems can coexist, making easier for the implementer to pick the one suitable for a particular deployment.
+CSI Driver architecture
 
-The component that depend on storage will use the default storage class. So it is reccommeded to configure one before starting the deployment. As a reminder these annotation determine the default storage classes:
+![csi](media/csi.drawio.png)
+
+SDS architecture
+
+![sds](media/sds.drawio.png)
+
+We will implement both of them as multiple storage systems can coexist, making easier for the implementer to pick the one suitable for a particular deployment.
+
+The component that depend on storage will use the default storage class. So it is recommended to configure one before starting the deployment. As a reminder these annotation determine the default storage classes:
 
 - cluster default storage class: `storageclass.kubernetes.io/is-default-class: "true"`
 - OpenShift Virtualization default storage class: `storageclass.kubevirt.io/is-default-virt-class: "true"`
