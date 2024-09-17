@@ -4,6 +4,7 @@ metadata:
   name: {{ .Release.Name }}
   labels:
     agentclusterinstalls.extensions.hive.openshift.io/location: {{ .Values.location }}
+    networkType: static
     {{- include "bm-cluster-agent-install.labels" . | nindent 4 }}    
 spec:
   agentLabels:
