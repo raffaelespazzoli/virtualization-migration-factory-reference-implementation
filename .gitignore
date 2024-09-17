@@ -1,0 +1,2 @@
+clusters/hub/overlays/cluster-etl6/pull-secret.yaml
+clusters/hub/overlays/cluster-etl6/bmc-credentials-secret.yaml

@@ -4,6 +4,7 @@ metadata:
   annotations:
     agentBareMetal-agentSelector/autoSelect: "true"
     agentBareMetal-cpuArchitecture: x86_64
+    hive.openshift.io/cluster-platform: agent-baremetal
   labels:
     "cluster.open-cluster-management.io/clusterset": {{ .Values.clusterSet }}
     {{- include "bm-cluster-agent-install.labels" . | nindent 4 }} 

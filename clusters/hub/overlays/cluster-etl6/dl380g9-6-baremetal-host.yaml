@@ -11,8 +11,8 @@ metadata:
 spec:
   automatedCleaningMode: metadata
   bmc:
-    address: "idrac-virtualmedia://10.9.48.216/redfish/v1/Systems/System.Embedded.1"
-    credentialsName: etl6-drac-credentials
+    address: "redfish+http://10.9.48.216/redfish/v1/Systems/1"
+    credentialsName: bmc-credentials
     disableCertificateVerification: true
   bootMACAddress: 78:AC:44:38:30:FD
   online: true
