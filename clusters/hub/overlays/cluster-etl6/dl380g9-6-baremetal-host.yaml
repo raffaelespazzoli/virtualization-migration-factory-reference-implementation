@@ -11,7 +11,7 @@ metadata:
 spec:
   automatedCleaningMode: metadata
   bmc:
-    address: "redfish+http://10.9.48.216/redfish/v1/Systems/1"
+    address: "redfish://10.9.48.216/redfish/v1/Systems/1/"
     credentialsName: bmc-credentials
     disableCertificateVerification: true
   bootMACAddress: 00:11:0a:68:06:20
