@@ -1,0 +1,18 @@
+apiVersion: metal3.io/v1alpha1
+kind: BareMetalHost
+metadata:
+  annotations:
+    bmac.agent-install.openshift.io/hostname: dl380g9-7.etl6.ocp.rht-labs.com
+    bmac.agent-install.openshift.io/role: master
+  labels:
+    infraenvs.agent-install.openshift.io: etl6
+    cluster-name: etl6
+  name: dl380g9-7
+spec:
+  automatedCleaningMode: metadata
+  bmc:
+    address: "idrac-virtualmedia://10.9.48.217/redfish/v1/Systems/System.Embedded.1"
+    credentialsName: etl6-drac-credentials
+    disableCertificateVerification: true
+  bootMACAddress: E4:43:4B:4E:3F:8D
+  online: true

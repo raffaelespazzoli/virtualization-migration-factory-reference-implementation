@@ -1,0 +1,117 @@
+apiVersion: agent-install.openshift.io/v1beta1
+kind: NMStateConfig
+metadata:
+  labels:
+    infraenvs.agent-install.openshift.io: etl6
+  name: dl380g9-5
+  namespace: etl6
+spec:
+  config:
+    dns-resolver:
+      config:
+        server:
+          - 10.9.48.31
+          - 10.9.48.32
+    interfaces:
+      - ipv4:
+          address:
+            - ip: 10.9.52.135
+              prefix-length: 25
+          dhcp: false
+          enabled: true
+        ipv6:
+          enabled: false
+        link-aggregation:
+          mode: 802.3ad
+          options:
+            miimon: '100'
+          port:
+            - ens6f0
+            - ens6f1
+        name: bond0
+        state: up
+        type: bond
+      - ipv4:
+          address:
+            - ip: 192.168.52.135
+              prefix-length: 25
+          dhcp: false
+          enabled: true
+        name: bond0.3522
+        state: up
+        type: vlan
+        vlan:
+          base-iface: bond0
+          id: 3522
+      - ipv4:
+          dhcp: false
+          enabled: false
+        ipv6:
+          enabled: false
+        mac-address: '00:11:0a:6a:27:74'
+        name: ens6f0
+        state: up
+        type: ethernet
+      - ipv4:
+          dhcp: false
+          enabled: false
+        ipv6:
+          enabled: false
+        mac-address: '00:11:0a:6a:27:75'
+        name: ens6f1
+        state: up
+        type: ethernet
+      - ipv4:
+          dhcp: false
+          enabled: false
+        ipv6:
+          enabled: false
+        mac-address: '30:e1:71:63:d6:4c'
+        name: eno1
+        state: down
+        type: ethernet
+      - ipv4:
+          dhcp: false
+          enabled: false
+        ipv6:
+          enabled: false
+        mac-address: '30:e1:71:63:d6:4d'
+        name: eno2
+        state: down
+        type: ethernet
+      - ipv4:
+          dhcp: false
+          enabled: false
+        ipv6:
+          enabled: false
+        mac-address: '30:e1:71:63:d6:4e'
+        name: eno3
+        state: down
+        type: ethernet
+      - ipv4:
+          dhcp: false
+          enabled: false
+        ipv6:
+          enabled: false
+        mac-address: '30:e1:71:63:d6:4f'
+        name: eno4
+        state: down
+        type: ethernet                
+    routes:
+      config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 10.9.52.129
+          next-hop-interface: bond0
+  interfaces:
+    - macAddress: '00:11:0a:6a:27:74'
+      name: ens6f0
+    - macAddress: '00:11:0a:6a:27:75'
+      name: ens6f1
+    - macAddress: '30:e1:71:63:d6:4c'
+      name: eno1
+    - macAddress: '30:e1:71:63:d6:4d'
+      name: eno2
+    - macAddress: '30:e1:71:63:d6:4e'
+      name: eno3
+    - macAddress: '30:e1:71:63:d6:4f'
+      name: eno4           
