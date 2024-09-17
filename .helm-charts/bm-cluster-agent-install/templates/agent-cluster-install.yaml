@@ -13,7 +13,7 @@ spec:
     workerAgents: {{. Values.workerNumber }}
     controlPlaneAgents: 3
   imageSetRef:
-    name: {{. Values.imageSet }}
+    name: {{ .Values.imageSet }}
   networking:
     clusterNetwork:
     - cidr: {{ .Values.networking.podCIDR }}
