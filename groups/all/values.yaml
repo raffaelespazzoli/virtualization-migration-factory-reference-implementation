@@ -62,6 +62,15 @@ applications:
 
 # Observability
 
+  kube-ops-view:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: kube-ops-view
+    source:
+      path: components/kube-ops-view 
+
   loki-operator:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
