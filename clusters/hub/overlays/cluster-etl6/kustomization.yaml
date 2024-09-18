@@ -5,7 +5,10 @@ resources:
   - ./dl380g9-7-baremetal-host.yaml
   - ./dl380g9-5-nmstate-config.yaml
   - ./dl380g9-6-nmstate-config.yaml
-  - ./dl380g9-7-nmstate-config.yaml      
+  - ./dl380g9-7-nmstate-config.yaml
+  - ./dl380g9-5-fqdn.yaml
+  - ./dl380g9-6-fqdn.yaml
+  - ./dl380g9-7-fqdn.yaml         
 
 helmGlobals:
   chartHome: ../../../../.helm-charts

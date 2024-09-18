@@ -1,0 +1,21 @@
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: {{.Release.name}}-dns-entries
+spec:
+  endpoints:
+  - dnsName: api.{{.Release.Name}}.${PLATFORM_BASE_DOMAIN}
+    recordTTL: 180
+    recordType: A
+    targets:
+    - {{.Values.networking.apiVIP}}
+  - dnsName: api-int.{{.Release.Name}}.${PLATFORM_BASE_DOMAIN}
+    recordTTL: 180
+    recordType: A
+    targets:
+    - {{.Values.networking.apiVIP}}
+  - dnsName: '*.apps.{{.Release.Name}}.${PLATFORM_BASE_DOMAIN}'
+    recordTTL: 180
+    recordType: A
+    targets:
+    - {{.Values.networking.ingressVIP}}        

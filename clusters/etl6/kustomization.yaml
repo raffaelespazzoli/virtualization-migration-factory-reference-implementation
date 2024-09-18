@@ -3,7 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../groups/all
-  - ./../groups/prod
+  - ../../groups/prod
 
 helmGlobals:
   chartHome: ../../.helm-charts

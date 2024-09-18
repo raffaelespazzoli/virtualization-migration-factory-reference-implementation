@@ -1,0 +1,12 @@
+---
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: dl380g9-7-dns-entry
+spec:
+  endpoints:
+  - dnsName: dl380g9-7.etl6.${PLATFORM_BASE_DOMAIN}
+    recordTTL: 180
+    recordType: A
+    targets:
+    - 10.9.52.137
