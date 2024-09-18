@@ -10,7 +10,7 @@ spec:
     name: '{{ .Release.Name }}'
   #holdInstallation: false
   provisionRequirements:
-  {{- if gt (atoi .Values.workerNumber) 0 }}
+  {{- if gt (int .Values.workerNumber) 0 }}
     workerAgents: {{ .Values.workerNumber }}
   {{- end }}  
     controlPlaneAgents: 3
