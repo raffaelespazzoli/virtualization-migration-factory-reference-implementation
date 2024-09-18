@@ -80,6 +80,24 @@ applications:
     source:
       path: components/loki-logging-configuration
 
+  openshift-logging-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5' 
+    destination:
+      namespace: openshift-logging           
+    source:
+      path: components/openshift-logging-operator              
+
+  openshift-logging-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15' 
+    destination:
+      namespace: openshift-logging           
+    source:
+      path: components/openshift-logging-configuration      
+
 # Networking
 
   cert-manager-operator:
