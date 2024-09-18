@@ -1,7 +1,7 @@
 apiVersion: externaldns.k8s.io/v1alpha1
 kind: DNSEndpoint
 metadata:
-  name: {{.Release.name}}-dns-entries
+  name: {{.Release.Name }}-dns-entries
 spec:
   endpoints:
   - dnsName: api.{{.Release.Name}}.${PLATFORM_BASE_DOMAIN}
