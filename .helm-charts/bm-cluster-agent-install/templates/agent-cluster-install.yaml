@@ -10,7 +10,9 @@ spec:
     name: '{{ .Release.Name }}'
   #holdInstallation: false
   provisionRequirements:
+  {{- if gt .Values.workerNumber 0 }}
     workerAgents: {{ .Values.workerNumber }}
+  {{- end }}  
     controlPlaneAgents: 3
   imageSetRef:
     name: {{ .Values.imageSet }}
