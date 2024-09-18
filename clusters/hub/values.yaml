@@ -12,7 +12,18 @@ applications:
     destination:
       namespace: openshift-config      
     source:
-      path: components/openshift-config
+      path: clusters/hub/overlays/openshift-config
+
+# Networking
+
+  metallb-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '6'
+    destination:
+      namespace: metallb-system
+    source:
+      path: clusters/hub/overlays/metallb-configuration 
 
 # ACM
   acm-operator:
@@ -53,35 +64,6 @@ applications:
     namespace: acm-policies  
     source:
       path: components/gitops-boostrap-policy
-
-# Storage
-
-  trident-operator:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '5'
-    destination:
-      namespace: netapp-trident
-    source:
-      path: components/trident-operator
-
-  trident-configuration:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '6'
-    destination:
-      namespace: netapp-trident
-    source:
-      path: components/trident-configuration
-
-  minio-operator:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '5' 
-    destination:
-      namespace: minio-operator           
-    source:
-      path: components/minio-operator  
 
 
 # AAP          

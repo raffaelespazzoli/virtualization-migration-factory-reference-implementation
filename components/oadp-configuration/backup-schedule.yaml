@@ -1,0 +1,15 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: vm-backup-schedule
+  namespace: openshift-adp
+spec:
+  schedule: 0 * * * *
+  template:
+    hooks: {}
+    includedNamespaces:
+    - vm-tests
+    storageLocation: dpa-1 
+    defaultVolumesToFsBackup: false 
+    ttl: 720h0m0s
+    snapshotMoveData: true

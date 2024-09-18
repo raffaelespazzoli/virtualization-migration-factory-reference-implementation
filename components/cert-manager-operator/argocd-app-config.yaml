@@ -1,3 +1,0 @@
-namespace: cert-manager
-syncPhase: operator
-placement: local-only

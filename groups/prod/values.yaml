@@ -1,3 +1,57 @@
-applications: {}           
+applications:     
+
+# Basic
+
+  openshift-config:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: openshift-config      
+    source:
+      path: clusters/hub/overlays/openshift-config
+
+
+## Virtualization
+
+  openshift-virtualization:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: openshift-cnv
+    source:
+      path: components/openshift-virtualization-operator
+
+  hyperconverged-instance:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: openshift-cnv
+    source:
+      path: components/openshift-virtualization-instance
+
+
+
+## Backup and DR
+
+  oadp-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: openshift-adp
+    source:
+      path: components/oadp-operator
+
+  oadp-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: openshift-adp
+    source:
+      path: components/oadp-configuration
 
       

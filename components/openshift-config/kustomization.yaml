@@ -3,8 +3,11 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 commonAnnotations:
-  argocd.argoproj.io/compare-options: IgnoreExtraneous
+  argocd.argoproj.io/compare-options: IgnoreExtraneous  
 
 resources:
   - ./olm-patch.yaml
-  - ./console-patch.yaml
+  - ./admin-role-binding.yaml
+  - ./admin-group.yaml
+  - ./ingress-controller-patch.yaml
+  - ./cluster-ingress-certificate.yaml  
