@@ -12,3 +12,4 @@ spec:
   - mce
   - forklift-console-plugin
   - nmstate-console-plugin
+  - logging-view-plugin
