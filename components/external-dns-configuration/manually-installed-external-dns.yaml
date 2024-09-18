@@ -30,7 +30,10 @@ rules:
   verbs:
   - get
   - list
-  - watch  
+  - watch
+- apiGroups: ["externaldns.k8s.io"]
+  resources: ["dnsendpoints/status"]
+  verbs: ["*"]    
 ---
 apiVersion: v1
 kind: ServiceAccount
