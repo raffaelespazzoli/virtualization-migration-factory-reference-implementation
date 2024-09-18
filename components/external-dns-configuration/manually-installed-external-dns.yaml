@@ -89,4 +89,4 @@ spec:
         - --rfc2136-tsig-axfr
         - --source=service
         - --source=crd
-        - --domain-filter=${CLUSTER_BASE_DOMAIN}
+        - --domain-filter=${PLATFORM_BASE_DOMAIN}
