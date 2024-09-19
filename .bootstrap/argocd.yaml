@@ -661,6 +661,11 @@ kind: ConfigMap
 metadata:
   name: environment-variables
   namespace: openshift-gitops
+  annotations:  
+    reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+    reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: "acm-policies"
+    reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
+    reflector.v1.k8s.emberstack.com/reflection-auto-namespaces: "acm-policies"
 data:
   KUSTOMIZE_PLUGIN_HOME: /etc/kustomize/plugin
   CLUSTER_NAME: '${cluster_name}'

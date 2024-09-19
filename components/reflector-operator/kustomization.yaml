@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: reflector-operator
+
+resources:
+  - ./namespace.yaml
+  - ./rbac.yaml
+
+helmCharts:
+  - name: reflector
+    namespace: reflector-operator
+    releaseName: reflector-operator
+    repo: https://emberstack.github.io/helm-charts

@@ -14,6 +14,15 @@ applications:
     source:
       path: clusters/hub/overlays/openshift-config
 
+  reflector-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: reflector-operator      
+    source:
+      path: components/reflector-operator      
+
 # Networking
 
   metallb-configuration:

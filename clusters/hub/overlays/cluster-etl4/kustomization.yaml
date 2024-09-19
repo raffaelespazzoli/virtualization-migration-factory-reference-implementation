@@ -1,0 +1,10 @@
+resources:
+  - ./namespace.yaml        
+
+helmGlobals:
+  chartHome: ../../../../.helm-charts
+
+helmCharts:      
+  - name: cluster-registration
+    releaseName: etl6
+    namespace: etl6 
