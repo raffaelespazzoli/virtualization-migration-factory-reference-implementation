@@ -32,7 +32,16 @@ applications:
     destination:
       namespace: metallb-system
     source:
-      path: clusters/hub/overlays/metallb-configuration 
+      path: clusters/hub/overlays/metallb-configuration
+
+  nmstate-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '6'
+    destination:
+      namespace: metallb-system
+    source:
+      path: clusters/hub/overlays/nmstate-configuration       
 
 # ACM
   acm-operator:

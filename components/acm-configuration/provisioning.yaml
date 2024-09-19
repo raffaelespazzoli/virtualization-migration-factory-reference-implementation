@@ -6,3 +6,10 @@ metadata:
     argocd.argoproj.io/sync-options: ServerSideApply=true
 spec:
   watchAllNamespaces: true
+  virtualMediaViaExternalNetwork: true
+  provisioningNetwork: Managed
+  disableVirtualMediaTLS: true
+  provisioningInterface: br-ex.502
+  provisioningIP: "172.18.101.5"
+  provisioningDHCPRange: "172.18.101.50,172.18.101.75"
+  provisioningNetworkCIDR: "172.18.101.0/24"  

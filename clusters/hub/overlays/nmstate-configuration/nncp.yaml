@@ -1,0 +1,17 @@
+apiVersion: nmstate.io/v1
+kind: NodeNetworkConfigurationPolicy
+metadata:
+  name: provisioning-network-vlan 
+spec:
+  nodeSelector:
+    node-role.kubernetes.io/worker: '' 
+  desiredState:
+    interfaces:
+    - name: br-ex.502
+      description: |-
+        A dedicated vlan interface for the provisioning network. IP will be assigned by the provisioning CR.
+      type: vlan
+      state: up
+      vlan:
+        base-iface: br-ex
+        id: 502

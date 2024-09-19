@@ -14,11 +14,8 @@ spec:
           - 10.9.48.32
     interfaces:
       - ipv4:
-          address:
-            - ip: 10.9.52.136
-              prefix-length: 25
           dhcp: false
-          enabled: true
+          enabled: false
         ipv6:
           enabled: false
         link-aggregation:
@@ -31,6 +28,18 @@ spec:
         name: bond0
         state: up
         type: bond
+      - ipv4:
+          address:
+            - ip: 10.9.52.136
+              prefix-length: 25
+          dhcp: false
+          enabled: true
+        name: bond0.2522
+        state: up
+        type: vlan
+        vlan:
+          base-iface: bond0
+          id: 2522        
       - ipv4:
           address:
             - ip: 192.168.52.136
