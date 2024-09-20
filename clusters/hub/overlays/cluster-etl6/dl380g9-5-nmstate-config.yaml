@@ -57,7 +57,7 @@ spec:
           enabled: false
         ipv6:
           enabled: false
-        mac-address: '00:11:0a:6a:27:74'
+        mac-address: '0:e1:71:66:0c:64'
         name: ens6f0
         state: up
         type: ethernet
@@ -66,7 +66,7 @@ spec:
           enabled: false
         ipv6:
           enabled: false
-        mac-address: '00:11:0a:6a:27:75'
+        mac-address: '0:e1:71:66:0c:65'
         name: ens6f1
         state: up
         type: ethernet
@@ -112,9 +112,9 @@ spec:
           next-hop-address: 10.9.52.129
           next-hop-interface: bond0.2522
   interfaces:
-    - macAddress: '00:11:0a:6a:27:74'
+    - macAddress: '30:e1:71:66:0c:64'
       name: ens6f0
-    - macAddress: '00:11:0a:6a:27:75'
+    - macAddress: '0:e1:71:66:0c:65'
       name: ens6f1
     - macAddress: '30:e1:71:63:d6:4c'
       name: eno1
