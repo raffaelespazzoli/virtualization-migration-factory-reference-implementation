@@ -4,3 +4,5 @@ kind: Kustomization
 resources: 
 - agent-service-config.yaml
 - provisioning.yaml
+- hive-config.yaml
+- lets-encrypt-ca-secret.yaml
