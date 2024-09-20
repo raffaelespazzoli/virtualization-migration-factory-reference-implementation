@@ -32,6 +32,6 @@ create the secret
 
 ```sh
 oc new-project etl6
-oc apply -f ./bmc-credentials-secret.yaml
-oc apply -f ./pull-secret.yaml
+oc apply -f ./bmc-credentials-secret.yaml -n etl6
+oc apply -f ./pull-secret.yaml -n etl6
 ```
