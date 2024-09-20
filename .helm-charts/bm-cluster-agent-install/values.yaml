@@ -3,7 +3,7 @@ workerNumber: 0
 imageSet: none
 clusterSet: default
 sshKey: none
-mastersShedulable: false
+mastersSchedulable: false
 networking:
   podCIDR: 0.0.0.0/0
   serviceCIDR: 0.0.0.0/0
