@@ -25,4 +25,4 @@ spec:
   ingressVIP: {{ .Values.networking.ingressVIP }}
   apiVIP: {{ .Values.networking.apiVIP }}
   sshPublicKey: {{ .Values.sshKey }}
-  masterShedulable: {{ .Values.masterSchedulable }}
+  mastersSchedulable: {{ .Values.mastersSchedulable }}
