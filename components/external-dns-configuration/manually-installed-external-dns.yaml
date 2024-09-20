@@ -79,7 +79,7 @@ spec:
         args:
         - --registry=txt
         - --txt-prefix=external-dns-
-        - --txt-owner-id=k8s
+        - --txt-owner-id=k8s-${CLUSTER_NAME}
         - --provider=rfc2136
         - --rfc2136-host=10.9.48.31
         - --rfc2136-port=53

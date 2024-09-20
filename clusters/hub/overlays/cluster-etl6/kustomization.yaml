@@ -21,6 +21,7 @@ helmCharts:
       location: oystein-lab
       workerNumber: 0
       imageSet: img4.16.11-x86-64-appsub
+      masterShedulable: true
       sshKey: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCWVnOEYFaN6tp/CXn5aBgD5YZbbwJHhUYbAahoGz3IbP8YZZwyBvJvgy9CujKTaIpZHweYRwMEtvPaX65g8AQDd8t6Gqc+JVJue6HTqrawH2wvq8Qdhip9L09fK2WqtP7UbVF+fgiwm9kebajkAqtlOttcdHipeRy5TGVE2hbV1zqc6UjTo6lKzxflm2Jd5EMc4TZCleSFApBod+jgFZoke/8Q/GHWyQs7YaoE3h/JND7z6aye5HoAPQBT18y/4Amwj7h2hIcIsSJ8JAHsOZ0NB4gz1qwpkG/dYAYV1iARM/+qnZ7EJAt4DofqUAS1/0BdXK+1RL8uI0db4r8U3pTe+oFGORQHRNa+ehDoX1PdOU+o59OmjEaJpcq0YRB3NqOwfZzATUfOqcZswH0xC6WKi/UknBFPgJv6JfD0+dee/kWTmgFrzT6Ie9hRql2bA+qjSoPfWzPk+Gv1Wuf6UGdC2DpKPO+vOhVzRtog/cvwjGSJv5p2X6biRGiYy8a0bX0= rspazzol@rspazzol
       networking:
         podCIDR: 10.128.0.0/14

@@ -44,6 +44,11 @@ Each configuration folder that contains non-trivial configuration, will have a s
 
 This repository uses a fully declarative cluster provisioning model. We use ACM and agent-based installer to achieve that.
 
+
+blockers to full end-to-end automation:
+https://issues.redhat.com/browse/ACM-2320
+https://issues.redhat.com/browse/MGMT-18974
+
 ## Networking Architecture
 
 This repository will configure the following networks:
