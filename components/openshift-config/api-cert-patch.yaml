@@ -1,0 +1,13 @@
+apiVersion: config.openshift.io/v1
+kind: APIServer
+metadata:
+  name: cluster
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true
+spec:
+  servingCerts:
+    namedCertificates:
+      - names:
+        - api.${CLUSTER_BASE_DOMAIN}
+        servingCertificate:
+          name: cluster-api-certs-tls

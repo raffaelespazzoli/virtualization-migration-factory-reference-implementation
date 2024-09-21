@@ -19,5 +19,5 @@ spec:
     disableCertificateVerification: true
   bootMACAddress: 00:11:0a:6a:27:75 
   online: true
-  rootDeviceHints:
-    model: "Smart Array"
+  # rootDeviceHints:
+  #   model: "Smart Array"
