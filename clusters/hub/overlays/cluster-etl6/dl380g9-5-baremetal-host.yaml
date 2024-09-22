@@ -1,4 +1,3 @@
----
 apiVersion: metal3.io/v1alpha1
 kind: BareMetalHost
 metadata:
@@ -6,7 +5,7 @@ metadata:
     bmac.agent-install.openshift.io/hostname: dl380g9-5.etl6.ocp.rht-labs.com
     bmac.agent-install.openshift.io/role: master
     bmac.agent-install.openshift.io/cluster-reference: etl6/etl6
-    inspect.metal3.io: disabled
+    inspect.metal3.io: enabled
   labels:
     infraenvs.agent-install.openshift.io: etl6
     cluster-name: etl6
@@ -19,5 +18,3 @@ spec:
     disableCertificateVerification: true
   bootMACAddress: 00:11:0a:6a:27:75 
   online: true
-  # rootDeviceHints:
-  #   model: "Smart Array"
