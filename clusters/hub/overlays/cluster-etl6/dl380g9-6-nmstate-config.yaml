@@ -22,6 +22,7 @@ spec:
           mode: 802.3ad
           options:
             miimon: '100'
+            primary: ens6f1
           port:
             - ens6f0
             - ens6f1
