@@ -10,5 +10,5 @@ resources:
   - ./admin-group.yaml
   - ./ingress-controller-patch.yaml
   - ./cluster-ingress-certificate.yaml
-  - ./api-cert.patch.yaml
+  - ./api-cert-patch.yaml
   - ./cluster-api-certificate.yaml
