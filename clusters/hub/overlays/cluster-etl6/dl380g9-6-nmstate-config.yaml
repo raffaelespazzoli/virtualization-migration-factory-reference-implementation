@@ -23,8 +23,8 @@ spec:
           options:
             miimon: '100'
           port:
+            - ens6f1          
             - ens6f0
-            - ens6f1
         name: bond0
         state: up
         type: bond
