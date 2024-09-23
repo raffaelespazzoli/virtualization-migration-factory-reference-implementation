@@ -10,7 +10,7 @@ metadata:
     {{- include "bm-cluster-agent-install.labels" . | nindent 4 }} 
   name: '{{ .Release.Name }}'
 spec:
-  baseDomain: practice.redhat.com
+  baseDomain: ${PLATFORM_BASE_DOMAIN}
   clusterInstallRef:
     group: extensions.hive.openshift.io
     kind: AgentClusterInstall

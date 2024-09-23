@@ -3,4 +3,5 @@ provider: BareMetal
 labels:
   cloud: BareMetal
   vendor: OpenShift
+  gitops: deploy
   
