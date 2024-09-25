@@ -1,0 +1,33 @@
+resources:
+  - ./namespace.yaml
+  - ./dl380g9-8-baremetal-host.yaml
+  - ./dl380g9-9-baremetal-host.yaml
+  - ./dl380g9-10-baremetal-host.yaml
+  - ./dl380g9-8-nmstate-config.yaml
+  - ./dl380g9-9-nmstate-config.yaml
+  - ./dl380g9-10-nmstate-config.yaml
+  - ./dl380g9-8-fqdn.yaml
+  - ./dl380g9-9-fqdn.yaml
+  - ./dl380g9-10-fqdn.yaml         
+
+helmGlobals:
+  chartHome: ../../../../.helm-charts
+
+helmCharts:
+  - name: bm-cluster-agent-install
+    releaseName: etl7
+    namespace: etl7
+    valuesInline:
+      location: oystein-lab
+      workerNumber: 0
+      imageSet: img4.16.11-x86-64-appsub
+      mastersSchedulable: true
+      sshKey: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCWVnOEYFaN6tp/CXn5aBgD5YZbbwJHhUYbAahoGz3IbP8YZZwyBvJvgy9CujKTaIpZHweYRwMEtvPaX65g8AQDd8t6Gqc+JVJue6HTqrawH2wvq8Qdhip9L09fK2WqtP7UbVF+fgiwm9kebajkAqtlOttcdHipeRy5TGVE2hbV1zqc6UjTo6lKzxflm2Jd5EMc4TZCleSFApBod+jgFZoke/8Q/GHWyQs7YaoE3h/JND7z6aye5HoAPQBT18y/4Amwj7h2hIcIsSJ8JAHsOZ0NB4gz1qwpkG/dYAYV1iARM/+qnZ7EJAt4DofqUAS1/0BdXK+1RL8uI0db4r8U3pTe+oFGORQHRNa+ehDoX1PdOU+o59OmjEaJpcq0YRB3NqOwfZzATUfOqcZswH0xC6WKi/UknBFPgJv6JfD0+dee/kWTmgFrzT6Ie9hRql2bA+qjSoPfWzPk+Gv1Wuf6UGdC2DpKPO+vOhVzRtog/cvwjGSJv5p2X6biRGiYy8a0bX0= rspazzol@rspazzol
+      networking:
+        podCIDR: 10.128.4.0/14
+        serviceCIDR: 172.31.0.0/16
+        ingressVIP: "10.9.53.6"
+        apiVIP: "10.9.53.5"      
+  - name: cluster-registration
+    releaseName: etl7
+    namespace: etl7 

@@ -12,5 +12,5 @@ We do a few things here.
 create the secret as follows:
 
 ```sh
-oc create secret opaque htpass-secret --from-file htpasswd -n openshift-config
+oc create secret generic htpass-secret --from-file htpasswd -n openshift-config
 ```
