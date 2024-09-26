@@ -110,7 +110,7 @@ spec:
       config:
         - destination: 0.0.0.0/0
           next-hop-address: 10.9.53.1
-          next-hop-interface: bond0.2522
+          next-hop-interface: bond0.2531
   interfaces:
     - macAddress: '00:11:0a:6b:b5:40'
       name: ens6f0
