@@ -23,8 +23,8 @@ spec:
           options:
             miimon: '100'
           port:
-            - ens6f1          
-            - ens6f0
+            - ens2f1          
+            - ens2f0
         name: bond0
         state: up
         type: bond
@@ -58,7 +58,7 @@ spec:
         ipv6:
           enabled: false
         mac-address: '00:11:0a:6a:65:b8'
-        name: ens6f0
+        name: ens2f0
         state: up
         type: ethernet
       - ipv4:
@@ -67,7 +67,7 @@ spec:
         ipv6:
           enabled: false
         mac-address: '00:11:0a:6a:65:b9'
-        name: ens6f1
+        name: ens2f1
         state: up
         type: ethernet
       - ipv4:
@@ -113,9 +113,9 @@ spec:
           next-hop-interface: bond0.2531
   interfaces:
     - macAddress: '00:11:0a:6a:65:b8'
-      name: ens6f0
+      name: ens2f0
     - macAddress: '00:11:0a:6a:65:b9'
-      name: ens6f1
+      name: ens2f1
     - macAddress: '30:e1:71:53:53:48'
       name: eno1
     - macAddress: '30:e1:71:53:53:49'
