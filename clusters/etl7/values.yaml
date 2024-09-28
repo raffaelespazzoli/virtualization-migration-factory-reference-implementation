@@ -8,4 +8,4 @@ applications:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     source:
-      path: clusters/etl7/nmstate-configuration
+      path: clusters/etl7/overlays/nmstate-configuration
