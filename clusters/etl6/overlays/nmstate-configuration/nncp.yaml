@@ -1,0 +1,34 @@
+apiVersion: nmstate.io/v1
+kind: NodeNetworkConfigurationPolicy
+metadata:
+  name: ovs-br1-multiple-networks 
+spec:
+  nodeSelector:
+    node-role.kubernetes.io/worker: '' 
+  desiredState:
+    interfaces:
+    - name: ovs-br1 
+      description: |-
+        A dedicated OVS bridge with bond0 as a port
+        allowing VLAN 1522
+      type: ovs-bridge
+      state: up
+      ipv4:
+        enabled: false 
+      ipv6:
+        enabled: false      
+      bridge:
+        allow-extra-patch-ports: true
+        options:
+          stp: 
+            enabled: false
+        port:
+        - name: bond0
+    ovn:
+      bridge-mappings:
+      - localnet: vlan-1522 
+        bridge: ovs-br1 
+        state: present
+
+
+

@@ -1,4 +1,11 @@
       
 projects: {}
 
-applications: {}                      
+applications:                      
+
+  nmstate-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    source:
+      path: clusters/etl7/nmstate-configuration
