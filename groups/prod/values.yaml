@@ -9,7 +9,7 @@ applications:
     destination:
       namespace: openshift-config      
     source:
-      path: clusters/hub/overlays/openshift-config
+      path: groups/prod/overlays/openshift-config
 
 
 ## Virtualization
