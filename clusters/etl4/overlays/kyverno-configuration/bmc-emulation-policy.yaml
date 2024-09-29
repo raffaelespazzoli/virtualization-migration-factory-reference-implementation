@@ -21,7 +21,8 @@ spec:
         patchStrategicMerge:
           spec:
             initContainers:
-              - image: "quay.io/metal3-io/sushy-tools:release-26.0"
+              - name: sushy-tools
+                image: "quay.io/metal3-io/sushy-tools:release-26.0"
                 imagePullPolicy: "IfNotPresent"
                 restartPolicy: Always
                 volumeMounts:
