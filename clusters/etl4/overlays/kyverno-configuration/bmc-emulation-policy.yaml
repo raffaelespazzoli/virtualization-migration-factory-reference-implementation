@@ -44,7 +44,7 @@ spec:
                   value: None
                 - name: SUSHY_EMULATOR_LIBVIRT_URI
                   #value: "qemu:///session"
-                  value: qemu+unix:///system?socket=/var/run/libvirt/virtqemud-sock
+                  value: qemu+unix:///session?socket=/var/run/libvirt/virtqemud-sock
                 - name: SUSHY_EMULATOR_IGNORE_BOOT_DEVICE
                   value: "True"
                 - name: SUSHY_EMULATOR_BOOT_LOADER_MAP
