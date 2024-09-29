@@ -43,7 +43,7 @@ spec:
                 - name: SUSHY_EMULATOR_OS_CLOUD
                   value: None
                 - name: SUSHY_EMULATOR_LIBVIRT_URI
-                  value: "qemu:///system"
+                  value: "qemu:///session"
                 - name: SUSHY_EMULATOR_IGNORE_BOOT_DEVICE
                   value: "True"
                 - name: SUSHY_EMULATOR_BOOT_LOADER_MAP
