@@ -12,4 +12,17 @@ helmCharts:
     repo: https://kyverno.github.io/kyverno
     valuesInline:
       config:
-        webhooks: [{"namespaceSelector":{"matchExpressions":[{"key":"openshift.io/cluster-monitoring","operator":"NotIn","values":["true"]}]}}] 
+        webhooks: [{"namespaceSelector":{"matchExpressions":[{"key":"openshift.io/cluster-monitoring","operator":"NotIn","values":["true"]}]}}]
+      admissionController:
+        initContainer:
+          securityContext: null
+        container:
+          securityContext: null
+      backgroundController:
+        securityContext: null
+      cleanupController:
+        securityContext: null
+      reportsController:
+        securityContext: null
+      webhooksCleanup:
+        securityContext: null  
