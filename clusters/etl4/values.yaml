@@ -11,3 +11,10 @@ applications:
       namespace: kyverno     
     source:
       path: components/kyverno-operator
+
+  kyverno-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'    
+    source:
+      path: components/kyverno-configuration      
