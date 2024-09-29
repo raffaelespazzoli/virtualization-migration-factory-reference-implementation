@@ -5,6 +5,7 @@ metadata:
 spec:
   rules:
     - name: bmc-emulation-policy
+      skipBackgroundRequests: true
       match:
         any:
         - resources:
