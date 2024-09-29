@@ -1,4 +1,13 @@
       
 projects: {}
 
-applications: {}                      
+applications: 
+
+  kyverno-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: kyverno     
+    source:
+      path: components/kyverno-operator
