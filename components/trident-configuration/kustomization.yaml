@@ -6,3 +6,4 @@ resources:
   - ontap-nas.yaml
   - ontap-san.yaml
   - snapshot-class.yaml
+  - multipath-worker-machine-config.yaml
