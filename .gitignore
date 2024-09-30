@@ -4,3 +4,6 @@ components/cert-manager-configuration/aws-secret.yaml
 components/openshift-config/htpasswd
 clusters/hub/overlays/cluster-etl7/bmc-credentials-secret.yaml
 clusters/hub/overlays/cluster-etl7/pull-secret.yaml
+components/ibm-fusion-operator/authority.json
+components/ibm-fusion-operator/ibm-entitlement-key.txt
+components/ibm-fusion-operator/pull-secret.yaml
