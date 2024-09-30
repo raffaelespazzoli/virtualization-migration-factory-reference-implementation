@@ -41,7 +41,18 @@ applications:
     destination:
       namespace: metallb-system
     source:
-      path: clusters/hub/overlays/nmstate-configuration       
+      path: clusters/hub/overlays/nmstate-configuration  
+
+# Storage
+
+  trident-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '6'
+    destination:
+      namespace: netapp-trident
+    source:
+      path: components/trident-configuration
 
 # ACM
   acm-operator:

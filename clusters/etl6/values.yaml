@@ -3,9 +3,22 @@ projects: {}
 
 applications: 
 
+# Networking
+
   nmstate-configuration:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     source:
       path: clusters/etl6/overlays/nmstate-configuration
+
+# Storage
+
+  trident-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '6'
+    destination:
+      namespace: netapp-trident
+    source:
+      path: clusters/etl6/overlays/trident-configuration

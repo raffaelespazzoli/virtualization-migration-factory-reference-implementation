@@ -42,15 +42,6 @@ applications:
     source:
       path: components/trident-operator
 
-  trident-configuration:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '6'
-    destination:
-      namespace: netapp-trident
-    source:
-      path: components/trident-configuration
-
   minio-operator:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
@@ -171,12 +162,5 @@ applications:
       namespace: openshift-nmstate
     source:
       path: components/nmstate-instance
-
-  # nmstate-configuration:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '7'
-  #   source:
-  #     path: components/nmstate-configuration
 
               
