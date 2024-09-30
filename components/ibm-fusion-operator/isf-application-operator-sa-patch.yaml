@@ -1,7 +1,7 @@
 kind: ServiceAccount
 apiVersion: v1
 metadata:
-  namespace: ibm-spectrum-fusion-ns
+  name: isf-application-operator-controller-manager
   annotations:
     argocd.argoproj.io/sync-options: Delete=false,ServerSideApply=true  
 imagePullSecrets:
