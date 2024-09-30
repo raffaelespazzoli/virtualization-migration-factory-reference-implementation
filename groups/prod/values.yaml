@@ -32,7 +32,16 @@ applications:
     source:
       path: components/openshift-virtualization-instance
 
+## Storage
 
+  ibm-fusion-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: ibm-spectrum-fusion-ns
+    source:
+      path: components/ibm-fusion-operator
 
 ## Backup and DR
 

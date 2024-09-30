@@ -4,7 +4,7 @@ kind: Kustomization
 namespace: openshift-adp
 
 resources:
-  - oadp-tenant-route.yaml
+
   - rbac.yaml
   - credentials-velero-secret.yaml
   - data-protection.yaml
@@ -14,13 +14,8 @@ resources:
   - routes.yaml
   - link.yaml
 
-helmCharts:
-  - name: tenant
-    repo: https://operator.min.io
-    releaseName: oadp
-    namespace: openshift-adp
-    valuesFile: values.yaml
 
+helmCharts:
   - name: vui
     repo: https://seriohub.github.io/velero-helm/
     releaseName: velero-ui

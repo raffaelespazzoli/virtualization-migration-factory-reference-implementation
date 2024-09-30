@@ -36,7 +36,7 @@ spec:
           profile: "backupStorage"
           s3ForcePathStyle: "true"
           insecureSkipTLSVerify: "false" 
-          s3Url: http://minio.openshift-adp.svc:80
+          s3Url: https://oadp-oadp-storage.apps.${HUB_CLUSTER_BASE_DOMAIN}
         credential:
           key: cloud
           name: cloud-credentials       

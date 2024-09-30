@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: oadp-storage
+
+resources:
+  - ./namespace.yaml
+  - oadp-tenant-route.yaml
+
+helmCharts:
+  - name: tenant
+    repo: https://operator.min.io
+    releaseName: oadp
+    namespace: oadp-storage
+    valuesFile: values.yaml

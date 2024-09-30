@@ -54,6 +54,15 @@ applications:
     source:
       path: components/trident-configuration
 
+  oadp-storage:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '6'
+    destination:
+      namespace: oadp-storage
+    source:
+      path: clusters/hub/overlays/oadp-storage     
+
 # ACM
   acm-operator:
     annotations:
