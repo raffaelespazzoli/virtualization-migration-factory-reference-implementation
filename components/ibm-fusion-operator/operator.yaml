@@ -9,11 +9,11 @@ spec:
   source: ibm-operator-catalog
   sourceNamespace: ibm-spectrum-fusion-ns
 ---
-- apiVersion: operators.coreos.com/v1
-  kind: OperatorGroup
-  metadata:
-    name: ibm-spectrum-fusion
-  spec:
-    targetNamespaces:
-    - ibm-spectrum-fusion-ns
-    upgradeStrategy: Default
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: ibm-spectrum-fusion
+spec:
+  targetNamespaces:
+  - ibm-spectrum-fusion-ns
+  upgradeStrategy: Default
