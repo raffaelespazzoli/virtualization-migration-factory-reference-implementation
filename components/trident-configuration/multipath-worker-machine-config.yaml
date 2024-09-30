@@ -8,10 +8,10 @@ spec:
   config:
     ignition:
       version: 3.4.0    
-    systemd:
-      units:
-      - name: multipathd.service
-        enabled: true                                             
+    # systemd:
+    #   units:
+    #   - name: multipathd.service
+    #     enabled: true
     storage:
       files:
         - contents:
