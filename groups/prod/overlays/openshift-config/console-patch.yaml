@@ -11,3 +11,4 @@ spec:
   - gitops-plugin
   - kubevirt-plugin
   - nmstate-console-plugin
+  - node-remediation-console-plugin
