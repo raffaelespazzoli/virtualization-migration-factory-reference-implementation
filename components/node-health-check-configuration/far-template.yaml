@@ -1,0 +1,20 @@
+apiVersion: fence-agents-remediation.medik8s.io/v1alpha1
+kind: FenceAgentsRemediationTemplate
+metadata:
+  name: main-remediation
+spec:
+  template:
+    spec:
+      remediationStrategy: OutOfServiceTaint
+      agent: fence_redfish 
+      nodeparameters:
+        --ip: []
+      sharedparameters:
+        '--action': reboot
+        '--ipport': 80
+        '--lanplus': ''
+        '--password': labadmin
+        '--username': ocpvirt01!
+      retryCount: '5'
+      retryInterval: '5s'
+      timeout: '60s'

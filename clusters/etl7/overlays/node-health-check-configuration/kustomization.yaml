@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../../../components/node-health-check-configuration
+
+patches:
+  - patch: |-
+      apiVersion: fence-agents-remediation.medik8s.io/v1alpha1
+      kind: FenceAgentsRemediationTemplate
+      metadata:
+        name: main-remediation
+      spec:
+        template:
+          spec:
+            nodeparameters:
+              --ip: 
+                dl380g9-8.etl6.ocp.rht-labs.com: "10.9.48.218"
+                dl380g9-9.etl6.ocp.rht-labs.com: "10.9.48.219"
+                dl380g9-10.etl6.ocp.rht-labs.com: "10.9.48.220"

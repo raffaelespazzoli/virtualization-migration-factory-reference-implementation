@@ -32,6 +32,8 @@ applications:
     source:
       path: components/openshift-virtualization-instance
 
+# HA
+
   node-health-check-operator:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
