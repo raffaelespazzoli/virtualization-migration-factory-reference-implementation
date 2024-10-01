@@ -32,6 +32,15 @@ applications:
     source:
       path: components/openshift-virtualization-instance
 
+  node-health-check-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: openshift-workload-availability
+    source:
+      path: components/node-health-check-operator     
+
 ## Storage
 
   ibm-fusion-operator:

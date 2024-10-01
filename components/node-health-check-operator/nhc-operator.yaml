@@ -1,0 +1,16 @@
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: workload-availability-operator-group
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+    name: node-health-check-operator
+spec:
+    channel: stable 2
+    installPlanApproval: Automatic
+    name: node-healthcheck-operator
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+    package: node-healthcheck-operator  
