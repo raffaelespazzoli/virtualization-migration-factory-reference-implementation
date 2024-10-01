@@ -15,6 +15,6 @@ spec:
         '--lanplus': ''
         '--password': labadmin
         '--username': ocpvirt01!
-      retryCount: '5'
-      retryInterval: '5s'
+      retrycount: '5'
+      retryinterval: '5s'
       timeout: '60s'
