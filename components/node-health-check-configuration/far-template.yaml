@@ -11,10 +11,10 @@ spec:
         --ip: {}
       sharedparameters:
         '--action': reboot
-        '--ipport': 80
+        '--ipport': "80"
         '--lanplus': ''
         '--password': labadmin
         '--username': ocpvirt01!
-      retrycount: '5'
+      retrycount: 5
       retryinterval: '5s'
       timeout: '60s'
