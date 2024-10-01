@@ -8,7 +8,7 @@ spec:
       remediationStrategy: OutOfServiceTaint
       agent: fence_redfish 
       nodeparameters:
-        --ip: []
+        --ip: {}
       sharedparameters:
         '--action': reboot
         '--ipport': 80
