@@ -7,4 +7,3 @@ spec:
     name: fence-agents-remediation
     source: redhat-operators
     sourceNamespace: openshift-marketplace
-    package: fence-agents-remediation

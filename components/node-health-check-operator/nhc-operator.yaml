@@ -8,9 +8,8 @@ kind: Subscription
 metadata:
     name: node-health-check-operator
 spec:
-    channel: stable 2
+    channel: stable
     installPlanApproval: Automatic
     name: node-healthcheck-operator
     source: redhat-operators
-    sourceNamespace: openshift-marketplace
-    package: node-healthcheck-operator  
+    sourceNamespace: openshift-marketplace 
