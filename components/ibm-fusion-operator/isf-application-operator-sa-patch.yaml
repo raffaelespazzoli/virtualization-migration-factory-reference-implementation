@@ -1,8 +1,0 @@
-kind: ServiceAccount
-apiVersion: v1
-metadata:
-  name: isf-application-operator-controller-manager
-  annotations:
-    argocd.argoproj.io/sync-options: Delete=false,ServerSideApply=true  
-imagePullSecrets:
-  - name: ibm-pull-secret  

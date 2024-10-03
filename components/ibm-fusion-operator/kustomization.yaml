@@ -7,4 +7,3 @@ resources:
   - namespace.yaml
   - catalog-source.yaml
   - operator.yaml
-  - isf-application-operator-sa-patch.yaml

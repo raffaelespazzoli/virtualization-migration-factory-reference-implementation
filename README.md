@@ -5,8 +5,9 @@ A well-architected virtualization migration factory deployment aimed at making i
 
 You will have to customize the following before you can get started:
 
-- The storage layer, see more [here](#storage-architecture) and [here](./storage.md)
-- more
+- The setup for the clusters you create. Here we have two clusters [etl6](./clusters/hub/overlays/cluster-etl6/) and [etl7](./clusters/hub/overlays/cluster-etl7/). This includes, BMHs, initial network configuration for the, VIPs, certificates, DNS entries. See more about it in the [cluster provisioning](#cluster-provisioning) section.
+- The storage layer, this incudes defining CSI drivers and storage classes. See more [here](#storage-architecture) and [here](./storage.md)
+- The additional network layer configurations. This includes defining NodeNetwworkConfiguraiotnPolicies (NNCP) and NodeNetworkAttachment (NAD) for the VMs. See more [here](#networking-architecture)
 
 Once you have performed the above customization you can run the following:
 
