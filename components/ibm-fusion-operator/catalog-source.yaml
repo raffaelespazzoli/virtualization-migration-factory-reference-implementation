@@ -1,13 +1,13 @@
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
-  name: ibm-operator-catalog
+  name: isf-catalog
   namespace: openshift-marketplace
 spec:
-  displayName: IBM Operator Catalog
+  displayName: ISF Catalog
+  image: cp.icr.io/cpopen/isf-operator-software-catalog:2.8.2
   publisher: IBM
   sourceType: grpc
-  image: icr.io/cpopen/ibm-operator-catalog:latest
   updateStrategy:
     registryPoll:
-      interval: 45m
+      interval: 30m0s
