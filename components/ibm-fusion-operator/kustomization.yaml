@@ -6,4 +6,4 @@ namespace: ibm-spectrum-fusion-ns
 resources:
   - namespace.yaml
   - catalog-source.yaml
-  #- operator.yaml
+  - operator.yaml
