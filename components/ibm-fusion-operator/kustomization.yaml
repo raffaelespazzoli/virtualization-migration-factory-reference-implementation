@@ -7,3 +7,4 @@ resources:
   - namespace.yaml
   - catalog-source.yaml
   - operator.yaml
+  - default-service-account-patch.yaml
