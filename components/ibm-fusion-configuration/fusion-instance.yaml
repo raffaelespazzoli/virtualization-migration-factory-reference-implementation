@@ -1,0 +1,11 @@
+apiVersion: prereq.isf.ibm.com/v1
+kind: SpectrumFusion
+metadata:
+  name: main
+spec:
+  GlobalDataPlatform:
+    Enable: false
+  configuration:
+    services: {}
+  license:
+    accept: true

@@ -54,6 +54,15 @@ applications:
     source:
       path: components/ibm-fusion-operator
 
+  ibm-fusion-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: ibm-spectrum-fusion-ns
+    source:
+      path: components/ibm-fusion-configuration 
+
 ## Backup and DR
 
   oadp-operator:
