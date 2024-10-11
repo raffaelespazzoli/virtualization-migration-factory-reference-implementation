@@ -4,7 +4,7 @@ metadata:
   name: main
 spec:
   GlobalDataPlatform:
-    Enable: false
+    Enable: true
   configuration:
     services: {}
   license:
