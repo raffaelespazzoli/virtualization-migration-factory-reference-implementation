@@ -49,8 +49,6 @@ applications:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
-    destination:
-      namespace: ibm-spectrum-fusion-ns
     source:
       path: components/ibm-fusion-operator
 
