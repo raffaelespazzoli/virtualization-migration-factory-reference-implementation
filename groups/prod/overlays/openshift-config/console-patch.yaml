@@ -13,3 +13,4 @@ spec:
   - nmstate-console-plugin
   - node-remediation-console-plugin
   - fusion-console
+  - odf-console
