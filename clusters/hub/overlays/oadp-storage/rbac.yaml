@@ -9,7 +9,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: oadp-sa
-  namespace: openshift-adp
+  namespace: oadp-storage
 
 
   
