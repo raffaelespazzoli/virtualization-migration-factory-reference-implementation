@@ -6,6 +6,7 @@ namespace: oadp-storage
 resources:
   - ./namespace.yaml
   - oadp-tenant-route.yaml
+  - rbac.yaml
 
 helmCharts:
   - name: tenant
