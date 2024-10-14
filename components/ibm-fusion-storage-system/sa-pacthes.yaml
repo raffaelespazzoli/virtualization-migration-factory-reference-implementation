@@ -2,26 +2,6 @@ kind: ServiceAccount
 apiVersion: v1
 metadata:
   name: default
-  namespace: ibm-spectrum-fusion-ns
-  annotations:
-    argocd.argoproj.io/sync-options: ServerSideApply=true
-imagePullSecrets:
-  - name: ibm-spectrum-fusion-registrykey
----
-kind: ServiceAccount
-apiVersion: v1
-metadata:
-  name: isf-serviceability-operator-controller-manager
-  namespace: ibm-spectrum-fusion-ns
-  annotations:
-    argocd.argoproj.io/sync-options: ServerSideApply=true
-imagePullSecrets:
-  - name: ibm-spectrum-fusion-registrykey
----
-kind: ServiceAccount
-apiVersion: v1
-metadata:
-  name: default
   namespace: openshift-storage
   annotations:
     argocd.argoproj.io/sync-options: ServerSideApply=true
@@ -57,9 +37,13 @@ metadata:
     argocd.argoproj.io/sync-options: ServerSideApply=true
 imagePullSecrets:
   - name: ibm-spectrum-fusion-registrykey
-
-
-
-
-
-   
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: rook-ceph-default
+  namespace: openshift-storage
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true
+imagePullSecrets:
+  - name: ibm-spectrum-fusion-registrykey

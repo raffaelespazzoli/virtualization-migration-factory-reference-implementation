@@ -20,4 +20,12 @@ helmCharts:
     repo: https://seriohub.github.io/velero-helm/
     releaseName: velero-ui
     namespace: openshift-adp
-    valuesFile: vui-values.yaml        
+    valuesFile: vui-values.yaml 
+
+patchesStrategicMerge:
+- |-
+  apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    name: velero-ui-vui-ingress
+  $patch: delete           
