@@ -59,7 +59,13 @@ applications:
     destination:
       namespace: ibm-spectrum-fusion-ns
     source:
-      path: components/ibm-fusion-configuration 
+      path: components/ibm-fusion-configuration
+    extraFields: |
+      ignoreDifferences:
+        - group: 'service.isf.ibm.com'
+          jsonPointers:
+            - /spec/doInstall
+          kind: FusionServiceInstance       
 
 ## Backup and DR
 
