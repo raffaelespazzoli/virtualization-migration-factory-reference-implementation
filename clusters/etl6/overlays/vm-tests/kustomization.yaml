@@ -6,3 +6,4 @@ namespace: vm-tests
 resources:
   - namespace.yaml
   - fedora-vms.yaml
+  - ssh-key-secret.yaml
