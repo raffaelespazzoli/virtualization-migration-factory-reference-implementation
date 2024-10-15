@@ -1,9 +1,7 @@
 apiVersion: odf.isf.ibm.com/v1
 kind: OdfCluster
 metadata:
-  generation: 1
   name: odfcluster
-  namespace: ibm-spectrum-fusion-ns
 spec:
   creator: CreatedByFusion
   deviceSets:
@@ -19,7 +17,4 @@ spec:
   externalStorage: {}
   mcgOnlyModeSpec: {}
   storageClient: {}
-  storageNodes:
-    - dl380g9-7.etl6.ocp.rht-labs.com
-    - dl380g9-5.etl6.ocp.rht-labs.com
-    - dl380g9-6.etl6.ocp.rht-labs.com
+  storageNodes: []

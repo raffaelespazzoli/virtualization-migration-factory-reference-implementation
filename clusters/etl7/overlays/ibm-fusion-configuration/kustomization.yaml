@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../../../components/ibm-fusion-configuration
+
+patches:
+  - patch: |-
+      apiVersion: odf.isf.ibm.com/v1
+      kind: OdfCluster
+      metadata:
+        name: odfcluster
+      spec:
+        storageNodes:
+        - dl380g9-8.etl7.ocp.rht-labs.com
+        - dl380g9-9.etl7.ocp.rht-labs.com
+        - dl380g9-10.etl7.ocp.rht-labs.com  

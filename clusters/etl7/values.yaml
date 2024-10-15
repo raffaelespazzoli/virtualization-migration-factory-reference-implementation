@@ -23,6 +23,21 @@ applications:
     source:
       path: clusters/etl7/overlays/trident-configuration
 
+  ibm-fusion-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: ibm-spectrum-fusion-ns
+    source:
+      path: clusters/etl7/overlays/ibm-fusion-configuration
+    extraFields: |
+      ignoreDifferences:
+        - group: 'service.isf.ibm.com'
+          jsonPointers:
+            - /spec/doInstall
+          kind: FusionServiceInstance      
+
 # HA
 
   node-health-check-configuration:

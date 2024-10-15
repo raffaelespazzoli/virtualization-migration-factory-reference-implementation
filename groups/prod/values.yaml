@@ -49,23 +49,19 @@ applications:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: ibm-spectrum-fusion-ns      
     source:
       path: components/ibm-fusion-operator
 
-  ibm-fusion-configuration:
+  ibm-fusion-storage-system:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '15'
+      argocd.argoproj.io/sync-wave: '25'
     destination:
-      namespace: ibm-spectrum-fusion-ns
+      namespace: openshift-storage
     source:
-      path: components/ibm-fusion-configuration
-    extraFields: |
-      ignoreDifferences:
-        - group: 'service.isf.ibm.com'
-          jsonPointers:
-            - /spec/doInstall
-          kind: FusionServiceInstance       
+      path: components/ibm-fusion-storage-system            
 
 ## Backup and DR
 
