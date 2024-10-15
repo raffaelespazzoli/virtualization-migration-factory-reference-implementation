@@ -5,4 +5,4 @@ namespace: openshift-storage
 
 resources:
   - sa-patches.yaml
-  #- storage-system.yaml
+  - ss-patch.yaml

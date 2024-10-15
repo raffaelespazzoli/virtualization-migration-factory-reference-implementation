@@ -1,0 +1,7 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: ocs-storagecluster-ceph-rbd-virtualization
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true
+    description: Provides RWO and RWX Block volumes suitable for Virtual Machine disks
