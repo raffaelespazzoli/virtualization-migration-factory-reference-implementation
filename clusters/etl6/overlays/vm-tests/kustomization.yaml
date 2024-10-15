@@ -5,4 +5,4 @@ namespace: vm-tests
 
 resources:
   - namespace.yaml
-  - fedora-vms
+  - fedora-vms.yaml
