@@ -36,7 +36,7 @@ spec:
           profile: "backupStorage"
           s3ForcePathStyle: "true"
           insecureSkipTLSVerify: "false" 
-          s3Url: https://oadp-oadp-storage.apps.${HUB_BASE_DOMAIN}
+          s3Url: https://oadp-minio-api-oadp-storage.apps.${HUB_BASE_DOMAIN}
         credential:
           key: cloud
           name: cloud-credentials       

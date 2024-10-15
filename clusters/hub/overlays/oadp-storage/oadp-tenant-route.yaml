@@ -12,3 +12,19 @@ spec:
   tls:
     termination: edge
   wildcardPolicy: None
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: oadp-minio-api
+spec:
+  to:
+    kind: Service
+    name: minio
+    weight: 100
+  port:
+    targetPort: http-minio
+  tls:
+    termination: edge
+  wildcardPolicy: None
+
