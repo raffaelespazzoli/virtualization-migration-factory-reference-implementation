@@ -9,7 +9,7 @@ spec:
     hooks: {}
     includedNamespaces:
     - vm-tests
-    storageLocation: dpa
+    storageLocation: hub
     defaultVolumesToFsBackup: false 
     ttl: 720h0m0s
     snapshotMoveData: true

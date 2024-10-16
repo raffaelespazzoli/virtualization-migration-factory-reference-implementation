@@ -25,7 +25,8 @@ spec:
       enable: true 
       uploaderType: kopia            
   backupLocations:
-    - velero:
+    - name: hub
+      velero:
         provider: aws
         default: true
         objectStorage:
