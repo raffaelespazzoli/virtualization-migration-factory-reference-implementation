@@ -1,0 +1,9 @@
+apiVersion: ramendr.openshift.io/v1alpha1
+kind: DRPolicy
+metadata:
+  name: 'etl6-to-etl7'
+spec:
+  drClusters:
+  - 'etl6'
+  - 'etl7'
+  schedulingInterval: '5m'

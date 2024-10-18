@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dr-broker
+---
+apiVersion: submariner.io/v1alpha1
+kind: Broker
+metadata:
+     name: submariner-broker
+     namespace: dr-broker
+     labels:
+         cluster.open-cluster-management.io/backup: submariner
+spec:
+     globalnetEnabled: false

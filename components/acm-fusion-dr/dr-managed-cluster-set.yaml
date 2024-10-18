@@ -1,0 +1,17 @@
+apiVersion: cluster.open-cluster-management.io/v1beta2
+kind: ManagedClusterSet
+metadata:
+  annotations:
+    cluster.open-cluster-management.io/submariner-broker-ns: dr-broker
+  generation: 1
+  name: dr
+spec:
+  clusterSelector:
+    labelSelector:
+      matchExpression:
+        key: name
+        operator: In
+        values: 
+        - etl6
+        - etl7
+    selectorType: LabelSelector
