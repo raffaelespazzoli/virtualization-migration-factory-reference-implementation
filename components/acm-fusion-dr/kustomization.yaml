@@ -3,6 +3,6 @@ kind: Kustomization
 namespace: open-cluster-management-observability
 
 resources:
-  - ./dr-managed-clusterset.yaml
+  - ./dr-managed-cluster-set.yaml
   - ./policy.yaml
   - ./submariner-broker.yaml
