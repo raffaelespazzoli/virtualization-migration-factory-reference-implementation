@@ -8,8 +8,8 @@ metadata:
 spec:
   clusterSelector:
     labelSelector:
-      matchExpression:
-        key: name
+      matchExpressions:
+      - key: name
         operator: In
         values: 
         - etl6
