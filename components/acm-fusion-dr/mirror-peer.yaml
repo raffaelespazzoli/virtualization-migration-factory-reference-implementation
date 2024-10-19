@@ -15,5 +15,4 @@ spec:
       name: ocs-storagecluster
       namespace: openshift-storage
   manageS3: true
-  overlappingCIDR: false
   type: async
