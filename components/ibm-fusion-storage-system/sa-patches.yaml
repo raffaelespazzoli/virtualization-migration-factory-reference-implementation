@@ -87,3 +87,13 @@ metadata:
     argocd.argoproj.io/sync-options: ServerSideApply=true
 imagePullSecrets:
   - name: ibm-spectrum-fusion-registrykey
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: nooba-endpoint
+  namespace: openshift-storage
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true
+imagePullSecrets:
+  - name: ibm-spectrum-fusion-registrykey  
