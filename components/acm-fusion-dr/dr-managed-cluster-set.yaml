@@ -7,11 +7,4 @@ metadata:
   name: dr
 spec:
   clusterSelector:
-    labelSelector:
-      matchExpressions:
-      - key: name
-        operator: In
-        values: 
-        - etl6
-        - etl7
-    selectorType: LabelSelector
+    selectorType: ExclusiveClusterSetLabel

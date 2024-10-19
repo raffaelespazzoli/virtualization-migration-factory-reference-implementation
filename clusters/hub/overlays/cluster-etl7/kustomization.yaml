@@ -33,4 +33,6 @@ helmCharts:
         apiVIP: "10.9.53.5"      
   - name: cluster-registration
     releaseName: etl7
-    namespace: etl7 
+    namespace: etl7
+    valuesInline:
+      clusterSet: dr     
