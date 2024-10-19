@@ -6,3 +6,4 @@ resources:
   - ./dr-managed-cluster-set.yaml
   - ./policy.yaml
   - ./submariner-broker.yaml
+  - ./mirror-peer.yaml
