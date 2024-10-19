@@ -21,6 +21,7 @@ helmCharts:
     releaseName: etl7
     namespace: etl7
     valuesInline:
+      clusterSet: dr
       location: oystein-lab
       workerNumber: 0
       imageSet: img4.16.11-x86-64-appsub
