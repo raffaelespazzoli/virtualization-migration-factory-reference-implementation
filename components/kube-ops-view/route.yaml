@@ -3,7 +3,6 @@ apiVersion: route.openshift.io/v1
 metadata:
   name: kube-ops-view
 spec:
-  host: demo-kube-ops-view.apps.${CLUSTER_BASE_DOMAIN}
   to:
     kind: Service
     name: kube-ops-view
