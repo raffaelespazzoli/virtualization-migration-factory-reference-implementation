@@ -7,3 +7,4 @@ spec:
   profiles:
   - DevPreviewLongLifecycle
   mode: Predictive
+  managementState: Managed

@@ -10,3 +10,7 @@ spec:
         kubernetes.io/os: linux 
       tolerations: 
       - operator: "Exists"
+    redfish:
+      secretRef: redfish-secret 
+      probeInterval: 60s 
+      skipSSLVerify: false      
