@@ -12,5 +12,5 @@ spec:
       - operator: "Exists"
     redfish:
       secretRef: redfish-secret 
-      probeInterval: 60s 
+      probeInterval: 1m 
       skipSSLVerify: false      
