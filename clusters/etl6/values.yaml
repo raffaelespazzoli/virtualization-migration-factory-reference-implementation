@@ -49,6 +49,14 @@ applications:
     source:
       path: clusters/etl6/overlays/node-health-check-configuration  
 
+# Observability
+
+  power-monitoring-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    source:
+      path: clusters/etl6/overlays/power-monitoring-configuration      
 
 # VMs 
 
