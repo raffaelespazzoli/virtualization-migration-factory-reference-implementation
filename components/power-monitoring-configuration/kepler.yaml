@@ -8,7 +8,7 @@ spec:
       port: 9103 
       nodeSelector:
         kubernetes.io/os: linux 
-      Tolerations: 
+      tolerations: 
       - key: ""
         operator: "Exists"
         value: ""
