@@ -9,7 +9,4 @@ spec:
       nodeSelector:
         kubernetes.io/os: linux 
       tolerations: 
-      - key: ""
-        operator: "Exists"
-        value: ""
-        effect: ""
+      - operator: "Exists"
