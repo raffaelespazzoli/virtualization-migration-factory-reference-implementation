@@ -7,6 +7,6 @@ resources:
   - ./policy.yaml
   - ./submariner-broker.yaml
   - ./mirror-peer.yaml
-  - ./dr-managed-clysterset-binding.yaml
+  - ./dr-managed-clusterset-binding.yaml
   - ./gitops-clusters.yaml
   - ./placement.yaml
