@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: vm-dr-test
+spec:
+  generators:
+    - clusterDecisionResource:
+        configMapRef: acm-placement
+        labelSelector:
+          matchLabels:
+            cluster.open-cluster-management.io/placement: vm-dr-test
+        requeueAfterSeconds: 180
+  template:
+    metadata:
+      name: vm-dr-{{name}}
+      labels:
+        velero.io/exclude-from-backup: "true"
+    spec:
+      destination:
+        namespace: vm-dr
+        server: "{{server}}"
+      project: default
+      sources:
+        - path: clusters/hub/overlays/vm-dr-test/vms
+          repoURL: ${INFRA_GITOPS_REPO}
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - PruneLast=true
