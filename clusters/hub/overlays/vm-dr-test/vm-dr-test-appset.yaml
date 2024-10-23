@@ -17,7 +17,7 @@ spec:
         velero.io/exclude-from-backup: "true"
     spec:
       destination:
-        namespace: vm-dr
+        namespace: vm-dr-test
         server: "{{server}}"
       project: default
       sources:

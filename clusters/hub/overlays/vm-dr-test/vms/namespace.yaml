@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: vm--dr-tests
+  name: vm-dr-test
   annotations:
     argocd.argoproj.io/sync-options: Delete=false
   labels:
