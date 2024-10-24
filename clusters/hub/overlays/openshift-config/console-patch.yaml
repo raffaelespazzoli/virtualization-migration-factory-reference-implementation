@@ -14,3 +14,4 @@ spec:
   - nmstate-console-plugin
   - logging-view-plugin
   - odf-multicluster-console
+  - networking-console-plugin
