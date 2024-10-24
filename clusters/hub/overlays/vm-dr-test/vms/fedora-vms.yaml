@@ -52,10 +52,6 @@ spec:
               masquerade: {}
               model: virtio
               name: default
-            - bridge: {}
-              macAddress: '02:a5:cf:00:01:08'
-              model: virtio
-              name: nic-sapphire-roadrunner-92
           rng: {}
         features:
           acpi: {}
@@ -72,9 +68,6 @@ spec:
       networks:
         - name: default
           pod: {}
-        - multus:
-            networkName: default/vlan-1522
-          name: nic-sapphire-roadrunner-92
       terminationGracePeriodSeconds: 180
       accessCredentials:
       - sshPublicKey:
@@ -149,10 +142,6 @@ spec:
               masquerade: {}
               model: virtio
               name: default
-            - bridge: {}
-              macAddress: '02:a5:cf:00:01:09'
-              model: virtio
-              name: nic-sapphire-roadrunner-92
           rng: {}
         features:
           acpi: {}
@@ -169,9 +158,6 @@ spec:
       networks:
         - name: default
           pod: {}
-        - multus:
-            networkName: default/vlan-1522
-          name: nic-sapphire-roadrunner-92
       terminationGracePeriodSeconds: 180
       accessCredentials:
       - sshPublicKey:
