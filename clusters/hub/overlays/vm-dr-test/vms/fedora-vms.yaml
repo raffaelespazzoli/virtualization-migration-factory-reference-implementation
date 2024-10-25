@@ -17,6 +17,7 @@ spec:
           name: fedora
           namespace: openshift-virtualization-os-images
         storage:
+          storageClassName: ocs-storagecluster-ceph-rbd-virtualization
           resources:
             requests:
               storage: 30Gi
@@ -107,6 +108,7 @@ spec:
           name: fedora
           namespace: openshift-virtualization-os-images
         storage:
+          storageClassName: ocs-storagecluster-ceph-rbd-virtualization
           resources:
             requests:
               storage: 30Gi
