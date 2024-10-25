@@ -10,7 +10,7 @@ spec:
   placementRef:
     apiVersion: cluster.open-cluster-management.io/v1beta1
     kind: Placement
-    name: dr
+    name: vm-dr-test
     namespace: openshift-gitops
   preferredCluster: etl6
   pvcSelector:

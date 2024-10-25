@@ -12,7 +12,7 @@ kind: Subscription
 metadata:
   name: mtv-operator
 spec:
-  channel: release-v2.6
+  channel: release-v2.7
   installPlanApproval: Automatic
   name: mtv-operator
   source: redhat-operators

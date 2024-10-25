@@ -8,7 +8,7 @@ spec:
         configMapRef: acm-placement
         labelSelector:
           matchLabels:
-            cluster.open-cluster-management.io/placement: dr
+            cluster.open-cluster-management.io/placement: vm-dr-test
         requeueAfterSeconds: 180
   template:
     metadata:
