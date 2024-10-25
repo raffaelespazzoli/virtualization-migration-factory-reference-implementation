@@ -12,6 +12,7 @@ spec:
     operator: Exists
   predicates:
   - requiredClusterSelector:
+      claimSelector: {}
       labelSelector:
         matchExpressions:
         - key: name
