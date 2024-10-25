@@ -6,7 +6,7 @@ spec:
   drPolicyRef:
     apiVersion: ramendr.openshift.io/v1alpha1
     kind: DRPolicy
-    name: etl6-etl7
+    name: etl6-to-etl7
   placementRef:
     apiVersion: cluster.open-cluster-management.io/v1beta1
     kind: Placement

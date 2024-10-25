@@ -1,8 +1,8 @@
 apiVersion: cluster.open-cluster-management.io/v1beta1
 kind: Placement
 metadata:
-  # annotations:
-  #   cluster.open-cluster-management.io/experimental-scheduling-disable: 'true'
+  annotations:
+    cluster.open-cluster-management.io/experimental-scheduling-disable: 'true'
   name: vm-dr-test
 spec:
   tolerations:
