@@ -4,7 +4,7 @@ metadata:
   name: odf-multicluster-orchestrator
   namespace: openshift-operators
 spec:
-  channel: stable-4.16
+  channel: stable-4.17
   installPlanApproval: Automatic
   name: odf-multicluster-orchestrator
   source: redhat-operators
