@@ -5,9 +5,7 @@ applications:
   openshift-config:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '16'
-    destination:
-      namespace: openshift-config      
+      argocd.argoproj.io/sync-wave: '16'      
     source:
       path: groups/prod/overlays/openshift-config
 
