@@ -128,7 +128,34 @@ applications:
     destination:
       namespace: openshift-gitops
     source:
-      path: clusters/hub/overlays/vm-dr-test      
+      path: clusters/hub/overlays/vm-dr-test 
+
+  trilio-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: trilio-system
+    source:
+      path: components/trilio-operator
+
+  trilio-instance:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: trilio-system
+    source:
+      path: components/trilio-instance
+
+  trilio-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '25'
+    destination:
+      namespace: trilio-system
+    source:
+      path: components/trilio-configuration      
 
 # AAP          
 
