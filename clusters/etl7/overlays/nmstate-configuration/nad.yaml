@@ -15,5 +15,5 @@ spec:
       "netAttachDefName": "default/vlan-2522",
       "vlanID": 2522,
       "mtu": 1500,
-      "ipam": {}
+      "subnets": "10.10.1.0/24"
     }
