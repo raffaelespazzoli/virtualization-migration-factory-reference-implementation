@@ -3,12 +3,12 @@ kind: AgentServiceConfig
 metadata:
  name: agent
 spec:
-  osImages:
-  - openshiftVersion: '4.17'
-    rootFSUrl: https://rhcos.mirror.openshift.com/art/storage/prod/streams/4.17-9.4/builds/417.94.202410090854-0/x86_64/rhcos-417.94.202410090854-0-live-rootfs.x86_64.img
-    url: https://rhcos.mirror.openshift.com/art/storage/prod/streams/4.17-9.4/builds/417.94.202410090854-0/x86_64/rhcos-417.94.202410090854-0-live.x86_64.iso
-    version: 417.94.202410090854-0
-    cpuArchitecture: x86_64
+  # osImages:
+  # - openshiftVersion: '4.17'
+  #   rootFSUrl: https://rhcos.mirror.openshift.com/art/storage/prod/streams/4.17-9.4/builds/417.94.202410090854-0/x86_64/rhcos-417.94.202410090854-0-live-rootfs.x86_64.img
+  #   url: https://rhcos.mirror.openshift.com/art/storage/prod/streams/4.17-9.4/builds/417.94.202410090854-0/x86_64/rhcos-417.94.202410090854-0-live.x86_64.iso
+  #   version: 417.94.202410090854-0
+  #   cpuArchitecture: x86_64
   databaseStorage:
     accessModes:
     - ReadWriteOnce
