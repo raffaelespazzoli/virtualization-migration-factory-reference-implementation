@@ -6,7 +6,6 @@ resources:
   - trilio-vault-manager.yaml
   - link.yaml
   - trilio-target-secret.yaml
-  - trilio-target.yaml
   - rbac.yaml
   - console-plugin-configmap.yaml
   - console-plugin-deployment.yaml
