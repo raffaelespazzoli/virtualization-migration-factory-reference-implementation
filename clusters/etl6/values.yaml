@@ -76,4 +76,11 @@ applications:
     destination:
       namespace: trilio-vm-tests
     source:
-      path: clusters/etl6/overlays/trilio-vm-tests      
+      path: clusters/etl6/overlays/trilio-vm-tests
+    extraFields: |
+      ignoreDifferences:
+        - group: 'triliovault.trilio.io'
+          jsonPointers:
+            - /spec/objectStoreCredentials/credentialSecret/resourceVersion
+            - /spec/objectStoreCredentials/credentialSecret/uid
+          kind: Target            
