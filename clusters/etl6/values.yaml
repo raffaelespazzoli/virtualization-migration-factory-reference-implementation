@@ -89,9 +89,9 @@ applications:
             - /spec/backupConfig/retentionPolicy/resourceVersion
             - /spec/backupConfig/retentionPolicy/credentialSecret/uid
             - /spec/backupConfig/schedulePolicy/fullBackupPolicy/resourceVersion
-            - /spec/backupConfig/schedulePolicy/fullBackupPolicy/credentialSecret/uid
+            - /spec/backupConfig/schedulePolicy/fullBackupPolicy/uid
             - /spec/backupConfig/schedulePolicy/incrementalBackupPolicy/resourceVersion
-            - /spec/backupConfig/schedulePolicy/incrementalBackupPolicy/credentialSecret/uid
+            - /spec/backupConfig/schedulePolicy/incrementalBackupPolicy/uid
             - /spec/backupConfig/target/resourceVersion
-            - /spec/backupConfig/target/credentialSecret/uid                                     
+            - /spec/backupConfig/target/uid                                     
           kind: BackupPlan                      
