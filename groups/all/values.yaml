@@ -96,7 +96,16 @@ applications:
     destination:
       namespace: openshift-logging           
     source:
-      path: components/openshift-logging-configuration      
+      path: components/openshift-logging-configuration    
+
+  cluster-observability-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5' 
+    destination:
+      namespace: openshift-operators           
+    source:
+      path: components/cluster-observability-operator        
 
 # Networking
 
