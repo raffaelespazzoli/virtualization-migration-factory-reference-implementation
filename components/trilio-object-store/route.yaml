@@ -1,0 +1,13 @@
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: trilio-bucket
+spec:
+  path: /
+  to:
+    kind: Service
+    name: minio
+    weight: 100
+  port:
+    targetPort: http-minio
+  wildcardPolicy: None

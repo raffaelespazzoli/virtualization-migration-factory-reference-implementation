@@ -5,6 +5,7 @@ namespace: trilio-system
 resources:
   - rbac.yaml
   - namespace.yaml
+  - route.yaml
 
 
 
