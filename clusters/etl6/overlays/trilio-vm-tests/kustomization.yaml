@@ -10,3 +10,4 @@ resources:
   - ./backup-plan.yaml
   - ./policies.yaml
   - ./target.yaml
+  - ./trilio-target-secret.yaml
