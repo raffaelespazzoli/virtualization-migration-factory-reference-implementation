@@ -15,7 +15,7 @@ spec:
       kind: Secret
       name: trilio-target
     region: minio
-    url: 'http://triolio-bucket-trilio-system.apps.${HUB_BASE_DOMAIN}/'
+    url: 'http://trilio-bucket-trilio-system.apps.${HUB_BASE_DOMAIN}/'
   thresholdCapacity: 500Gi
   type: ObjectStore
   vendor: AWS
