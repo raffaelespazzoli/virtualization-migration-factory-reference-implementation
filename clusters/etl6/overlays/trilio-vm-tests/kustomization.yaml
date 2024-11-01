@@ -9,3 +9,4 @@ resources:
   - ssh-key-secret.yaml
   - ./backup-plan.yaml
   - ./policies.yaml
+  - ./target.yaml
