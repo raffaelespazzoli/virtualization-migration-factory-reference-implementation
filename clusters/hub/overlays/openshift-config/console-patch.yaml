@@ -15,4 +15,3 @@ spec:
   - logging-view-plugin
   - odf-multicluster-console
   - networking-console-plugin
-  - tvk-console-plugin

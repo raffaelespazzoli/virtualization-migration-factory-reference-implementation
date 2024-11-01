@@ -15,3 +15,4 @@ spec:
   - fusion-console
   #- odf-console
   - networking-console-plugin
+  - tvk-console-plugin
