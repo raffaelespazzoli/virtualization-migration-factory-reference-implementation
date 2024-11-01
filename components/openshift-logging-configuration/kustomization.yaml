@@ -4,4 +4,5 @@ namespace: openshift-logging
 
 resources:
   - ./cluster-log-forwarder.yaml
-  - rbac.yaml
+  - ./rbac.yaml
+  - ./logging-ui-plugin.yaml
