@@ -4,6 +4,8 @@ metadata:
   name: instance
   namespace: openshift-logging
 spec:
+  serviceAccount:
+    name: logcollector
   outputs:
   - name: default-lokistack
     type: lokiStack
