@@ -94,4 +94,4 @@ applications:
             - /spec/backupConfig/schedulePolicy/incrementalBackupPolicy/credentialSecret/uid
             - /spec/backupConfig/target/resourceVersion
             - /spec/backupConfig/target/credentialSecret/uid                                     
-          kind: BakcupPlan                      
+          kind: BackupPlan                      
