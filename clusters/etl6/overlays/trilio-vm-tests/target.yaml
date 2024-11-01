@@ -14,7 +14,6 @@ spec:
       apiVersion: v1
       kind: Secret
       name: trilio-target
-      namespace: vm-trilio-test
     region: minio
     url: 'http://triolio-bucket-trilio-system.apps.${HUB_BASE_DOMAIN}/'
   thresholdCapacity: 500Gi
