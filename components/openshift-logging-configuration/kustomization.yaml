@@ -3,4 +3,4 @@ kind: Kustomization
 namespace: openshift-logging
 
 resources:
-  - ./cluster-logging.yaml
+  - ./cluster-log-forwarder.yaml
