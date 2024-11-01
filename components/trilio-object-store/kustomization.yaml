@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: trilio-system
+
+resources:
+  - rbac.yaml
+  - namespace.yaml
+
+
+
+helmCharts:
+- name: tenant
+  repo: https://operator.min.io
+  releaseName: trilio
+  namespace: trilio-system
+  valuesFile: values.yaml 
