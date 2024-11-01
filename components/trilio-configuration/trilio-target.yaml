@@ -7,7 +7,7 @@ spec:
   type: ObjectStore
   vendor: AWS
   objectStoreCredentials:
-    url: "http://minio.trilio-system.svc"
+    url: "http://triolio-bucket-trilio-system.apps.hub2.ocp.rht-labs.com/"
     region: minio
     bucketName: trilio
     credentialSecret:
