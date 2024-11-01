@@ -48,12 +48,12 @@ spec:
                 bus: virtio
               name: cloudinitdisk
           interfaces:
-            - macAddress: '02:a5:cf:00:00:10'
+            - macAddress: '02:a5:cf:00:00:12'
               masquerade: {}
               model: virtio
               name: default
             - bridge: {}
-              macAddress: '02:a5:cf:00:00:08'
+              macAddress: '02:a5:cf:00:00:10'
               model: virtio
               name: nic-sapphire-roadrunner-92
           rng: {}
@@ -145,12 +145,12 @@ spec:
                 bus: virtio
               name: cloudinitdisk
           interfaces:
-            - macAddress: '02:a5:cf:00:00:11'
+            - macAddress: '02:a5:cf:00:00:13'
               masquerade: {}
               model: virtio
               name: default
             - bridge: {}
-              macAddress: '02:a5:cf:00:00:09'
+              macAddress: '02:a5:cf:00:00:11'
               model: virtio
               name: nic-sapphire-roadrunner-92
           rng: {}
