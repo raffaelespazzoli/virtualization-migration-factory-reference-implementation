@@ -132,7 +132,7 @@ applications:
           jsonPointers:
             - /spec/objectStoreCredentials/credentialSecret/resourceVersion
             - /spec/objectStoreCredentials/credentialSecret/uid
-          kind: BackupPlan             
+          kind: Target             
 
 # Observability
 
