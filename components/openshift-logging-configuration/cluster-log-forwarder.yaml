@@ -19,8 +19,9 @@ spec:
         key: service-ca.crt
         configMapName: openshift-service-ca.crt
   pipelines:
-  - outputRefs:
+  - name: main
+    outputRefs:
     - default-lokistack
-  - inputRefs:
+    inputRefs:
     - application
     - infrastructure
