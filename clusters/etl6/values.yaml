@@ -83,4 +83,15 @@ applications:
           jsonPointers:
             - /spec/objectStoreCredentials/credentialSecret/resourceVersion
             - /spec/objectStoreCredentials/credentialSecret/uid
-          kind: Target            
+          kind: Target
+        - group: 'triliovault.trilio.io'
+          jsonPointers:
+            - /spec/backupConfig/retentionPolicy/resourceVersion
+            - /spec/backupConfig/retentionPolicy/credentialSecret/uid
+            - /spec/backupConfig/schedulePolicy/fullBackupPolicy/resourceVersion
+            - /spec/backupConfig/schedulePolicy/fullBackupPolicy/credentialSecret/uid
+            - /spec/backupConfig/schedulePolicy/incrementalBackupPolicy/resourceVersion
+            - /spec/backupConfig/schedulePolicy/incrementalBackupPolicy/credentialSecret/uid
+            - /spec/backupConfig/target/resourceVersion
+            - /spec/backupConfig/target/credentialSecret/uid                                     
+          kind: BakcupPlan                      
