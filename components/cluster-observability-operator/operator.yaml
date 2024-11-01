@@ -9,5 +9,5 @@ spec:
   channel: development
   installPlanApproval: Automatic
   name: observability-operator
-  source: observability-operator
+  source: redhat-operators
   sourceNamespace: openshift-marketplace
