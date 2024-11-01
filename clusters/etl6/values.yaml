@@ -87,7 +87,7 @@ applications:
         - group: 'triliovault.trilio.io'
           jsonPointers:
             - /spec/backupConfig/retentionPolicy/resourceVersion
-            - /spec/backupConfig/retentionPolicy/credentialSecret/uid
+            - /spec/backupConfig/retentionPolicy/uid
             - /spec/backupConfig/schedulePolicy/fullBackupPolicy/resourceVersion
             - /spec/backupConfig/schedulePolicy/fullBackupPolicy/uid
             - /spec/backupConfig/schedulePolicy/incrementalBackupPolicy/resourceVersion
