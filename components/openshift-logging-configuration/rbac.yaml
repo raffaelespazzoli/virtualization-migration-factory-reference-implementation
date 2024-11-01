@@ -40,4 +40,4 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: logcollector
-  namespace: openshift-logging    
+  namespace: openshift-logging
