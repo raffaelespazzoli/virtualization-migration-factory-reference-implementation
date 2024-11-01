@@ -12,12 +12,4 @@ resources:
   - console-plugin-service.yaml
   - console-plugin.yaml
   - dex-secret.yaml
-  - oauth-client.yaml
-
-
-helmCharts:
-- name: tenant
-  repo: https://operator.min.io
-  releaseName: trilio
-  namespace: trilio-system
-  valuesFile: values.yaml 
+  - oauth-client.yaml 
