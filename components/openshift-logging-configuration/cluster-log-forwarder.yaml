@@ -11,7 +11,7 @@ spec:
     type: lokiStack
     lokiStack:
       target:
-        name: lokistack-dev
+        name: logging-loki
         namespace: openshift-logging
       authentication:
         token:
