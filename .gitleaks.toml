@@ -4,5 +4,7 @@
   # Ignore based on any subset of the file path
   paths = [
     # Ignore all example certs
-    'clusters/hub/overlays/vm-dr-test/vms/fedora-vms.yaml'
+    'clusters/hub/overlays/vm-dr-test/vms/fedora-vms.yaml',
+    'components/trilio-instance/license.yaml',
+    'clusters/etl6/overlays/trilio-vm-tests/fedora-vms.yaml'
   ]

@@ -3,9 +3,9 @@ kind: Kustomization
 namespace: trilio-system
 
 resources:
-  - backup-plan.yaml
-  - retention-policy.yaml
-  - schedule-policy.yaml
+  # - backup-plan.yaml
+  # - retention-policy.yaml
+  # - schedule-policy.yaml
   - trilio-target.yaml
 
 

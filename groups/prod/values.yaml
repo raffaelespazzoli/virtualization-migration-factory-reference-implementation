@@ -117,6 +117,7 @@ applications:
     source:
       path: components/trilio-instance
 
+
   trilio-configuration:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
@@ -124,7 +125,14 @@ applications:
     destination:
       namespace: trilio-system
     source:
-      path: components/trilio-configuration       
+      path: components/trilio-configuration
+    extraFields: |
+      ignoreDifferences:
+        - group: 'triliovault.trilio.io'
+          jsonPointers:
+            - /spec/backupConfig/target/resourceVersion
+            - /spec/backupConfig/target/uid
+          kind: BackupPlan             
 
 # Observability
 

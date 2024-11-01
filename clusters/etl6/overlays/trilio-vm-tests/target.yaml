@@ -1,0 +1,22 @@
+apiVersion: triliovault.trilio.io/v1
+kind: Target
+metadata:
+  name: trilio-s3-target
+  labels:
+    app.kubernetes.io/managed-by: k8s-triliovault-webhook
+    triliovault.trilio.io/cloned: 'true'
+spec:
+  nfsCredentials:
+    nfsExport: ''
+  objectStoreCredentials:
+    bucketName: trilio
+    credentialSecret:
+      apiVersion: v1
+      kind: Secret
+      name: trilio-target
+      namespace: vm-trilio-test
+    region: minio
+    url: 'http://triolio-bucket-trilio-system.apps.${HUB_BASE_DOMAIN}/'
+  thresholdCapacity: 500Gi
+  type: ObjectStore
+  vendor: AWS

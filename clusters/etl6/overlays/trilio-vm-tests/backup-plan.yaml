@@ -1,0 +1,33 @@
+apiVersion: triliovault.trilio.io/v1
+kind: BackupPlan
+metadata:
+  name: vm-trilio-test
+spec:
+  backupConfig:
+    retentionPolicy:
+      apiVersion: triliovault.trilio.io/v1
+      kind: Policy
+      name: trilio-latest-retention-policy
+      namespace: vm-trilio-test
+    schedulePolicy:
+      fullBackupCron:
+        schedule: ''
+      fullBackupPolicy:
+        apiVersion: triliovault.trilio.io/v1
+        kind: Policy
+        name: trilio-weekly-schedule-policy
+        namespace: vm-trilio-test
+      incrementalBackupPolicy:
+        apiVersion: triliovault.trilio.io/v1
+        kind: Policy
+        name: trilio-daily-schedule-policy
+        namespace: vm-trilio-test
+      incrementalCron:
+        schedule: ''
+    target:
+      apiVersion: triliovault.trilio.io/v1
+      kind: Target
+      name: trilio-s3-target
+      namespace: vm-trilio-test
+  backupPlanComponents: {}
+  retainHelmApps: false

@@ -68,3 +68,12 @@ applications:
       namespace: vm-tests
     source:
       path: clusters/etl6/overlays/vm-tests
+
+  trilio-vm-tests:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: trilio-vm-tests
+    source:
+      path: clusters/etl6/overlays/trilio-vm-tests      

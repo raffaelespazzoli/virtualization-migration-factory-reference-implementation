@@ -1,0 +1,40 @@
+apiVersion: triliovault.trilio.io/v1
+kind: Policy
+metadata:
+  name: trilio-daily-schedule-policy
+  labels:
+    app.kubernetes.io/managed-by: k8s-triliovault-webhook
+    triliovault.trilio.io/cloned: 'true'
+spec:
+  default: false
+  scheduleConfig:
+    schedule:
+      - 0 23 * * *
+  type: Schedule
+---
+apiVersion: triliovault.trilio.io/v1
+kind: Policy
+metadata:
+  name: trilio-latest-retention-policy
+  labels:
+    app.kubernetes.io/managed-by: k8s-triliovault-webhook
+    triliovault.trilio.io/cloned: 'true'
+spec:
+  default: false
+  retentionConfig:
+    latest: 5
+  type: Retention
+---
+apiVersion: triliovault.trilio.io/v1
+kind: Policy
+metadata:
+  name: trilio-weekly-schedule-policy
+  labels:
+    app.kubernetes.io/managed-by: k8s-triliovault-webhook
+    triliovault.trilio.io/cloned: 'true'
+spec:
+  default: false
+  scheduleConfig:
+    schedule:
+      - 0 5 * * 0
+  type: Schedule    
