@@ -130,8 +130,8 @@ applications:
       ignoreDifferences:
         - group: 'triliovault.trilio.io'
           jsonPointers:
-            - /spec/backupConfig/target/resourceVersion
-            - /spec/backupConfig/target/uid
+            - /spec/objectStoreCredentials/credentialSecret/resourceVersion
+            - /spec/objectStoreCredentials/credentialSecret/uid
           kind: BackupPlan             
 
 # Observability
