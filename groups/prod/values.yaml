@@ -119,6 +119,7 @@ applications:
 
 
   trilio-configuration:
+    enableAutoSync: false
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '25'
