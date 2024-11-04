@@ -12,7 +12,8 @@ spec:
   - kubevirt-plugin
   - nmstate-console-plugin
   - node-remediation-console-plugin
-  - fusion-console
+  #- fusion-console
   #- odf-console
   - networking-console-plugin
   - tvk-console-plugin
+  - logging-view-plugin
