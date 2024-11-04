@@ -1,0 +1,10 @@
+apiVersion: triliovault.trilio.io/v1
+kind: Policy
+metadata:
+  name: continuous-dr-policy
+  namespace: trilio-vm-tests
+spec:
+  continuousRestoreConfig:
+    consistentSets: 2
+  default: false
+  type: ContinuousRestore

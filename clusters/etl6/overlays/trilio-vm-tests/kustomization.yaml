@@ -11,3 +11,4 @@ resources:
   - ./policies.yaml
   - ./target.yaml
   - ./trilio-target-secret.yaml
+  - ./continuous-dr-policy.yaml

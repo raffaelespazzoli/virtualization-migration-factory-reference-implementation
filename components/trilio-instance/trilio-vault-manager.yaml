@@ -16,5 +16,5 @@ spec:
     ingress-controller:
       enabled: false
   applicationScope: Cluster
-  tvkInstanceName: tvk-instance
+  tvkInstanceName: ${CLUSTER_NAME}
   logLevel: Info

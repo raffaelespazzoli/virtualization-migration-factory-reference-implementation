@@ -31,3 +31,11 @@ spec:
       namespace: trilio-vm-tests
   backupPlanComponents: {}
   retainHelmApps: false
+  continuousRestoreConfig:
+    continuousRestoreInstances:
+      - continuousRestorePolicy:
+          apiVersion: triliovault.trilio.io/v1
+          kind: Policy
+          name: continous-dr-policy
+          namespace: trilio-vm-tests
+        instanceID: f20460e5-6efa-46eb-b1db-7c0c1f89abb9  
