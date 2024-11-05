@@ -1,0 +1,11 @@
+apiVersion: forklift.konveyor.io/v1beta1
+kind: Provider
+metadata:
+  name: {{ .Release.Name }}
+  namespace: openshift-mtv
+spec:
+  secret:
+    name: {{ .Release.Name }}-mtv
+    namespace: {{ .Release.Name }}
+  type: openshift
+  url: 'https://api.{{ .Release.Name }}.${PLATFORM_BASE_DOMAIN}:6443'
