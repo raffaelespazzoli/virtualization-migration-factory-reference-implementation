@@ -10,7 +10,7 @@ kind: Subscription
 metadata:
   name: ansible-automation-platform
 spec:
-  channel: stable-2.4-cluster-scoped
+  channel: stable-2.5-cluster-scoped
   installPlanApproval: Automatic
   name: ansible-automation-platform-operator
   source: redhat-operators
