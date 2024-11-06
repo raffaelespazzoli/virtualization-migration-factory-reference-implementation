@@ -6,3 +6,4 @@ resources:
 - provisioning.yaml
 - hive-config.yaml
 - lets-encrypt-ca-secret.yaml
+- console-mce-config-configmap-patch.yaml
