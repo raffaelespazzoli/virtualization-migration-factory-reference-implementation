@@ -6,7 +6,4 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-options: Delete=false,ServerSideApply=true  
 data:
-  LOG_LEVEL: info
-  ansibleIntegration: disabled
-  awsPrivateWizardStep: enabled
-  singleNodeOpenshift: disabled
+  VIRTUAL_MACHINE_ACTIONS: enabled
