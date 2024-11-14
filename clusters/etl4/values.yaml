@@ -3,6 +3,17 @@ projects: {}
 
 applications: 
 
+# Networking
+
+  nmstate-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    source:
+      path: clusters/etl6/overlays/nmstate-configuration
+
+# fake-fish      
+
   kyverno-operator:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
