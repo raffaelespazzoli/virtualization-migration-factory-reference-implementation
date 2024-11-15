@@ -2,8 +2,9 @@ apiVersion: machineconfiguration.openshift.io/v1
 kind: MachineConfig
 metadata:
   labels:
-    machineconfiguration.openshift.io/role: worker
-  name: 90-worker-swap
+    #because this is a 3-node cluster
+    machineconfiguration.openshift.io/role: master
+  name: 90-master-swap
 spec:
   config:
     ignition:
