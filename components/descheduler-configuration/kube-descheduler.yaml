@@ -8,3 +8,5 @@ spec:
   - DevPreviewLongLifecycle
   mode: Predictive
   managementState: Managed
+  profileCustomizations:
+    devEnableEvictionsInBackground: true  
