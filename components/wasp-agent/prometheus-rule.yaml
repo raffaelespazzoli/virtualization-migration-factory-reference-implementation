@@ -1,0 +1,27 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    tier: node
+    wasp.io: ""
+  name: wasp-rules
+  namespace: wasp
+spec:
+  groups:
+    - name: alerts.rules
+      rules:
+        - alert: NodeHighSwapActivity
+          annotations:
+            description: High swap activity detected at {{ $labels.instance }}. The rate
+              of swap out and swap in exceeds 200 in both operations in the last minute.
+              This could indicate memory pressure and may affect system performance.
+            runbook_url: https://github.com/openshift-virtualization/wasp-agent/tree/main/docs/runbooks/NodeHighSwapActivity.md
+            summary: High swap activity detected at {{ $labels.instance }}.
+          expr: rate(node_vmstat_pswpout[1m]) > 200 and rate(node_vmstat_pswpin[1m]) >
+            200
+          for: 1m
+          labels:
+            kubernetes_operator_component: kubevirt
+            kubernetes_operator_part_of: kubevirt
+            operator_health_impact: warning
+            severity: warning

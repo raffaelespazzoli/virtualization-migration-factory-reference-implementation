@@ -1,0 +1,31 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: worker
+  name: 90-worker-swap
+spec:
+  config:
+    ignition:
+      version: 3.4.0
+    systemd:
+      units:
+        - contents: |
+            [Unit]
+            Description=Provision and enable swap
+            ConditionFirstBoot=no
+
+            [Service]
+            Type=oneshot
+            Environment=SWAP_SIZE_MB=5000
+            ExecStart=/bin/sh -c "sudo dd if=/dev/zero of=/var/tmp/swapfile count=${SWAP_SIZE_MB} bs=1M && \
+            sudo chmod 600 /var/tmp/swapfile && \
+            sudo mkswap /var/tmp/swapfile && \
+            sudo swapon /var/tmp/swapfile && \
+            free -h && \
+            sudo systemctl set-property --runtime system.slice MemorySwapMax=0 IODeviceLatencyTargetSec=\"/ 50ms\""
+
+            [Install]
+            RequiredBy=kubelet-dependencies.target
+          enabled: true
+          name: swap-provision.service
