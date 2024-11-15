@@ -3,8 +3,6 @@ kind: Target
 metadata:
   name: trilio-s3-target
 spec:
-  nfsCredentials:
-    nfsExport: ''
   objectStoreCredentials:
     bucketName: trilio
     credentialSecret:
@@ -18,4 +16,4 @@ spec:
     url: 'http://trilio-bucket-trilio-system.apps.${HUB_BASE_DOMAIN}/'
   thresholdCapacity: 500Gi
   type: ObjectStore
-  vendor: MinIO
+  vendor: AWS
