@@ -52,7 +52,6 @@ spec:
             - mountPath: /rootfs
               name: rootfs
       hostPID: true
-      hostUsers: true
       priorityClassName: system-node-critical
       serviceAccountName: wasp
       terminationGracePeriodSeconds: 5
