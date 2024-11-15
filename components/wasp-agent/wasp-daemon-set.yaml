@@ -36,8 +36,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
-          image: >-
-            quay.io/openshift-virtualization/wasp-agent:v4.17 
+          image: registry.redhat.io/container-native-virtualization/wasp-agent-rhel9@sha256:7dbcd0a5ec9515ebe48cf184b0eef1272205517036d2a3a801b67482cbfdc079
           imagePullPolicy: Always
           name: wasp-agent
           resources:
