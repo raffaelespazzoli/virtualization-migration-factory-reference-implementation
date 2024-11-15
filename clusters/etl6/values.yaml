@@ -93,5 +93,6 @@ applications:
             - /spec/backupConfig/schedulePolicy/incrementalBackupPolicy/resourceVersion
             - /spec/backupConfig/schedulePolicy/incrementalBackupPolicy/uid
             - /spec/backupConfig/target/resourceVersion
-            - /spec/backupConfig/target/uid                                     
-          kind: BackupPlan                      
+            - /spec/backupConfig/target/uid
+            - /spec/continuousRestoreConfig/continuousRestoreInstances/0/continuousRestorePolicy/resourceVersion
+            - /spec/continuousRestoreConfig/continuousRestoreInstances/0/continuousRestorePolicy/uid                      
