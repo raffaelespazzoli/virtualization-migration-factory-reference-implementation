@@ -17,4 +17,4 @@ spec:
     evictionSoftGracePeriod:
       memory.available: "5m"
     evictionPressureTransitionPeriod: 0s
-#    failSwapOn: false    
+    failSwapOn: false    

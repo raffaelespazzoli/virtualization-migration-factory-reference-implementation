@@ -9,5 +9,5 @@ helmGlobals:
 
 helmCharts:      
   - name: cluster-registration
-    releaseName: etl6
-    namespace: etl6 
+    releaseName: etl4
+    namespace: etl4 
