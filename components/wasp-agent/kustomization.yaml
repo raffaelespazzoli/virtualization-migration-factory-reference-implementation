@@ -5,7 +5,7 @@ namespace: wasp
 
 resources:
   - namespace.yaml
-  #- machine-config-swap-on.yaml
+  - machine-config-swap-on.yaml
   - rbac.yaml
   - wasp-daemon-set.yaml
   - prometheus-rule.yaml
