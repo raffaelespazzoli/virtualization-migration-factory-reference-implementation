@@ -56,4 +56,4 @@ applications:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     source:
-      path: clusters/etl6/overlays/power-monitoring-configuration                  
+      path: clusters/etl7/overlays/power-monitoring-configuration                  

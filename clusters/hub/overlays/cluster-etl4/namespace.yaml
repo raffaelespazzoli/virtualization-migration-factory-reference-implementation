@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: etl6-etl6
+  name: etl4
   annotations:
     argocd.argoproj.io/sync-options: Delete=false,ServerSideApply=true
   labels:

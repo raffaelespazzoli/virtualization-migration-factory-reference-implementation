@@ -1,0 +1,53 @@
+apiVersion: agent-install.openshift.io/v1beta1
+kind: NMStateConfig
+metadata:
+  name: x240m5-13
+  namespace: etl4
+  labels:
+    infraenvs.agent-install.openshift.io: etl4
+spec:
+  config:
+    interfaces:
+    - name: bond0
+      type: bond
+      state: up
+      ipv4:
+        enabled: false
+      ipv6:
+        enabled: false
+      link-aggregation:
+        mode: 802.3ad
+        options:
+          miimon: "100"
+        port:
+          - ens2f0
+          - ens2f1
+    - name: bond0.2512
+      type: vlan
+      state: up
+      ipv4:
+        enabled: true
+        address:
+          - ip: 10.9.51.153
+            prefix-length: 25
+        dhcp: false
+      vlan:
+        base-iface: bond0
+        id: 2512
+    dns-resolver:
+      config:
+        server:
+        - 10.9.48.31
+        - 10.9.48.32
+    routes:
+      config:
+      - destination: 0.0.0.0/0
+        next-hop-address: 10.9.51.129
+        next-hop-interface: bond0.2512
+  interfaces:
+    - name: ens2f0
+      macAddress: 00:0e:1e:97:fb:60
+    - name: ens2f1
+      macAddress: 00:0e:1e:97:fb:62
+
+

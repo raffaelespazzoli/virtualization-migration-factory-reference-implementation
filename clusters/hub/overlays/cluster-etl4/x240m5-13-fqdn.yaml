@@ -1,0 +1,11 @@
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: x240m5-13-dns-entry
+spec:
+  endpoints:
+  - dnsName: x240m5-13.etl6.${PLATFORM_BASE_DOMAIN}
+    recordTTL: 180
+    recordType: A
+    targets:
+    - 10.9.50.145
