@@ -3,15 +3,15 @@ kind: Kustomization
 
 resources:
   - ./namespace.yaml       
-  - ./X240m5-11-baremetal-host.yaml
-  - ./X240m5-12-baremetal-host.yaml
-  - ./X240m5-13-baremetal-host.yaml
-  - ./X240m5-11-nmstate-config.yaml
-  - ./X240m5-12-nmstate-config.yaml
-  - ./X240m5-13-nmstate-config.yaml
-  - ./X240m5-11-fqdn.yaml
-  - ./X240m5-12-fqdn.yaml
-  - ./X240m5-13-fqdn.yaml   
+  - ./x240m5-11-baremetal-host.yaml
+  - ./x240m5-12-baremetal-host.yaml
+  - ./x240m5-13-baremetal-host.yaml
+  - ./x240m5-11-nmstate-config.yaml
+  - ./x240m5-12-nmstate-config.yaml
+  - ./x240m5-13-nmstate-config.yaml
+  - ./x240m5-11-fqdn.yaml
+  - ./x240m5-12-fqdn.yaml
+  - ./x240m5-13-fqdn.yaml   
 
 helmGlobals:
   chartHome: ../../../../.helm-charts
