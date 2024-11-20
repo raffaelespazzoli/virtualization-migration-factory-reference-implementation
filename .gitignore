@@ -8,3 +8,5 @@ components/ibm-fusion-operator/authority.json
 components/ibm-fusion-operator/ibm-entitlement-key.txt
 components/ibm-fusion-operator/pull-secret.yaml
 components/trilio-instance/license.yaml
+clusters/hub/overlays/cluster-etl4/bmc-credentials-secret.yaml
+clusters/hub/overlays/cluster-etl4/pull-secret.yaml
