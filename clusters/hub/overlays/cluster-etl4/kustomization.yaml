@@ -21,7 +21,7 @@ helmCharts:
     releaseName: etl4
     namespace: etl4
     valuesInline:
-      clusterSet: dr  
+      clusterSet: default  
       location: oystein-lab
       workerNumber: 0
       imageSet: img4.17.2-x86-64-appsub
