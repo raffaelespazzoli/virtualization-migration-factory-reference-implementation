@@ -23,12 +23,14 @@ spec:
             matchLabels:
               replace-mac: "true"
     mutate:
-      patchStrategicMerge:
-        spec:
-          template:
-            spec:
-              domain:
-                devices:
-                  interfaces:
-                    (macAddress): "00:50:56:*"
-                    macAddress: "02:cd:1b:*"
+      foreach:
+      - list: "request.object.spec.template.spec.domain.devices.interfaces"
+        patchStrategicMerge:
+          spec:
+            template: 
+              spec:
+                domain:
+                  devices:
+                    interfaces:
+                    - name: "{{ element.name }}" 
+                      macAddress: "{{ replace('{{element.macAddress}}', '00:50:56', '02:cd:1b', `1`) }}" 
