@@ -52,7 +52,7 @@ applications:
     destination:
       namespace: netapp-trident
     source:
-      path: components/trident-configuration
+      path: clusters/hub/overlays/trident-configuration
 
   oadp-storage:
     annotations:
