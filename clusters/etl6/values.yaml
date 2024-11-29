@@ -97,3 +97,13 @@ applications:
             - /spec/backupConfig/target/uid
             - /spec/continuousRestoreConfig/continuousRestoreInstances/0/continuousRestorePolicy/resourceVersion
             - /spec/continuousRestoreConfig/continuousRestoreInstances/0/continuousRestorePolicy/uid                      
+
+
+  udn-test:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '25'
+    destination:
+      namespace: udn-test
+    source:
+      path: clusters/etl6/overlays/udn-test          
