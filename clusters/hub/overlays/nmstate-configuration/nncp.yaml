@@ -15,3 +15,76 @@ spec:
       vlan:
         base-iface: br-ex
         id: 502
+---        
+apiVersion: nmstate.io/v1
+kind: NodeNetworkConfigurationPolicy
+metadata:
+  name: vlan-3492-dl360g7-4 
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: 'dl360g7-4.hub2.ocp.rht-labs.com' 
+  desiredState:
+    interfaces:        
+    - name: br-ex.3492
+      description: |-
+        A dedicated vlan interface for the storage network.
+      type: vlan
+      state: up
+      vlan:
+        base-iface: br-ex
+        id: 3492 
+      ipv4:
+        address:
+          - ip: 192.168.49.74
+            prefix-length: 26
+        dhcp: false
+        enabled: true
+---        
+apiVersion: nmstate.io/v1
+kind: NodeNetworkConfigurationPolicy
+metadata:
+  name: vlan-3492-dl360g7-5 
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: 'dl360g7-5.hub2.ocp.rht-labs.com' 
+  desiredState:
+    interfaces:        
+    - name: br-ex.3492
+      description: |-
+        A dedicated vlan interface for the storage network.
+      type: vlan
+      state: up
+      vlan:
+        base-iface: br-ex
+        id: 3492 
+      ipv4:
+        address:
+          - ip: 192.168.49.75
+            prefix-length: 26
+        dhcp: false
+        enabled: true
+---        
+apiVersion: nmstate.io/v1
+kind: NodeNetworkConfigurationPolicy
+metadata:
+  name: vlan-3492-dl360g7-6 
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: 'dl360g7-6.hub2.ocp.rht-labs.com' 
+  desiredState:
+    interfaces:        
+    - name: br-ex.3492
+      description: |-
+        A dedicated vlan interface for the storage network.
+      type: vlan
+      state: up
+      vlan:
+        base-iface: br-ex
+        id: 3492 
+      ipv4:
+        address:
+          - ip: 192.168.49.76
+            prefix-length: 26
+        dhcp: false
+        enabled: true                        
+               

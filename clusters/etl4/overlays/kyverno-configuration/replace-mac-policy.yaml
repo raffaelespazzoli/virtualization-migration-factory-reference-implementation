@@ -21,16 +21,19 @@ spec:
           - VirtualMachine
           selector:
             matchLabels:
-              replace-mac: "true"
+              replace-mac: "true"             
     mutate:
       foreach:
       - list: "request.object.spec.template.spec.domain.devices.interfaces"
-        patchStrategicMerge:
-          spec:
-            template: 
-              spec:
-                domain:
-                  devices:
-                    interfaces:
-                    - name: "{{ element.name }}" 
-                      macAddress: "{{ replace('{{element.macAddress}}', '00:50:56', '02:cd:1b', `1`) }}" 
+        preconditions:
+          all:
+          - key: "{{ element.macAddress || '' }}"
+            operator: Equals
+            value: 00:50:56:*           
+        patchesJson6902: |-
+          - path: /spec/template/spec/domain/devices/interfaces/{{elementIndex0}}/macAddress
+            op: replace
+            value: "{{ replace('{{element.macAddress}}', '00:50:56', '02:cd:1b', `1`) }}"  
+
+
+                        

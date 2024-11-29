@@ -15,7 +15,7 @@ spec:
   version: 1
   storageDriverName: ontap-san
   managementLIF: netapp.etl.rht-labs.com
-  svm: ocp_h2
+  svm: ocp_hub2
   credentials: 
     name: ontap-san-secret
 ---
