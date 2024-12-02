@@ -34,3 +34,4 @@ parameters:
   provisioningType: "thin"
   snapshots: "true"     
   clones: "true"
+  fsType: ext4
