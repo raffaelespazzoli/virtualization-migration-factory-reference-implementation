@@ -4,7 +4,7 @@ metadata:
  name: agent
 spec:
   databaseStorage:
-    storageClassName: ontap-san
+    storageClassName: ontap-nas
     accessModes:
     - ReadWriteOnce
     resources:
@@ -18,7 +18,7 @@ spec:
       requests:
         storage: 50Gi
   imageStorage:
-    storageClassName: ontap-san
+    storageClassName: ontap-nas
     accessModes:
     - ReadWriteOnce
     resources:
