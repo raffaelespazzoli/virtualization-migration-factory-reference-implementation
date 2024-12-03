@@ -47,15 +47,17 @@ applications:
         namespace: openshift-kube-descheduler-operator      
     source:
       path: components/descheduler-configuration     
-
-  wasp-agent:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '5'
-    destination:
-        namespace: wasp     
-    source:
-      path: components/wasp-agent
+    
+    
+    # disabled because not gitops friendly
+  # wasp-agent:
+  #   annotations:
+  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
+  #     argocd.argoproj.io/sync-wave: '5'
+  #   destination:
+  #       namespace: wasp     
+  #   source:
+  #     path: components/wasp-agent
 
 # HA
 
