@@ -4,7 +4,7 @@ kind: Kustomization
 resources:
  # - ../../groups/all
   #- ../../groups/prod
-  - ../components/kube-ops-view
+  - ../../components/kube-ops-view
 # helmGlobals:
 #   chartHome: ../../.helm-charts
 
