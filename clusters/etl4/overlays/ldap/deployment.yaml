@@ -31,6 +31,8 @@ spec:
           ports:
             - containerPort: 389
               name: openldap
+            - containerPort: 636
+              name: openldap              
           args:
             - '--copy-service'   
             - '--loglevel'

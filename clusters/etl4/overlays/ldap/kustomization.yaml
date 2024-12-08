@@ -7,3 +7,4 @@ resources:
   - route.yaml
   - service.yaml
   - namespace.yaml
+  - rbac.yaml
