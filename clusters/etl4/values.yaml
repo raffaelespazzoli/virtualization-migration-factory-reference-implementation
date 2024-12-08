@@ -73,8 +73,7 @@ applications:
       ignoreDifferences:
         - group: 'apps'
           jsonPointers:
-            - /spec/volumeClaimTemplates/apiVersion
-            - /spec/volumeClaimTemplates/kind
+            - /spec/volumeClaimTemplates
           kind: StatefulSet      
 
   # rhsso-operator:

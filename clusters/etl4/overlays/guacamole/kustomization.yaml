@@ -8,7 +8,7 @@ helmCharts:
   - name: postgresql
     namespace: guacamole
     releaseName: postgresql
-    repo: https://charts.bitnami.com/bitnami
+    repo: oci://registry-1.docker.io/bitnamicharts
     valuesInline:
       global:
         postgresql:
