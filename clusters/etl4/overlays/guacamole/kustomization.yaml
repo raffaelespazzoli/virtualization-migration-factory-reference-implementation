@@ -4,7 +4,7 @@ namespace: guacamole
 
 resources: 
 - namespace.yaml
-- rbac.yaml
+#- rbac.yaml
 
 helmCharts:
   - name: postgresql
@@ -19,6 +19,9 @@ helmCharts:
             password: password
             database: guacamole
             postgresPassword: guacamole
+        compatibility:
+          openshift:
+            adaptSecurityContext: "force"
   - name: guacamole
     namespace: guacamole
     releaseName: guacamole
