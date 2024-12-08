@@ -69,6 +69,13 @@ applications:
       namespace: vault      
     source:
       path: clusters/etl4/overlays/vault
+    extraFields: |
+      ignoreDifferences:
+        - group: 'apps'
+          jsonPointers:
+            - /spec/volumeClaimTemplates/apiVersion
+            - /spec/volumeClaimTemplates/kind
+          kind: StatefulSet      
 
   # rhsso-operator:
   #   annotations:
