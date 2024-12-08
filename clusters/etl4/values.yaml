@@ -57,3 +57,47 @@ applications:
       argocd.argoproj.io/sync-wave: '15'
     source:
       path: clusters/etl4/overlays/power-monitoring-configuration       
+
+
+# VDI
+
+  vault:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: vault      
+    source:
+      path: clusters/etl4/overlays/vault
+
+  # rhsso-operator:
+  #   annotations:
+  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
+  #     argocd.argoproj.io/sync-wave: '5'
+  #   source:
+  #     path: clusters/etl4/overlays/rhsso-operator
+
+  # rhsso-configuration:
+  #   annotations:
+  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
+  #     argocd.argoproj.io/sync-wave: '15'
+  #   source:
+  #     path: clusters/etl4/overlays/rhsso-configuration
+
+  guacamole:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: guacamole      
+    source:
+      path: clusters/etl4/overlays/guacamole
+
+  ldap:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: ldap      
+    source:
+      path: clusters/etl4/overlays/ldap            

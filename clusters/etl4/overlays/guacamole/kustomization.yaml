@@ -6,7 +6,7 @@ resources: []
 
 helmCharts:
   - name: postgresql
-    namespace: postgresql
+    namespace: guacamole
     releaseName: postgresql
     repo: https://charts.bitnami.com/bitnami
     valuesInline:

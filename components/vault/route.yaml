@@ -1,0 +1,15 @@
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: vault
+spec:
+  host: <replace>
+  to:
+    kind: Service
+    name: vault
+    weight: 100
+  port:
+    targetPort: 8200
+  tls:
+    termination: reencrypt
+  wildcardPolicy: None
