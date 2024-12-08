@@ -26,4 +26,6 @@ helmCharts:
     namespace: guacamole
     releaseName: guacamole
     repo: https://charts.beryju.io
-    valuesInline: {}
+    valuesInline:
+      securityContext:
+        runAsUser: 1001
