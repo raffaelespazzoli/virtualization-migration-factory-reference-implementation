@@ -30,9 +30,9 @@ spec:
               subPath: database.ldif
           ports:
             - containerPort: 389
-              name: openldap
+              name: ldap
             - containerPort: 636
-              name: openldap              
+              name: ldaps              
           args:
             - '--copy-service'   
             - '--loglevel'

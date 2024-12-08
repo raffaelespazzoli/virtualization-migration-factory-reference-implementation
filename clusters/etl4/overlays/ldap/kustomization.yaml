@@ -8,3 +8,4 @@ resources:
   - service.yaml
   - namespace.yaml
   - rbac.yaml
+  - link.yaml
