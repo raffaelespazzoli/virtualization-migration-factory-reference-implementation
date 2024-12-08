@@ -13,10 +13,12 @@ spec:
     metadata:
       labels:
         app: ldap
-    spec:            
+    spec:        
+      enableServiceLinks: false    
       containers:
         - name: ldap
           image: osixia/openldap:1.5.0
+
           volumeMounts:
             # - name: ldap-data
             #   mountPath: /var/lib/ldap
