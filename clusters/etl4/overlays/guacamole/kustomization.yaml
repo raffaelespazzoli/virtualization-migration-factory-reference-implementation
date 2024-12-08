@@ -5,6 +5,8 @@ namespace: guacamole
 resources: 
 - namespace.yaml
 - rbac.yaml
+- route.yaml
+- link.yaml
 
 helmCharts:
   - name: postgresql

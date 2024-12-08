@@ -1,0 +1,14 @@
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: guacamole
+spec:
+  to:
+    kind: Service
+    name: guacamole-guacamole
+  port:
+    targetPort: http
+  tls:
+    termination: reencrypt
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
