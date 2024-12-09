@@ -115,4 +115,13 @@ applications:
     destination:
       namespace: ldap      
     source:
-      path: clusters/etl4/overlays/ldap            
+      path: clusters/etl4/overlays/ldap     
+
+  rhsso-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: sso      
+    source:
+      path: clusters/etl4/overlays/rhsso-operator             

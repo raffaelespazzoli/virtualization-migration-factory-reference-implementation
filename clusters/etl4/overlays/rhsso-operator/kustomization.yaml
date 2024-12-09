@@ -3,5 +3,5 @@ kind: Kustomization
 
 resources:
   - namespace.yaml
-  - operator-group.yaml
-  - subscription.yaml
+  #- operator-group.yaml
+  - operator-policy.yaml

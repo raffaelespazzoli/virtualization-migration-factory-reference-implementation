@@ -1,0 +1,31 @@
+apiVersion: policy.open-cluster-management.io/v1beta1
+kind: OperatorPolicy
+metadata:
+  name: rhsso-operator
+spec:
+  complianceConfig:
+    catalogSourceUnhealthy: Compliant
+    deploymentsUnavailable: NonCompliant
+    upgradesAvailable: Compliant
+  complianceType: musthave
+  remediationAction: enforce
+  removalBehavior:
+    clusterServiceVersions: Delete
+    customResourceDefinitions: Keep
+    operatorGroups: DeleteIfUnused
+    subscriptions: Delete
+  severity: medium
+  operatorGroup: # optional
+    name: rhsso-operator
+    namespace: rhsso-operator
+    targetNamespaces:
+        - sso
+  subscription:
+    channel: stable
+    installPlanApproval: Manual
+    name: rhsso-operator
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+    upgradeApproval: Automatic
+    startingCSV: 7.6.11-opr-002
+  versions: []
