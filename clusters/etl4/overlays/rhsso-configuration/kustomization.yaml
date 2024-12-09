@@ -4,10 +4,10 @@ namespace: sso
 
 resources:
   - keycloak.yaml
-  - clients.yaml
-  - keycloak-realm.yaml
+  #- clients.yaml
+  #- keycloak-realm.yaml
   - link.yaml
-  - users.yaml
-  - groups.yaml
-  - oauth-secret-policy.yaml
-  - rbac.yaml
+  #- users.yaml
+  #- groups.yaml
+  #- oauth-secret-policy.yaml
+  #- rbac.yaml

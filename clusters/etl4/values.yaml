@@ -122,4 +122,11 @@ applications:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'     
     source:
-      path: clusters/etl4/overlays/rhsso-operator             
+      path: clusters/etl4/overlays/rhsso-operator  
+
+  rhsso-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'     
+    source:
+      path: clusters/etl4/overlays/rhsso-configuration                 
