@@ -2,8 +2,8 @@ apiVersion: k8s.cni.cncf.io/v1
 kind: NetworkAttachmentDefinition
 metadata:
   annotations:
-    description: Network 1512 via OVS Bridge
-  name: vlan-1512
+    description: vm-brige
+  name: vm-bridge
   namespace: default
 spec:
   config: |-
