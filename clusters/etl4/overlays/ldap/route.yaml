@@ -7,7 +7,7 @@ metadata:
 spec:
   to:
     kind: Service
-    name: ldap
+    name: ldap-admin
     weight: 100
   port:
     targetPort: http-admin

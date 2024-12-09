@@ -9,13 +9,23 @@ metadata:
 spec:
   type: LoadBalancer
   ports:
-    - port: 389
-      name: ldap
     - port: 636
-      name: ldaps      
+      name: ldaps            
+  selector:
+    app: ldap
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ldap
+  name: ldap-admin
+spec:
+  type: ClusterIP
+  ports:   
     - port: 443
       name: https-admin
     - port: 80
       name: http-admin      
   selector:
-    app: ldap
+    app: ldap    
