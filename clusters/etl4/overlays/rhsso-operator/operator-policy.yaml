@@ -2,6 +2,7 @@ apiVersion: policy.open-cluster-management.io/v1beta1
 kind: OperatorPolicy
 metadata:
   name: rhsso-operator
+  namespace: ${CLUSTER_NAME}
 spec:
   upgradeApproval: Automatic
   complianceConfig:
