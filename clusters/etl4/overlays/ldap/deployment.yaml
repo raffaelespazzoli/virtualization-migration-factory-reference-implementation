@@ -20,10 +20,6 @@ spec:
           image: osixia/openldap:1.5.0
 
           volumeMounts:
-            # - name: ldap-data
-            #   mountPath: /var/lib/ldap
-            # - name: ldap-config
-            #   mountPath: /etc/ldap/slapd.d
             - name: ldap-certs
               mountPath: /container/service/slapd/assets/certs
             - name: ldif-config
@@ -100,6 +96,9 @@ spec:
               mountPath: /container/service/ldap-client/assets/certs
           ports:
             - containerPort: 443
+              name: https-admin
+            - containerPort: 80
+              name: http-admin
           env:
             - name: PHPLDAPADMIN_LDAP_HOSTS
               value: "#PYTHON2BASH:[{'localhost': [{'server': [{'tls': 'true'}]}]}]"
@@ -108,7 +107,7 @@ spec:
             - name: PHPLDAPADMIN_SERVER_PATH
               value: "/phpldapadmin"
             - name: PHPLDAPADMIN_HTTPS
-              value: "true"
+              value: "false"
             - name: PHPLDAPADMIN_HTTPS_CRT_FILENAME
               value: "cert.crt"
             - name: PHPLDAPADMIN_HTTPS_KEY_FILENAME
@@ -126,10 +125,6 @@ spec:
             - name: PHPLDAPADMIN_LDAP_CLIENT_TLS_CA_CRT_FILENAME
               value: "ca.crt"              
       volumes:
-        # - name: ldap-data
-        #   emptyDir: {}
-        # - name: ldap-config
-        #   emptyDir: {}
         - name: ldap-certs
           emptyDir: {}
         - name: phpldapadmin-certs
