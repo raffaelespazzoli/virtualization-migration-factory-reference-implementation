@@ -20,7 +20,7 @@ spec:
           image: osixia/openldap:1.5.0
 
           volumeMounts:
-            - name: ldap-certs
+            - name: ldap-cert-tls
               mountPath: /container/service/slapd/assets/certs
             - name: ldif-config
               mountPath: >-
@@ -60,9 +60,9 @@ spec:
             - name: LDAP_TLS
               value: "true"
             - name: LDAP_TLS_CRT_FILENAME
-              value: "ldap.crt"
+              value: "tls.crt"
             - name: LDAP_TLS_KEY_FILENAME
-              value: "ldap.key"
+              value: "tls.key"
             - name: LDAP_TLS_DH_PARAM_FILENAME
               value: "dhparam.pem"
             - name: LDAP_TLS_CA_CRT_FILENAME
@@ -131,4 +131,7 @@ spec:
           emptyDir: {}         
         - name: ldif-config
           configMap:
-            name: ldif-config                
+            name: ldif-config
+        - name: ldap-cert-tls
+          secret:
+            secretName: ldap-cert-tls
