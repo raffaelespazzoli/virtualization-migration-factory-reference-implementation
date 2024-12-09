@@ -10,9 +10,11 @@ helmCharts:
     releaseName: kyverno
     namespace: kyverno
     repo: https://kyverno.github.io/kyverno
+    includeCRDs: true
     valuesInline:
+      excludeKyvernoNamespace: true
       config:
-        webhooks: [{"namespaceSelector":{"matchExpressions":[{"key":"openshift.io/cluster-monitoring","operator":"NotIn","values":["true"]}]}}]
+        webhooks: {"namespaceSelector":{"matchExpressions":[{"key":"openshift.io/cluster-monitoring","operator":"NotIn","values":["true"]}]}}
       admissionController:
         initContainer:
           securityContext: null

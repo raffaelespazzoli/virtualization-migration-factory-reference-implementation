@@ -133,5 +133,17 @@ spec:
           configMap:
             name: ldif-config
         - name: ldap-cert-tls
-          secret:
-            secretName: ldap-cert-tls
+          projected:
+            sources:
+            - secret:
+                name: ldap-cert-tls
+                items:
+                - key: tls.key
+                  path: tls.key
+                - key: tls.crt
+                  path: tls.crt             
+            - configMap:
+                name: openshift-service-ca.crt
+                items:
+                - key: service-ca.crt
+                  path: ca.crt                
