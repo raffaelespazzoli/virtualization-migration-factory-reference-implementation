@@ -19,15 +19,15 @@ spec:
   severity: medium
   operatorGroup: # optional
     name: rhsso-operator
-    namespace: rhsso-operator
+    namespace: sso
     targetNamespaces:
         - sso
   subscription:
     channel: stable
     installPlanApproval: Manual
     name: rhsso-operator
+    namespace: sso
     source: redhat-operators
     sourceNamespace: openshift-marketplace
-    upgradeApproval: Automatic
     startingCSV: 7.6.11-opr-002
   versions: []
