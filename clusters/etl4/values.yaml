@@ -12,6 +12,15 @@ applications:
     source:
       path: clusters/etl4/overlays/nmstate-configuration
 
+  metallb-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '6'
+    destination:
+      namespace: metallb-system
+    source:
+      path: clusters/etl4/overlays/metallb-configuration      
+
 # Storage
 
   trident-configuration:
