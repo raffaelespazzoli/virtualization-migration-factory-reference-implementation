@@ -3,6 +3,7 @@ kind: OperatorPolicy
 metadata:
   name: rhsso-operator
 spec:
+  upgradeApproval: Automatic
   complianceConfig:
     catalogSourceUnhealthy: Compliant
     deploymentsUnavailable: NonCompliant
