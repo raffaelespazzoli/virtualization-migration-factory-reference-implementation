@@ -28,5 +28,5 @@ spec:
     namespace: sso
     source: redhat-operators
     sourceNamespace: openshift-marketplace
-    startingCSV: 7.6.11-opr-002
+    startingCSV: rhsso-operator.7.6.11-opr-002
   versions: []
