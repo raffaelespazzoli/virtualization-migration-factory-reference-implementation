@@ -24,7 +24,6 @@ spec:
         - sso
   subscription:
     channel: stable
-    installPlanApproval: Manual
     name: rhsso-operator
     namespace: sso
     source: redhat-operators
