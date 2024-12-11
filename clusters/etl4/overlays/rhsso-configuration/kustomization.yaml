@@ -5,7 +5,7 @@ namespace: sso
 resources:
   - keycloak.yaml
   #- clients.yaml
-  #- keycloak-realm.yaml
+  - keycloak-realm.yaml
   - link.yaml
   #- users.yaml
   #- groups.yaml

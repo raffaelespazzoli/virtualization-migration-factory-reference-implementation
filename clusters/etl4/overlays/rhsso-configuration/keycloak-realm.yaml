@@ -1,16 +1,16 @@
 apiVersion: keycloak.org/v1alpha1
 kind: KeycloakRealm
 metadata:
-  name: myorg
+  name: example.com
   namespace: sso
   labels:
     app: sso
 spec:
   realm:
-    id: myorg
-    realm: myorg
+    id: example.com
+    realm: example.com
     enabled: true
-    displayName: myorg realm
+    displayName: example.com realm
   instanceSelector:
     matchLabels:
       app: sso
