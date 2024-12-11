@@ -2,6 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: cluster-versions
+  namespace: openshift-gitops
 data:
   # property-like keys; each key maps to a simple value
-  etl4: v1.2
+  etl4: main
