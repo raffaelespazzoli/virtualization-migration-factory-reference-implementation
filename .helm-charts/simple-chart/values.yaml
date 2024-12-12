@@ -116,6 +116,9 @@ volumeMounts: []
 #   mountPath: "/etc/foo"
 #   readOnly: true
 
+extraCommands: |
+  chmod -R 777 /var/cache/nginx
+
 nodeSelector: {}
 
 tolerations: []
