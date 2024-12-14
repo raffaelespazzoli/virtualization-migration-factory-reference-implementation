@@ -1,6 +1,0 @@
-apiVersion: v2
-name: simple-nginx
-description: A very simple Helm chart for Nginx
-type: application
-version: 0.1.0
-appVersion: "1.23.4"
