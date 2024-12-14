@@ -6,8 +6,8 @@ resources:
   #- ../../groups/prod
   - ../../components/kube-ops-view
   - ../../components/nmstate-configuration
- helmGlobals:
-  chartHome: ../../.helm-charts
+ #helmGlobals:
+  #chartHome: ../../.helm-charts
 
 # helmCharts:
 # - name: argocd-app-of-app
