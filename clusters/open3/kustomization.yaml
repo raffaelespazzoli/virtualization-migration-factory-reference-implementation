@@ -14,5 +14,7 @@ resources:
 #   valuesFile: values.yaml
 # namespace: openshift-gitops
 
+helmCharts:
+  - name: super-simple-nginx
 
 patches: [] 
