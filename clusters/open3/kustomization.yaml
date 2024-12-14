@@ -14,8 +14,8 @@ resources:
 #   valuesFile: values.yaml
 # namespace: openshift-gitops
 
-helmCharts:
-  - name: super-simple-nginx
-  namespace: default
+#helmCharts:
+#  - name: super-simple-nginx
+#  namespace: default
 
 patches: [] 
