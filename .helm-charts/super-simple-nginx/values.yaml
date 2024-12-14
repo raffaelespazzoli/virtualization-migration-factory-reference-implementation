@@ -1,2 +1,2 @@
-replicaCount: 2
+replicaCount: 3
 image: nginx:1.23.4
