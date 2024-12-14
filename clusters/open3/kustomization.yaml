@@ -16,6 +16,6 @@ helmGlobals:
 
 helmCharts:
   - name: super-simple-nginx
-  namespace: default
+  namespace: openshift-gitops
 
 patches: [] 
