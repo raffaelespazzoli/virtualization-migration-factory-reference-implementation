@@ -4,7 +4,7 @@ kind: StorageClass
 metadata:
   annotations:
     description: Provides RWO and RWOP Filesystem & Block volumes
-    storageclass.kubernetes.io/is-default-class=true
+    storageclass.kubernetes.io/is-default-class: "true"
   labels:
     owned-by.topolvm.io/group: lvm.topolvm.io
     owned-by.topolvm.io/kind: LVMCluster
