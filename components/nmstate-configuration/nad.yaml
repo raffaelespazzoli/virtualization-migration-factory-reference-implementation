@@ -9,7 +9,7 @@ spec:
   config: |-
     {
         "cniVersion": "0.4.0",
-        "name": "enp8s0",
+        "name": "eno4",
         "type": "ovn-k8s-cni-overlay",
         "mtu": 1500,
         "netAttachDefName": "default/vm-bridge",
