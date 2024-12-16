@@ -11,3 +11,4 @@ components/ibm-fusion-operator/pull-secret.yaml
 components/trilio-instance/license.yaml
 clusters/hub/overlays/cluster-etl4/bmc-credentials-secret.yaml
 clusters/hub/overlays/cluster-etl4/pull-secret.yaml
+clusters/etl4/overlays/fedora-vdi/output

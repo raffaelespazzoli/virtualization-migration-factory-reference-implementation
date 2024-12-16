@@ -4,5 +4,6 @@ metadata:
   name: cluster-versions
   namespace: openshift-gitops
 data:
-  # property-like keys; each key maps to a simple value
   etl4: main
+  etl6: v1.2
+  etl7: v1.3
