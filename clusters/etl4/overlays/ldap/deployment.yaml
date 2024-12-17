@@ -92,7 +92,7 @@ spec:
           volumeMounts:
             - name: phpldapadmin-certs
               mountPath: /container/service/phpldapadmin/assets/apache2/certs
-            - name: ldap-certs
+            - name: ldap-certs-tls
               mountPath: /container/service/ldap-client/assets/certs
           ports:
             - containerPort: 443
@@ -125,8 +125,6 @@ spec:
             - name: PHPLDAPADMIN_LDAP_CLIENT_TLS_CA_CRT_FILENAME
               value: "ca.crt"              
       volumes:
-        - name: ldap-certs
-          emptyDir: {}
         - name: phpldapadmin-certs
           emptyDir: {}         
         - name: ldif-config
