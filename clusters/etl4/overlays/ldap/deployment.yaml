@@ -121,7 +121,7 @@ spec:
             - name: PHPLDAPADMIN_LDAP_CLIENT_TLS_CRT_FILENAME
               value: "tls.crt"
             - name: PHPLDAPADMIN_LDAP_CLIENT_TLS_KEY_FILENAME
-              value: tls.key"
+              value: "tls.key"
             - name: PHPLDAPADMIN_LDAP_CLIENT_TLS_CA_CRT_FILENAME
               value: "ca.crt"              
       volumes:
