@@ -115,13 +115,13 @@ spec:
             - name: PHPLDAPADMIN_HTTPS_CA_CRT_FILENAME
               value: "ca.crt"
             - name: PHPLDAPADMIN_LDAP_CLIENT_TLS
-              value: "false"
+              value: "true"
             - name: PHPLDAPADMIN_LDAP_CLIENT_TLS_REQCERT
               value: "demand"
             - name: PHPLDAPADMIN_LDAP_CLIENT_TLS_CRT_FILENAME
-              value: "cert.crt"
+              value: "tls.crt"
             - name: PHPLDAPADMIN_LDAP_CLIENT_TLS_KEY_FILENAME
-              value: "cert.key"
+              value: tls.key"
             - name: PHPLDAPADMIN_LDAP_CLIENT_TLS_CA_CRT_FILENAME
               value: "ca.crt"              
       volumes:
