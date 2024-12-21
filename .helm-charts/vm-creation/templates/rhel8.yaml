@@ -32,7 +32,7 @@ spec:
           autoattachPodInterface: false
           disks:
             - disk:
-                bus: sata
+                bus: scsi
               name: rootdisk
           interfaces:
             - bridge: {}
