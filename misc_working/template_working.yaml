@@ -1,0 +1,57 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: rhel-8-aquamarine-stingray-94
+  namespace: default
+spec:
+  dataVolumeTemplates:
+    - metadata:
+        name: rhel-8-aquamarine-stingray-94-volume
+      spec:
+        sourceRef:
+          kind: DataSource
+          name: rhel8
+          namespace: openshift-virtualization-os-images
+        storage:
+          resources:
+            requests:
+              storage: '32212254720'
+          storageClassName: lvms-vg1
+  instancetype:
+    name: u1.medium
+  preference:
+    name: rhel.8
+  running: true
+  template:
+    metadata:
+      labels:
+        network.kubevirt.io/headlessService: headless
+    spec:
+      domain:
+        devices:
+          autoattachPodInterface: false
+          disks:
+            - disk:
+                bus: sata
+              name: rootdisk
+          interfaces:
+            - bridge: {}
+              model: virtio
+              name: nic-green-guineafowl-78
+      networks:
+        - name: nic-green-guineafowl-78
+          multus:
+            networkName: default/vm-bridge
+      subdomain: headless
+      volumes:
+        - dataVolume:
+            name: rhel-8-aquamarine-stingray-94-volume
+          name: rootdisk
+        - cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              chpasswd:
+                expire: false
+              password: redhat
+              user: redhat
+          name: cloudinitdisk

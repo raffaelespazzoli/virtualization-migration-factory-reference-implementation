@@ -1,0 +1,74 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  annotations:
+    kubemacpool.io/transaction-timestamp: "2024-12-21T01:30:56.87536068Z"
+    kubevirt.io/latest-observed-api-version: v1
+    kubevirt.io/storage-observed-api-version: v1
+  name: fedora-orange-leopard-48
+  namespace: default
+spec:
+  dataVolumeTemplates:
+  - metadata:
+      creationTimestamp: null
+      name: fedora-orange-leopard-48-volume
+    spec:
+      sourceRef:
+        kind: DataSource
+        name: fedora
+        namespace: openshift-virtualization-os-images
+      storage:
+        resources:
+          requests:
+            storage: "32212254720"
+        storageClassName: lvms-vg1
+  instancetype:
+    kind: virtualmachineclusterinstancetype
+    name: u1.medium
+    revisionName: fedora-orange-leopard-48-u1.medium-v1beta1-f774aa14-083b-4907-9e58-93eee26d3e3b-1
+  preference:
+    kind: virtualmachineclusterpreference
+    name: fedora
+    revisionName: fedora-orange-leopard-48-fedora-v1beta1-bf8f7a80-7119-4a5a-b20c-2e50eb41b07f-1
+  running: true
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        network.kubevirt.io/headlessService: headless
+    spec:
+      architecture: amd64
+      domain:
+        devices:
+          autoattachPodInterface: false
+          disks:
+          - disk:
+              bus: sata
+            name: rootdisk
+          - disk:
+              bus: scsi
+            name: non-rootdisk
+          interfaces:
+          - macAddress: 02:d5:50:00:00:00
+            name: default
+        machine:
+          type: pc-q35-rhel9.4.0
+      networks:
+      - name: default
+      subdomain: headless
+      volumes:
+      - dataVolume:
+          name: fedora-orange-leopard-48-volume
+        name: rootdisk
+      - cloudInitNoCloud:
+          userData: |
+            #cloud-config
+            chpasswd:
+              expire: false
+            password: mike
+            user: fedora
+        name: cloudinitdisk
+      - dataVolume:
+          hotpluggable: true
+          name: dv-fedora-orange-leopard-48-ivory-sturgeon-20
+        name: non-rootdisk
