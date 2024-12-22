@@ -10,12 +10,12 @@ spec:
       spec:
         sourceRef:
           kind: DataSource
-          name: rhel8
+          name: {{ .Values.rhel_version }}
           namespace: openshift-virtualization-os-images
         storage:
           resources:
             requests:
-              storage: '32212254720'
+              storage: '32212720254'
           storageClassName: lvms-vg1
   instancetype:
     name: u1.medium

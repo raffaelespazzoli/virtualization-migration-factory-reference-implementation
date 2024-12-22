@@ -1,5 +1,5 @@
 apiVersion: v2
-name: rhel8-build
-description: Build a rhel8 server
+name: rhel-build
+description: Build a rhel server
 version: 0.1.0
-appVersion: "1.00.0"
+appVersion: "1.00.2"
