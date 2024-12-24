@@ -1,0 +1,45 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: rhel8-vm
+  namespace: default
+spec:
+  dataVolumeTemplates:
+    - metadata:
+        name: rhel8-vm-volume
+      spec:
+        sourceRef:
+          kind: DataSource
+          name: rhel8
+          namespace: openshift-virtualization-os-images
+        storage:
+          resources:
+            requests:
+              storage: '32212254720'
+          storageClassName: lvms-vg1
+  template:
+    spec:
+      domain:
+        devices:
+          disks:
+            - disk:
+                bus: {{ .Values.bus }}
+              name: cloudinitdisk
+        interfaces:
+          - bridge: {}
+            model: virtio
+            name: nic-amethyst-loon-12
+      networks:
+        - name: nic-amethyst-loon-12
+          multus:
+            networkName: default/vm-bridge
+      volumes:
+        - cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              ethernets:
+                eth0:
+                  addresses:
+                    - 192.168.1.1/24
+                  gateway4: 192.168.1.2
+              version: 2

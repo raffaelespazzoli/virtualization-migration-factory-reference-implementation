@@ -1,0 +1,4 @@
+apiVersion: v2
+name: vm-creation3
+description: A Helm chart to dynamically deploy VMs for RHEL 8 or RHEL 9
+version: 1.0.0
