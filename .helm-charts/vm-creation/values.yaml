@@ -1,2 +1,9 @@
-hostname: rhel9-server
-rhel_version: rhel9
+rhel:
+- os: rhel9
+  hostname: rhel9-server
+- os: rhel9
+  hostname: rhel9-server2
+- os: rhel9
+  hostname: rhel9-server3
+- os: rhel8
+  hostname: rhel8-server
