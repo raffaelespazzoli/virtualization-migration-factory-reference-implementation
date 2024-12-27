@@ -1,8 +1,8 @@
 apiVersion: project.openshift.io/v1
 kind: Project
 metadata:
-  name: virtual-machines
+  name: virtual-machines2
   labels:
-    name: virtual-machines
+    name: virtual-machines2
   annotations:
-    description: "vm project"
+    description: "vm project2"
