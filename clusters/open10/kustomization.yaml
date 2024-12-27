@@ -6,6 +6,7 @@ resources:
   #- ../../groups/prod
   - ../../components/kube-ops-view
   - ../../components/nmstate-configuration
+  - ../../components/test
  # - ../../components/local-storage-configuration
 helmGlobals:
   chartHome: ../../.helm-charts
@@ -15,7 +16,7 @@ helmGlobals:
 #   valuesFile: values.yaml
 # namespace: openshift-gitops
 
-helmCharts:
-  - name: super-simple-nginx
-    namespace: openshift-gitops
-patches: [] 
+# helmCharts:
+#   - name: super-simple-nginx
+#     namespace: openshift-gitops
+# patches: [] 
