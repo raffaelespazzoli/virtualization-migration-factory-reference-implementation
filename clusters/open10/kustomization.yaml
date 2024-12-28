@@ -7,6 +7,7 @@ resources:
   - ../../components/kube-ops-view
   - ../../components/nmstate-configuration
   - ../../components/test
+  - ../../components/lightspeed
  # - ../../components/local-storage-configuration
 helmGlobals:
   chartHome: ../../.helm-charts
