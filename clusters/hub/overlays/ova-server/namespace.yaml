@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ova-server
+  annotations:
+    argocd.argoproj.io/sync-options: Delete=false,ServerSideApply=true
+  labels:
+    argocd.argoproj.io/managed-by: openshift-gitops 

@@ -179,6 +179,14 @@ applications:
     source:
       path: components/mtv-configuration
 
+  ova-server:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '25'
+    destination:
+      namespace: ova-server
+    source:
+      path: clusters/hub/overlays/ova-server
 
 # Managed Clusters
 

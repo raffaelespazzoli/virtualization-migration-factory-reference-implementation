@@ -1,0 +1,8 @@
+apiVersion: forklift.konveyor.io/v1beta1
+kind: Provider
+metadata:
+  name: ova-server
+  namespace: ova-server
+spec:
+  type: ova
+  url: 'http://ngnix-service.ova-server.svc.cluster.local:80'
