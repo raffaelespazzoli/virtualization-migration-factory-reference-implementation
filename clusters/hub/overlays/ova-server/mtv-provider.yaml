@@ -6,3 +6,16 @@ metadata:
 spec:
   type: ova
   url: 'http://ngnix-service.ova-server.svc.cluster.local:80'
+  secret:
+    name: ova-server-mtv
+    namespace: ova-server
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ova-server-mtv
+type: Opaque
+stringData:
+  password: ciao
+  username: ciao
+    
