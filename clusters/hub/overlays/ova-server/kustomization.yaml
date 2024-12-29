@@ -4,6 +4,6 @@ namespace: ova-server
 
 resources:
   - namespace.yaml
-  - nginx.yaml
-  #- mtv-provider.yaml
+  #- nginx.yaml
+  - mtv-provider.yaml
   - nfs-server.yaml
