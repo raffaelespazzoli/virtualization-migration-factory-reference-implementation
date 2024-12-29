@@ -56,4 +56,17 @@ spec:
   - name: rpcbind
     port: 111
   selector:
-    app: nfs-server # must match with the label of NFS pod        
+    app: nfs-server
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: 'system-openshift-scc-nonroot'
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: ova-server
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: 'system:openshift:scc:privileged'      
