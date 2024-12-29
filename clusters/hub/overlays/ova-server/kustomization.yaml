@@ -5,3 +5,4 @@ namespace: ova-server
 resources:
   - namespace.yaml
   - nginx.yaml
+  - mtv-provider.yaml
