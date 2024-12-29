@@ -24,11 +24,11 @@ spec:
           value: "8080"
         volumeMounts:
         - name: nginx-persistent-storage
-          mountPath: /usr/share/nginx/html  
-  volumes:
-  - name: nginx-persistent-storage
-    persistentVolumeClaim:
-      claimName: nginx-pvc        
+          mountPath: /usr/share/nginx/html    
+      volumes:
+      - name: nginx-persistent-storage
+        persistentVolumeClaim:
+          claimName: nginx-pvc        
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
