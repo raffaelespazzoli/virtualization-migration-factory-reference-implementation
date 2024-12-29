@@ -5,7 +5,7 @@ metadata:
   namespace: ova-server
 spec:
   type: ova
-  url: 'nfs-service.storage.svc.cluster.local/ovas'
+  url: 'nfs-service.ova-server.svc.cluster.local/ovas'
   secret:
     name: ova-server-mtv
     namespace: ova-server
