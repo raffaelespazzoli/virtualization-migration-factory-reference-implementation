@@ -31,25 +31,7 @@ applications:
     source:
       path: components/web-terminal-operator 
 
-# Storage
 
-  trident-operator:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '5'
-    destination:
-      namespace: netapp-trident
-    source:
-      path: components/trident-operator
-
-  minio-operator:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '5' 
-    destination:
-      namespace: minio-operator           
-    source:
-      path: components/minio-operator
 
 # Observability
 
@@ -62,114 +44,29 @@ applications:
     source:
       path: components/kube-ops-view 
 
-  loki-operator:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '5' 
-    destination:
-      namespace: openshift-loki-operator           
-    source:
-      path: components/loki-operator
+  # nmstate-operator:
+  #   annotations:
+  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
+  #     argocd.argoproj.io/sync-wave: '5'
+  #   destination:
+  #     namespace: openshift-nmstate
+  #   source:
+  #     path: components/nmstate-operator 
 
-  loki-logging-configuration:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '15' 
-    destination:
-      namespace: openshift-logging           
-    source:
-      path: components/loki-logging-configuration
+  # nmstate-instance:
+  #   annotations:
+  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
+  #     argocd.argoproj.io/sync-wave: '6'
+  #   destination:
+  #     namespace: openshift-nmstate
+  #   source:
+  #     path: components/nmstate-instance
 
-  openshift-logging-operator:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '5' 
-    destination:
-      namespace: openshift-logging           
-    source:
-      path: components/openshift-logging-operator              
-
-  openshift-logging-configuration:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '15' 
-    destination:
-      namespace: openshift-logging           
-    source:
-      path: components/openshift-logging-configuration    
-
-  cluster-observability-operator:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '5' 
-    destination:
-      namespace: openshift-operators           
-    source:
-      path: components/cluster-observability-operator        
-
-# Networking
-
-  cert-manager-operator:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '5'
-    destination:
-      namespace: cert-manager
-    source:
-      path: components/cert-manager-operator
-
-  cert-manager-configuration:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '6'
-    destination:
-      namespace: cert-manager
-    source:
-      path: components/cert-manager-configuration
-
-  external-dns-operator:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '5'
-    destination:
-      namespace: external-dns-operator
-    source:
-      path: components/external-dns-operator
-
-  external-dns-configuration:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '6'
-    destination:
-      namespace: external-dns
-    source:
-      path: components/external-dns-configuration      
-
-  metallb-operator:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '5'
-    destination:
-      namespace: metallb-system
-    source:
-      path: components/metallb-operator
-
-  nmstate-operator:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '5'
-    destination:
-      namespace: openshift-nmstate
-    source:
-      path: components/nmstate-operator 
-
-  nmstate-instance:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '6'
-    destination:
-      namespace: openshift-nmstate
-    source:
-      path: components/nmstate-instance
-
-              
+  # nmstate-configuration:
+  #   annotations:
+  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
+  #     argocd.argoproj.io/sync-wave: '7'
+  #   destination:
+  #     namespace: openshift-nmstate
+  #   source:
+  #     path: components/nmstate-configuration            
