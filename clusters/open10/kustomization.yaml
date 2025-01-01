@@ -8,6 +8,7 @@ resources:
   - ../../components/nmstate-configuration
   - ../../components/test
   - ../../components/lightspeed
+  - ../../web-terminal-operator
  # - ../../components/local-storage-configuration
 helmGlobals:
   chartHome: ../../.helm-charts
