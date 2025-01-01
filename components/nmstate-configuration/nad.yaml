@@ -4,7 +4,7 @@ metadata:
   annotations:
     description: vm-brige
   name: vm-bridge
-  namespace: default
+  namespace: openshift-nmstate
 spec:
   config: |-
     {
@@ -12,6 +12,6 @@ spec:
         "name": "eno4",
         "type": "ovn-k8s-cni-overlay",
         "mtu": 1500,
-        "netAttachDefName": "default/vm-bridge",
+        "netAttachDefName": "openshift-nmstate/vm-bridge",
         "topology": "localnet"
     }

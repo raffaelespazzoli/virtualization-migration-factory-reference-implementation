@@ -9,8 +9,7 @@ spec:
     interfaces:
     - name: ovs-br1 
       description: |-
-        A dedicated OVS bridge with ens1f0 as a port
-        allowing VLAN 1512
+        VM network
       type: ovs-bridge
       state: up
       ipv4:
