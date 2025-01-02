@@ -158,5 +158,13 @@ applications:
       path: components/power-monitoring-operator
 
 
+# Infinidata
 
-      
+  infinidat-appliance-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '25'
+    destination:
+      namespace: infinidat-appliance
+    source:
+      path: groups/prod/overlays/infinidat-appliance-configuration
