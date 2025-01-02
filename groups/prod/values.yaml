@@ -167,4 +167,4 @@ applications:
     destination:
       namespace: infinidat-appliance
     source:
-      path: groups/prod/overlays/infinidat-appliance-configuration
+      path: groups/prod/overlays/infinidat-appliance
