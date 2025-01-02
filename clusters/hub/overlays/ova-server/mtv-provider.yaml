@@ -16,6 +16,6 @@ metadata:
   name: ova-server-mtv
 type: Opaque
 stringData:
-  password: ciao
-  username: ciao
+  insecureSkipVerify: "true"
+  url: ova-server.vips.${CLUSTER_BASE_DOMAIN}:/ovas
     
