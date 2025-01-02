@@ -44,6 +44,7 @@ applications:
     source:
       path: components/kube-ops-view 
 
+# Network 
   nmstate-operator:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
@@ -70,3 +71,23 @@ applications:
       namespace: openshift-nmstate
     source:
       path: components/nmstate-configuration            
+
+# Lightspeed
+ 
+  nmstate-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: openshift-lightspeed
+    source:
+      path: components/lightspeed-operator 
+
+  nmstate-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '7'
+    destination:
+      namespace: openshift-lightspeed
+    source:
+      path: components/lightspeed-configuration
