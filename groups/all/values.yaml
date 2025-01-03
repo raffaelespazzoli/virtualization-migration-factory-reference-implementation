@@ -74,7 +74,7 @@ applications:
 
 # Lightspeed
  
-  nmstate-operator:
+  lightspeed-operator:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
@@ -83,7 +83,7 @@ applications:
     source:
       path: components/lightspeed-operator 
 
-  nmstate-configuration:
+  lightspeed-configuration:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '7'
