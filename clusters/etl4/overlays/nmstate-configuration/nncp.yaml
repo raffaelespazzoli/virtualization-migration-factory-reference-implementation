@@ -41,6 +41,72 @@ spec:
           state: present
   nodeSelector:
     node-role.kubernetes.io/worker: ''
+---
+apiVersion: nmstate.io/v1
+kind: NodeNetworkConfigurationPolicy
+metadata:
+  name: x240m5-11-storage-vlan
+spec:
+  desiredState:
+    interfaces:
+    - name: bond0.3512
+      type: vlan
+      state: up
+      ipv4:
+        enabled: true
+        address:
+          - ip: 192.168.51.131
+            prefix-length: 25
+        dhcp: false
+      vlan:
+        base-iface: bond0
+        id: 3512
+  nodeSelector:
+    kubernetes.io/hostname: 'x240m5-11.etl4.ocp.rht-labs.com'
+---
+apiVersion: nmstate.io/v1
+kind: NodeNetworkConfigurationPolicy
+metadata:
+  name: x240m5-12-storage-vlan
+spec:
+  desiredState:
+    interfaces:
+    - name: bond0.3512
+      type: vlan
+      state: up
+      ipv4:
+        enabled: true
+        address:
+          - ip: 192.168.51.132
+            prefix-length: 25
+        dhcp: false
+      vlan:
+        base-iface: bond0
+        id: 3512
+  nodeSelector:
+    kubernetes.io/hostname: 'x240m5-12.etl4.ocp.rht-labs.com'
+---
+apiVersion: nmstate.io/v1
+kind: NodeNetworkConfigurationPolicy
+metadata:
+  name: x240m5-12-storage-vlan
+spec:
+  desiredState:
+    interfaces:
+    - name: bond0.3512
+      type: vlan
+      state: up
+      ipv4:
+        enabled: true
+        address:
+          - ip: 192.168.51.133
+            prefix-length: 25
+        dhcp: false
+      vlan:
+        base-iface: bond0
+        id: 3512
+  nodeSelector:
+    kubernetes.io/hostname: 'x240m5-12.etl4.ocp.rht-labs.com'       
 
 
 
