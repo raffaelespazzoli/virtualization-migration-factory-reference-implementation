@@ -89,7 +89,7 @@ spec:
 apiVersion: nmstate.io/v1
 kind: NodeNetworkConfigurationPolicy
 metadata:
-  name: x240m5-12-storage-vlan
+  name: x240m5-13-storage-vlan
 spec:
   desiredState:
     interfaces:
@@ -106,7 +106,7 @@ spec:
         base-iface: bond0
         id: 3512
   nodeSelector:
-    kubernetes.io/hostname: 'x240m5-12.etl4.ocp.rht-labs.com'       
+    kubernetes.io/hostname: 'x240m5-13.etl4.ocp.rht-labs.com'       
 
 
 
