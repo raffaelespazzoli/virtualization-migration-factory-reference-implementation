@@ -1,0 +1,16 @@
+kind: OLSConfig
+metadata:
+  name: cluster
+spec:
+  llm:
+    providers:
+      - name: myOpenai
+        type: openai
+        credentialsSecretRef:
+          name: lightspeed-key
+        url: https://api.openai.com/v1
+        models:
+          - name: gpt-3.5-turbo
+  ols:
+    defaultModel: gpt-3.5-turbo
+    defaultProvider: myOpenai
