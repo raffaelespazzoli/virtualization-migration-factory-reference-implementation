@@ -45,49 +45,49 @@ applications:
       path: components/kube-ops-view 
 
 # Network 
-  nmstate-operator:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '5'
-    destination:
-      namespace: openshift-nmstate
-    source:
-      path: components/nmstate-operator 
+  # nmstate-operator:
+  #   annotations:
+  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
+  #     argocd.argoproj.io/sync-wave: '5'
+  #   destination:
+  #     namespace: openshift-nmstate
+  #   source:
+  #     path: components/nmstate-operator 
 
-  nmstate-instance:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '6'
-    destination:
-      namespace: openshift-nmstate
-    source:
-      path: components/nmstate-instance
+#   nmstate-instance:
+#     annotations:
+#       argocd.argoproj.io/compare-options: IgnoreExtraneous
+#       argocd.argoproj.io/sync-wave: '6'
+#     destination:
+#       namespace: openshift-nmstate
+#     source:
+#       path: components/nmstate-instance
 
-  nmstate-configuration:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '7'
-    destination:
-      namespace: openshift-nmstate
-    source:
-      path: components/nmstate-configuration            
+#   nmstate-configuration:
+#     annotations:
+#       argocd.argoproj.io/compare-options: IgnoreExtraneous
+#       argocd.argoproj.io/sync-wave: '7'
+#     destination:
+#       namespace: openshift-nmstate
+#     source:
+#       path: components/nmstate-configuration            
 
-# Lightspeed
+# # Lightspeed
  
-  lightspeed-operator:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '5'
-    destination:
-      namespace: openshift-lightspeed
-    source:
-      path: components/lightspeed-operator 
+#   lightspeed-operator:
+#     annotations:
+#       argocd.argoproj.io/compare-options: IgnoreExtraneous
+#       argocd.argoproj.io/sync-wave: '5'
+#     destination:
+#       namespace: openshift-lightspeed
+#     source:
+#       path: components/lightspeed-operator 
 
-  lightspeed-configuration:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '7'
-    destination:
-      namespace: openshift-lightspeed
-    source:
-      path: components/lightspeed-configuration
+#   lightspeed-configuration:
+#     annotations:
+#       argocd.argoproj.io/compare-options: IgnoreExtraneous
+#       argocd.argoproj.io/sync-wave: '7'
+#     destination:
+#       namespace: openshift-lightspeed
+#     source:
+#     path: components/lightspeed-configuration
