@@ -1,0 +1,19 @@
+apiVersion: v1
+items:
+- apiVersion: lvm.topolvm.io/v1alpha1
+  kind: LVMVolumeGroup
+  metadata:
+    name: vg1
+    namespace: openshift-storage
+  spec:
+    default: true
+    deviceSelector:
+      paths:
+      - /dev/sdb
+    thinPoolConfig:
+      chunkSizeCalculationPolicy: Static
+      name: thin-pool-1
+      overprovisionRatio: 10
+      sizePercent: 90
+kind: List
+metadata: {}
