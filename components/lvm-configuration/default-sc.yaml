@@ -1,0 +1,19 @@
+allowVolumeExpansion: true
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  annotations:
+    description: Provides RWO and RWOP Filesystem & Block volumes
+    storageclass.kubernetes.io/is-default-class: "true"
+  labels:
+    owned-by.topolvm.io/group: lvm.topolvm.io
+    owned-by.topolvm.io/kind: LVMCluster
+    owned-by.topolvm.io/name: lvmcluster-sample
+    owned-by.topolvm.io/namespace: openshift-storage
+  name: lvms-vg1
+parameters:
+  csi.storage.k8s.io/fstype: xfs
+  topolvm.io/device-class: vg1
+provisioner: topolvm.io
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
