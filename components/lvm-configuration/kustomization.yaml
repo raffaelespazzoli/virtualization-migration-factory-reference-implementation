@@ -6,4 +6,4 @@ namespace: openshift-storage
 resources:
 #  - ./lvm.yaml
   - ./default-sc.yaml
-  - ./set-lvm-storage.yaml
+#  - ./set-lvm-storage.yaml
