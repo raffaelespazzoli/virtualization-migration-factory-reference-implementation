@@ -10,3 +10,4 @@ components/ibm-fusion-operator/pull-secret.yaml
 components/trilio-instance/license.yaml
 clusters/hub/overlays/cluster-etl4/bmc-credentials-secret.yaml
 clusters/hub/overlays/cluster-etl4/pull-secret.yaml
+misc_working/template-from-golden.yaml
