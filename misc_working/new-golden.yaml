@@ -1,0 +1,233 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  annotations:
+    kubemacpool.io/transaction-timestamp: '2025-01-08T11:26:08.979758412Z'
+    kubevirt.io/latest-observed-api-version: v1
+    kubevirt.io/storage-observed-api-version: v1
+    vm.kubevirt.io/validations: |
+      [
+        {
+          "name": "minimal-required-memory",
+          "path": "jsonpath::.spec.domain.memory.guest",
+          "rule": "integer",
+          "message": "This VM requires more memory.",
+          "min": 1610612736
+        }
+      ]
+  resourceVersion: '4595364'
+  name: rhel8-golden
+  uid: b415264f-f4bb-477f-a9d1-619430ef2b39
+  creationTimestamp: '2025-01-05T20:54:27Z'
+  generation: 4
+  managedFields:
+    - apiVersion: kubevirt.io/v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:metadata':
+          'f:annotations':
+            .: {}
+            'f:kubemacpool.io/transaction-timestamp': {}
+            'f:vm.kubevirt.io/validations': {}
+          'f:labels':
+            .: {}
+            'f:app': {}
+            'f:vm.kubevirt.io/template': {}
+            'f:vm.kubevirt.io/template.namespace': {}
+            'f:vm.kubevirt.io/template.revision': {}
+            'f:vm.kubevirt.io/template.version': {}
+        'f:spec':
+          .: {}
+          'f:dataVolumeTemplates': {}
+          'f:template':
+            .: {}
+            'f:metadata':
+              .: {}
+              'f:annotations':
+                .: {}
+                'f:vm.kubevirt.io/flavor': {}
+                'f:vm.kubevirt.io/os': {}
+                'f:vm.kubevirt.io/workload': {}
+              'f:creationTimestamp': {}
+              'f:labels':
+                .: {}
+                'f:kubevirt.io/domain': {}
+                'f:kubevirt.io/size': {}
+                'f:network.kubevirt.io/headlessService': {}
+            'f:spec':
+              .: {}
+              'f:architecture': {}
+              'f:domain':
+                .: {}
+                'f:cpu':
+                  .: {}
+                  'f:cores': {}
+                  'f:sockets': {}
+                  'f:threads': {}
+                'f:devices':
+                  .: {}
+                  'f:disks': {}
+                  'f:interfaces': {}
+                  'f:rng': {}
+                'f:machine':
+                  .: {}
+                  'f:type': {}
+                'f:memory':
+                  .: {}
+                  'f:guest': {}
+                'f:resources': {}
+              'f:networks': {}
+              'f:terminationGracePeriodSeconds': {}
+              'f:volumes': {}
+      manager: Mozilla
+      operation: Update
+      time: '2025-01-05T20:54:27Z'
+    - apiVersion: kubevirt.io/v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:metadata':
+          'f:annotations':
+            'f:kubevirt.io/latest-observed-api-version': {}
+            'f:kubevirt.io/storage-observed-api-version': {}
+          'f:finalizers':
+            .: {}
+            'v:"kubevirt.io/virtualMachineControllerFinalize"': {}
+      manager: virt-controller
+      operation: Update
+      time: '2025-01-05T20:54:28Z'
+    - apiVersion: kubevirt.io/v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:spec':
+          'f:running': {}
+      manager: virt-api
+      operation: Update
+      time: '2025-01-08T11:26:08Z'
+    - apiVersion: kubevirt.io/v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:status':
+          .: {}
+          'f:conditions': {}
+          'f:desiredGeneration': {}
+          'f:observedGeneration': {}
+          'f:printableStatus': {}
+          'f:runStrategy': {}
+          'f:volumeSnapshotStatuses': {}
+      manager: virt-controller
+      operation: Update
+      subresource: status
+      time: '2025-01-08T11:26:14Z'
+  namespace: default
+  finalizers:
+    - kubevirt.io/virtualMachineControllerFinalize
+  labels:
+    app: rhel8-golden
+    vm.kubevirt.io/template: rhel8-server-small
+    vm.kubevirt.io/template.namespace: openshift
+    vm.kubevirt.io/template.revision: '1'
+    vm.kubevirt.io/template.version: v0.31.1
+spec:
+  dataVolumeTemplates:
+    - apiVersion: cdi.kubevirt.io/v1beta1
+      kind: DataVolume
+      metadata:
+        creationTimestamp: null
+        name: rhel8-golden
+      spec:
+        source:
+          pvc:
+            name: rhel8-amethyst-beaver-23
+            namespace: default
+        storage:
+          resources:
+            requests:
+              storage: '107374182400'
+  running: false
+  template:
+    metadata:
+      annotations:
+        vm.kubevirt.io/flavor: small
+        vm.kubevirt.io/os: rhel8
+        vm.kubevirt.io/workload: server
+      creationTimestamp: null
+      labels:
+        kubevirt.io/domain: rhel8-golden
+        kubevirt.io/size: small
+        network.kubevirt.io/headlessService: headless
+    spec:
+      architecture: amd64
+      domain:
+        cpu:
+          cores: 1
+          sockets: 1
+          threads: 1
+        devices:
+          disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+            - disk:
+                bus: virtio
+              name: cloudinitdisk
+          interfaces:
+            - macAddress: '02:13:f5:00:00:06'
+              masquerade: {}
+              model: virtio
+              name: default
+          rng: {}
+        machine:
+          type: pc-q35-rhel9.4.0
+        memory:
+          guest: 2Gi
+        resources: {}
+      networks:
+        - name: default
+          pod: {}
+      terminationGracePeriodSeconds: 180
+      volumes:
+        - dataVolume:
+            name: rhel8-golden
+          name: rootdisk
+        - cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              user: redhat
+              password: redhat
+              chpasswd:
+                expire: false
+          name: cloudinitdisk
+status:
+  conditions:
+    - lastProbeTime: '2025-01-08T11:26:14Z'
+      lastTransitionTime: '2025-01-08T11:26:14Z'
+      message: VMI does not exist
+      reason: VMINotExists
+      status: 'False'
+      type: Ready
+    - lastProbeTime: null
+      lastTransitionTime: null
+      message: All of the VMI's DVs are bound and not running
+      reason: AllDVsReady
+      status: 'True'
+      type: DataVolumesReady
+    - lastProbeTime: null
+      lastTransitionTime: null
+      message: 'cannot migrate VMI: PVC rhel8-golden is not shared, live migration requires that all PVCs must be shared (using ReadWriteMany access mode)'
+      reason: DisksNotLiveMigratable
+      status: 'False'
+      type: LiveMigratable
+    - lastProbeTime: null
+      lastTransitionTime: null
+      status: 'True'
+      type: StorageLiveMigratable
+  desiredGeneration: 4
+  observedGeneration: 4
+  printableStatus: Stopped
+  runStrategy: Halted
+  volumeSnapshotStatuses:
+    - enabled: true
+      name: rootdisk
+    - enabled: false
+      name: cloudinitdisk
+      reason: 'Snapshot is not supported for this volumeSource type [cloudinitdisk]'
