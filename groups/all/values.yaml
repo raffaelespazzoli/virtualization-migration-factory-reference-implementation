@@ -83,7 +83,7 @@ applications:
       path: components/lvm-configuration   
 
 # external secrets manager
-  nmstate-configuration:
+  external-secret-operator:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
