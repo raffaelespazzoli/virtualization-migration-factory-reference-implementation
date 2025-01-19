@@ -81,6 +81,18 @@ applications:
       namespace: openshift-storage
     source:
       path: components/lvm-configuration   
+
+# external secrets manager
+  nmstate-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: external-secrets-operator
+    source:
+      path: components/external-secrets-manager            
+
+
            
 # # Lightspeed
  
