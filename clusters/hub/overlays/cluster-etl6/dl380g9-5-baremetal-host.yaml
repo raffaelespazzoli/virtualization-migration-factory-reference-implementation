@@ -5,6 +5,7 @@ metadata:
     bmac.agent-install.openshift.io/hostname: dl380g9-5.etl6.ocp.rht-labs.com
     bmac.agent-install.openshift.io/role: master
     bmac.agent-install.openshift.io/cluster-reference: etl6/etl6
+    bmac.agent-install.openshift.io/remove-agent-and-node-on-delete: true
   labels:
     infraenvs.agent-install.openshift.io: etl6
     cluster-name: etl6

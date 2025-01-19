@@ -1,3 +1,7 @@
+
+ldap config based on: https://www.server-world.info/en/note?os=Fedora_40&p=openldap&f=3
+gnome config based on:
+
 ```sh
 sudo podman build -t quay.io/raffaelespazzoli/fedora-gnome-vdi:41 .
 mkdir -p output

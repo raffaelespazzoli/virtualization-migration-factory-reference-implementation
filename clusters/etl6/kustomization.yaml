@@ -14,4 +14,16 @@ helmCharts:
   namespace: openshift-gitops
 
 
-patches: [] 
+replacements:
+- source:
+    version: v1
+    kind: ConfigMap
+    name: cluster-versions
+    fieldPath: data.etl6
+  targets:
+  - select:
+      group: argoproj.io
+      version: v1alpha1
+      kind: Application
+    fieldPaths:
+    - spec.source.targetRevision
