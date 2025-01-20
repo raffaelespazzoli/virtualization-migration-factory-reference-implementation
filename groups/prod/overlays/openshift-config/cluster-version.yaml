@@ -1,0 +1,9 @@
+apiVersion: config.openshift.io/v1
+kind: ClusterVersion
+metadata:
+  name: version
+  annotations:
+    argocd.argoproj.io/sync-options: Delete=false,ServerSideApply=true  
+spec:
+  desiredUpdate:
+    version: 4.17.11
