@@ -12,4 +12,5 @@ spec:
   channel: stable
   installPlanApproval: Automatic
   source: community-operators
-  sourceNamespace: openshift-marketplace    
+  sourceNamespace: openshift-marketplace 
+  name: external-secrets-operator
