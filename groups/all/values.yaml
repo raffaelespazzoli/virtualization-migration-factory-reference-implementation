@@ -83,7 +83,7 @@ applications:
       path: components/lvm-configuration   
 
 # external secrets manager
-  external-secret-operator:
+  external-secrets-operator:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
