@@ -90,7 +90,7 @@ applications:
     destination:
       namespace: external-secrets-operator
     source:
-      path: components/external-secrets-manager            
+      path: components/external-secrets-operator           
 
 
            
