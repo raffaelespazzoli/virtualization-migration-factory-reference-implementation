@@ -10,7 +10,7 @@ kind: Subscription
 metadata:
   name: loki-operator
 spec:
-  channel: stable-6.0 
+  channel: stable-6.1 
   name: loki-operator
   source: redhat-operators 
   sourceNamespace: openshift-marketplace
