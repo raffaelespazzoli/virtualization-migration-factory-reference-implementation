@@ -8,3 +8,4 @@ spec:
   channel: stable-4.17
   desiredUpdate:
     version: 4.17.11
+    image: ""
