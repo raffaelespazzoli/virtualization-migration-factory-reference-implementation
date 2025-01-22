@@ -6,7 +6,7 @@ metadata:
     bmac.agent-install.openshift.io/role: master
     bmac.agent-install.openshift.io/cluster-reference: etl4/etl4
     bmac.agent-install.openshift.io/remove-agent-and-node-on-delete: true
-    baremetalhost.metal3.io/detached: '{"deleteAction":"delay"}'
+    baremetalhost.metal3.io/detached: "true"
   labels:
     infraenvs.agent-install.openshift.io: etl4
     cluster-name: etl4
