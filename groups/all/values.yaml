@@ -82,25 +82,25 @@ applications:
     source:
       path: components/lvm-configuration   
 
-# external secrets manager
-  external-secrets-operator:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '5'
-    destination:
-      namespace: external-secrets-operator
-    source:
-      path: components/external-secrets-operator           
+# # external secrets manager
+#   external-secrets-operator:
+#     annotations:
+#       argocd.argoproj.io/compare-options: IgnoreExtraneous
+#       argocd.argoproj.io/sync-wave: '5'
+#     destination:
+#       namespace: external-secrets-operator
+#     source:
+#       path: components/external-secrets-operator           
 
-# external secrets manager configuration
-  external-secrets-operator:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '6'
-    destination:
-      namespace: external-secrets-operator-configuration
-    source:
-      path: components/external-secrets-operator-configuration         
+# # external secrets manager configuration
+#   external-secrets-operator-configuration:
+#     annotations:
+#       argocd.argoproj.io/compare-options: IgnoreExtraneous
+#       argocd.argoproj.io/sync-wave: '6'
+#     destination:
+#       namespace: external-secrets-operator-configuration
+#     source:
+#       path: components/external-secrets-operator-configuration         
            
 # # Lightspeed
  
