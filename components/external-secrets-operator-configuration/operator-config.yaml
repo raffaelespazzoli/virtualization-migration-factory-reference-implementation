@@ -1,0 +1,1054 @@
+apiVersion: operator.external-secrets.io/v1alpha1
+kind: OperatorConfig
+metadata:
+  annotations:
+    operator-sdk/primary-resource: /externalsecret-validate
+    operator-sdk/primary-resource-type: ValidatingWebhookConfiguration.admissionregistration.k8s.io
+  resourceVersion: '21669673'
+  name: sample
+  uid: 2b02ccbe-d3d1-4fb8-a795-b48d741e6a2e
+  creationTimestamp: '2025-01-21T18:09:35Z'
+  generation: 1
+  managedFields:
+    - apiVersion: operator.external-secrets.io/v1alpha1
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:spec':
+          'f:processClusterStore': {}
+          'f:webhook':
+            'f:rbac':
+              .: {}
+              'f:create': {}
+            'f:image':
+              .: {}
+              'f:pullPolicy': {}
+              'f:repository': {}
+              'f:tag': {}
+            'f:tolerations': {}
+            'f:priorityClassName': {}
+            'f:replicaCount': {}
+            'f:nameOverride': {}
+            'f:deploymentAnnotations': {}
+            'f:serviceAccount':
+              .: {}
+              'f:annotations': {}
+              'f:create': {}
+              'f:name': {}
+            .: {}
+            'f:podLabels': {}
+            'f:create': {}
+            'f:resources': {}
+            'f:extraEnv': {}
+            'f:podAnnotations': {}
+            'f:certCheckInterval': {}
+            'f:certDir': {}
+            'f:nodeSelector': {}
+            'f:imagePullSecrets': {}
+            'f:extraArgs': {}
+            'f:fullnameOverride': {}
+            'f:securityContext': {}
+            'f:affinity': {}
+            'f:prometheus':
+              .: {}
+              'f:enabled': {}
+              'f:service':
+                .: {}
+                'f:port': {}
+            'f:podSecurityContext': {}
+          'f:installCRDs': {}
+          'f:rbac':
+            .: {}
+            'f:create': {}
+          'f:image':
+            .: {}
+            'f:pullPolicy': {}
+            'f:repository': {}
+            'f:tag': {}
+          'f:controllerClass': {}
+          'f:tolerations': {}
+          'f:priorityClassName': {}
+          'f:concurrent': {}
+          'f:replicaCount': {}
+          'f:nameOverride': {}
+          'f:deploymentAnnotations': {}
+          'f:serviceAccount':
+            .: {}
+            'f:annotations': {}
+            'f:create': {}
+            'f:name': {}
+          .: {}
+          'f:podLabels': {}
+          'f:resources': {}
+          'f:extraEnv': {}
+          'f:leaderElect': {}
+          'f:crds':
+            .: {}
+            'f:createClusterExternalSecret': {}
+            'f:createClusterSecretStore': {}
+          'f:podAnnotations': {}
+          'f:certController':
+            'f:rbac':
+              .: {}
+              'f:create': {}
+            'f:image':
+              .: {}
+              'f:pullPolicy': {}
+              'f:repository': {}
+              'f:tag': {}
+            'f:tolerations': {}
+            'f:priorityClassName': {}
+            'f:nameOverride': {}
+            'f:deploymentAnnotations': {}
+            'f:serviceAccount':
+              .: {}
+              'f:annotations': {}
+              'f:create': {}
+              'f:name': {}
+            .: {}
+            'f:requeueInterval': {}
+            'f:podLabels': {}
+            'f:create': {}
+            'f:resources': {}
+            'f:extraEnv': {}
+            'f:podAnnotations': {}
+            'f:nodeSelector': {}
+            'f:imagePullSecrets': {}
+            'f:extraArgs': {}
+            'f:fullnameOverride': {}
+            'f:securityContext': {}
+            'f:affinity': {}
+            'f:prometheus':
+              .: {}
+              'f:enabled': {}
+              'f:service':
+                .: {}
+                'f:port': {}
+            'f:podSecurityContext': {}
+          'f:createOperator': {}
+          'f:nodeSelector': {}
+          'f:scopedRBAC': {}
+          'f:imagePullSecrets': {}
+          'f:scopedNamespace': {}
+          'f:extraArgs': {}
+          'f:fullnameOverride': {}
+          'f:processClusterExternalSecret': {}
+          'f:securityContext': {}
+          'f:affinity': {}
+          'f:prometheus':
+            .: {}
+            'f:enabled': {}
+            'f:service':
+              .: {}
+              'f:port': {}
+          'f:podSecurityContext': {}
+      manager: Mozilla
+      operation: Update
+      time: '2025-01-21T18:09:35Z'
+    - apiVersion: operator.external-secrets.io/v1alpha1
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:metadata':
+          'f:annotations':
+            .: {}
+            'f:operator-sdk/primary-resource': {}
+            'f:operator-sdk/primary-resource-type': {}
+          'f:finalizers':
+            .: {}
+            'v:"helm.sdk.operatorframework.io/uninstall-release"': {}
+      manager: helm-operator
+      operation: Update
+      time: '2025-01-21T18:09:39Z'
+    - apiVersion: operator.external-secrets.io/v1alpha1
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:status':
+          .: {}
+          'f:conditions': {}
+          'f:deployedRelease':
+            .: {}
+            'f:manifest': {}
+            'f:name': {}
+      manager: helm-operator
+      operation: Update
+      subresource: status
+      time: '2025-01-21T18:09:39Z'
+  namespace: openshift-operators
+  finalizers:
+    - helm.sdk.operatorframework.io/uninstall-release
+spec:
+  certController:
+    nodeSelector: {}
+    imagePullSecrets: []
+    requeueInterval: 5m
+    podLabels: {}
+    resources: {}
+    fullnameOverride: ''
+    affinity: {}
+    prometheus:
+      enabled: false
+      service:
+        port: 8080
+    podSecurityContext: {}
+    extraArgs: {}
+    securityContext: {}
+    rbac:
+      create: true
+    nameOverride: ''
+    serviceAccount:
+      annotations: {}
+      create: true
+      name: ''
+    image:
+      pullPolicy: IfNotPresent
+      repository: ghcr.io/external-secrets/external-secrets
+      tag: ''
+    create: true
+    tolerations: []
+    extraEnv: []
+    priorityClassName: ''
+    deploymentAnnotations: {}
+    podAnnotations: {}
+  createOperator: true
+  nodeSelector: {}
+  scopedRBAC: false
+  imagePullSecrets: []
+  podLabels: {}
+  resources: {}
+  leaderElect: false
+  fullnameOverride: ''
+  processClusterExternalSecret: true
+  affinity: {}
+  prometheus:
+    enabled: false
+    service:
+      port: 8080
+  podSecurityContext: {}
+  scopedNamespace: ''
+  extraArgs: {}
+  securityContext: {}
+  rbac:
+    create: true
+  processClusterStore: true
+  concurrent: 1
+  webhook:
+    nodeSelector: {}
+    imagePullSecrets: []
+    podLabels: {}
+    resources: {}
+    fullnameOverride: ''
+    affinity: {}
+    certCheckInterval: 5m
+    certDir: /tmp/certs
+    prometheus:
+      enabled: false
+      service:
+        port: 8080
+    podSecurityContext: {}
+    extraArgs: {}
+    securityContext: {}
+    rbac:
+      create: true
+    replicaCount: 1
+    nameOverride: ''
+    serviceAccount:
+      annotations: {}
+      create: true
+      name: ''
+    image:
+      pullPolicy: IfNotPresent
+      repository: ghcr.io/external-secrets/external-secrets
+      tag: ''
+    create: true
+    tolerations: []
+    extraEnv: []
+    priorityClassName: ''
+    deploymentAnnotations: {}
+    podAnnotations: {}
+  replicaCount: 1
+  nameOverride: ''
+  serviceAccount:
+    annotations: {}
+    create: true
+    name: ''
+  installCRDs: false
+  image:
+    pullPolicy: IfNotPresent
+    repository: ghcr.io/external-secrets/external-secrets
+    tag: ''
+  controllerClass: ''
+  tolerations: []
+  extraEnv: []
+  crds:
+    createClusterExternalSecret: true
+    createClusterSecretStore: true
+  priorityClassName: ''
+  deploymentAnnotations: {}
+  podAnnotations: {}
+status:
+  conditions:
+    - lastTransitionTime: '2025-01-21T18:09:36Z'
+      status: 'True'
+      type: Initialized
+    - lastTransitionTime: '2025-01-21T18:09:39Z'
+      message: |
+        external-secrets has been deployed successfully in namespace openshift-operators!
+
+        In order to begin using ExternalSecrets, you will need to set up a SecretStore
+        or ClusterSecretStore resource (for example, by creating a 'vault' SecretStore).
+
+        More information on the different types of SecretStores and how to configure them
+        can be found in our Github: https://github.com/external-secrets/external-secrets
+      reason: InstallSuccessful
+      status: 'True'
+      type: Deployed
+  deployedRelease:
+    manifest: |
+      ---
+      # Source: external-secrets/templates/cert-controller-serviceaccount.yaml
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: external-secrets-cert-controller
+        namespace: openshift-operators
+        labels:
+          helm.sh/chart: external-secrets-0.11.0
+          app.kubernetes.io/name: external-secrets-cert-controller
+          app.kubernetes.io/instance: sample
+          app.kubernetes.io/version: "v0.11.0"
+          app.kubernetes.io/managed-by: Helm
+      ---
+      # Source: external-secrets/templates/serviceaccount.yaml
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: sample-external-secrets
+        namespace: openshift-operators
+        labels:
+          helm.sh/chart: external-secrets-0.11.0
+          app.kubernetes.io/name: external-secrets
+          app.kubernetes.io/instance: sample
+          app.kubernetes.io/version: "v0.11.0"
+          app.kubernetes.io/managed-by: Helm
+      ---
+      # Source: external-secrets/templates/webhook-serviceaccount.yaml
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: external-secrets-webhook
+        namespace: openshift-operators
+        labels:
+          helm.sh/chart: external-secrets-0.11.0
+          app.kubernetes.io/name: external-secrets-webhook
+          app.kubernetes.io/instance: sample
+          app.kubernetes.io/version: "v0.11.0"
+          app.kubernetes.io/managed-by: Helm
+      ---
+      # Source: external-secrets/templates/webhook-secret.yaml
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: sample-external-secrets-webhook
+        namespace: openshift-operators
+        labels:
+          helm.sh/chart: external-secrets-0.11.0
+          app.kubernetes.io/name: external-secrets-webhook
+          app.kubernetes.io/instance: sample
+          app.kubernetes.io/version: "v0.11.0"
+          app.kubernetes.io/managed-by: Helm
+          external-secrets.io/component: webhook
+      ---
+      # Source: external-secrets/templates/cert-controller-rbac.yaml
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRole
+      metadata:
+        name: sample-external-secrets-cert-controller
+        labels:
+          helm.sh/chart: external-secrets-0.11.0
+          app.kubernetes.io/name: external-secrets-cert-controller
+          app.kubernetes.io/instance: sample
+          app.kubernetes.io/version: "v0.11.0"
+          app.kubernetes.io/managed-by: Helm
+      rules:
+        - apiGroups:
+          - "apiextensions.k8s.io"
+          resources:
+          - "customresourcedefinitions"
+          verbs:
+          - "get"
+          - "list"
+          - "watch"
+          - "update"
+          - "patch"
+        - apiGroups:
+          - "admissionregistration.k8s.io"
+          resources:
+          - "validatingwebhookconfigurations"
+          verbs:
+          - "list"
+          - "watch"
+          - "get"
+        - apiGroups:
+          - "admissionregistration.k8s.io"
+          resources:
+          - "validatingwebhookconfigurations"
+          resourceNames:
+          - "secretstore-validate"
+          - "externalsecret-validate"
+          verbs:
+          - "update"
+          - "patch"
+        - apiGroups:
+          - ""
+          resources:
+          - "endpoints"
+          verbs:
+          - "list"
+          - "get"
+          - "watch"
+        - apiGroups:
+          - ""
+          resources:
+          - "events"
+          verbs:
+          - "create"
+          - "patch"
+        - apiGroups:
+          - ""
+          resources:
+          - "secrets"
+          verbs:
+          - "get"
+          - "list"
+          - "watch"
+          - "update"
+          - "patch"
+        - apiGroups:
+          - "coordination.k8s.io"
+          resources:
+          - "leases"
+          verbs:
+          - "get"
+          - "create"
+          - "update"
+          - "patch"
+      ---
+      # Source: external-secrets/templates/rbac.yaml
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRole
+      metadata:
+        name: sample-external-secrets-controller
+        labels:
+          helm.sh/chart: external-secrets-0.11.0
+          app.kubernetes.io/name: external-secrets
+          app.kubernetes.io/instance: sample
+          app.kubernetes.io/version: "v0.11.0"
+          app.kubernetes.io/managed-by: Helm
+      rules:
+        - apiGroups:
+          - "external-secrets.io"
+          resources:
+          - "secretstores"
+          - "clustersecretstores"
+          - "externalsecrets"
+          - "clusterexternalsecrets"
+          - "pushsecrets"
+          verbs:
+          - "get"
+          - "list"
+          - "watch"
+        - apiGroups:
+          - "external-secrets.io"
+          resources:
+          - "externalsecrets"
+          - "externalsecrets/status"
+          - "externalsecrets/finalizers"
+          - "secretstores"
+          - "secretstores/status"
+          - "secretstores/finalizers"
+          - "clustersecretstores"
+          - "clustersecretstores/status"
+          - "clustersecretstores/finalizers"
+          - "clusterexternalsecrets"
+          - "clusterexternalsecrets/status"
+          - "clusterexternalsecrets/finalizers"
+          - "pushsecrets"
+          - "pushsecrets/status"
+          - "pushsecrets/finalizers"
+          verbs:
+          - "get"
+          - "update"
+          - "patch"
+        - apiGroups:
+          - "generators.external-secrets.io"
+          resources:
+          - "acraccesstokens"
+          - "clustergenerators"
+          - "ecrauthorizationtokens"
+          - "fakes"
+          - "gcraccesstokens"
+          - "githubaccesstokens"
+          - "passwords"
+          - "stssessiontokens"
+          - "uuids"
+          - "vaultdynamicsecrets"
+          - "webhooks"
+          verbs:
+          - "get"
+          - "list"
+          - "watch"
+        - apiGroups:
+          - ""
+          resources:
+          - "serviceaccounts"
+          - "namespaces"
+          verbs:
+          - "get"
+          - "list"
+          - "watch"
+        - apiGroups:
+          - ""
+          resources:
+          - "configmaps"
+          verbs:
+          - "get"
+          - "list"
+          - "watch"
+        - apiGroups:
+          - ""
+          resources:
+          - "secrets"
+          verbs:
+          - "get"
+          - "list"
+          - "watch"
+          - "create"
+          - "update"
+          - "delete"
+          - "patch"
+        - apiGroups:
+          - ""
+          resources:
+          - "serviceaccounts/token"
+          verbs:
+          - "create"
+        - apiGroups:
+          - ""
+          resources:
+          - "events"
+          verbs:
+          - "create"
+          - "patch"
+        - apiGroups:
+          - "external-secrets.io"
+          resources:
+          - "externalsecrets"
+          verbs:
+          - "create"
+          - "update"
+          - "delete"
+      ---
+      # Source: external-secrets/templates/rbac.yaml
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRole
+      metadata:
+        name: sample-external-secrets-view
+        labels:
+          helm.sh/chart: external-secrets-0.11.0
+          app.kubernetes.io/name: external-secrets
+          app.kubernetes.io/instance: sample
+          app.kubernetes.io/version: "v0.11.0"
+          app.kubernetes.io/managed-by: Helm
+          rbac.authorization.k8s.io/aggregate-to-view: "true"
+          rbac.authorization.k8s.io/aggregate-to-edit: "true"
+          rbac.authorization.k8s.io/aggregate-to-admin: "true"
+      rules:
+        - apiGroups:
+            - "external-secrets.io"
+          resources:
+            - "externalsecrets"
+            - "secretstores"
+            - "clustersecretstores"
+            - "pushsecrets"
+          verbs:
+            - "get"
+            - "watch"
+            - "list"
+        - apiGroups:
+          - "generators.external-secrets.io"
+          resources:
+          - "acraccesstokens"
+          - "clustergenerators"
+          - "ecrauthorizationtokens"
+          - "fakes"
+          - "gcraccesstokens"
+          - "githubaccesstokens"
+          - "passwords"
+          - "vaultdynamicsecrets"
+          - "webhooks"
+          verbs:
+            - "get"
+            - "watch"
+            - "list"
+      ---
+      # Source: external-secrets/templates/rbac.yaml
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRole
+      metadata:
+        name: sample-external-secrets-edit
+        labels:
+          helm.sh/chart: external-secrets-0.11.0
+          app.kubernetes.io/name: external-secrets
+          app.kubernetes.io/instance: sample
+          app.kubernetes.io/version: "v0.11.0"
+          app.kubernetes.io/managed-by: Helm
+          rbac.authorization.k8s.io/aggregate-to-edit: "true"
+          rbac.authorization.k8s.io/aggregate-to-admin: "true"
+      rules:
+        - apiGroups:
+            - "external-secrets.io"
+          resources:
+            - "externalsecrets"
+            - "secretstores"
+            - "clustersecretstores"
+            - "pushsecrets"
+          verbs:
+            - "create"
+            - "delete"
+            - "deletecollection"
+            - "patch"
+            - "update"
+        - apiGroups:
+          - "generators.external-secrets.io"
+          resources:
+          - "acraccesstokens"
+          - "clustergenerators"
+          - "ecrauthorizationtokens"
+          - "fakes"
+          - "gcraccesstokens"
+          - "githubaccesstokens"
+          - "passwords"
+          - "vaultdynamicsecrets"
+          - "webhooks"
+          verbs:
+            - "create"
+            - "delete"
+            - "deletecollection"
+            - "patch"
+            - "update"
+      ---
+      # Source: external-secrets/templates/rbac.yaml
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRole
+      metadata:
+        name: sample-external-secrets-servicebindings
+        labels:
+          servicebinding.io/controller: "true"
+          helm.sh/chart: external-secrets-0.11.0
+          app.kubernetes.io/name: external-secrets
+          app.kubernetes.io/instance: sample
+          app.kubernetes.io/version: "v0.11.0"
+          app.kubernetes.io/managed-by: Helm
+      rules:
+        - apiGroups:
+          - "external-secrets.io"
+          resources:
+          - "externalsecrets"
+          verbs:
+          - "get"
+          - "list"
+          - "watch"
+      ---
+      # Source: external-secrets/templates/cert-controller-rbac.yaml
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: sample-external-secrets-cert-controller
+        labels:
+          helm.sh/chart: external-secrets-0.11.0
+          app.kubernetes.io/name: external-secrets-cert-controller
+          app.kubernetes.io/instance: sample
+          app.kubernetes.io/version: "v0.11.0"
+          app.kubernetes.io/managed-by: Helm
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: sample-external-secrets-cert-controller
+      subjects:
+        - name: external-secrets-cert-controller
+          namespace: openshift-operators
+          kind: ServiceAccount
+      ---
+      # Source: external-secrets/templates/rbac.yaml
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: sample-external-secrets-controller
+        labels:
+          helm.sh/chart: external-secrets-0.11.0
+          app.kubernetes.io/name: external-secrets
+          app.kubernetes.io/instance: sample
+          app.kubernetes.io/version: "v0.11.0"
+          app.kubernetes.io/managed-by: Helm
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: sample-external-secrets-controller
+      subjects:
+        - name: sample-external-secrets
+          namespace: openshift-operators
+          kind: ServiceAccount
+      ---
+      # Source: external-secrets/templates/rbac.yaml
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: Role
+      metadata:
+        name: sample-external-secrets-leaderelection
+        namespace: openshift-operators
+        labels:
+          helm.sh/chart: external-secrets-0.11.0
+          app.kubernetes.io/name: external-secrets
+          app.kubernetes.io/instance: sample
+          app.kubernetes.io/version: "v0.11.0"
+          app.kubernetes.io/managed-by: Helm
+      rules:
+        - apiGroups:
+          - ""
+          resources:
+          - "configmaps"
+          resourceNames:
+          - "external-secrets-controller"
+          verbs:
+          - "get"
+          - "update"
+          - "patch"
+        - apiGroups:
+          - ""
+          resources:
+          - "configmaps"
+          verbs:
+          - "create"
+        - apiGroups:
+          - "coordination.k8s.io"
+          resources:
+          - "leases"
+          verbs:
+          - "get"
+          - "create"
+          - "update"
+          - "patch"
+      ---
+      # Source: external-secrets/templates/rbac.yaml
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: RoleBinding
+      metadata:
+        name: sample-external-secrets-leaderelection
+        namespace: openshift-operators
+        labels:
+          helm.sh/chart: external-secrets-0.11.0
+          app.kubernetes.io/name: external-secrets
+          app.kubernetes.io/instance: sample
+          app.kubernetes.io/version: "v0.11.0"
+          app.kubernetes.io/managed-by: Helm
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: Role
+        name: sample-external-secrets-leaderelection
+      subjects:
+        - kind: ServiceAccount
+          name: sample-external-secrets
+          namespace: openshift-operators
+      ---
+      # Source: external-secrets/templates/webhook-service.yaml
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: sample-external-secrets-webhook
+        namespace: openshift-operators
+        labels:
+          helm.sh/chart: external-secrets-0.11.0
+          app.kubernetes.io/name: external-secrets-webhook
+          app.kubernetes.io/instance: sample
+          app.kubernetes.io/version: "v0.11.0"
+          app.kubernetes.io/managed-by: Helm
+          external-secrets.io/component: webhook
+      spec:
+        type: ClusterIP
+        ports:
+        - port: 443
+          targetPort: 10250
+          protocol: TCP
+          name: webhook
+        selector:
+          app.kubernetes.io/name: external-secrets-webhook
+          app.kubernetes.io/instance: sample
+      ---
+      # Source: external-secrets/templates/cert-controller-deployment.yaml
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: sample-external-secrets-cert-controller
+        namespace: openshift-operators
+        labels:
+          helm.sh/chart: external-secrets-0.11.0
+          app.kubernetes.io/name: external-secrets-cert-controller
+          app.kubernetes.io/instance: sample
+          app.kubernetes.io/version: "v0.11.0"
+          app.kubernetes.io/managed-by: Helm
+      spec:
+        replicas: 1
+        revisionHistoryLimit: 10
+        selector:
+          matchLabels:
+            app.kubernetes.io/name: external-secrets-cert-controller
+            app.kubernetes.io/instance: sample
+        template:
+          metadata:
+            labels:
+              helm.sh/chart: external-secrets-0.11.0
+              app.kubernetes.io/name: external-secrets-cert-controller
+              app.kubernetes.io/instance: sample
+              app.kubernetes.io/version: "v0.11.0"
+              app.kubernetes.io/managed-by: Helm
+          spec:
+            serviceAccountName: external-secrets-cert-controller
+            automountServiceAccountToken: true
+            hostNetwork: false
+            containers:
+              - name: cert-controller
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+                  readOnlyRootFilesystem: true
+                  runAsNonRoot: true
+                  seccompProfile: null
+                image: ghcr.io/external-secrets/external-secrets:v0.11.0
+                imagePullPolicy: IfNotPresent
+                args:
+                - certcontroller
+                - --crd-requeue-interval=5m
+                - --service-name=sample-external-secrets-webhook
+                - --service-namespace=openshift-operators
+                - --secret-name=sample-external-secrets-webhook
+                - --secret-namespace=openshift-operators
+                - --metrics-addr=:8080
+                - --healthz-addr=:8081
+                - --loglevel=info
+                - --zap-time-encoding=epoch
+                - --enable-partial-cache=true
+                ports:
+                  - containerPort: 8080
+                    protocol: TCP
+                    name: metrics
+                readinessProbe:
+                  httpGet:
+                    port: 8081
+                    path: /readyz
+                  initialDelaySeconds: 20
+                  periodSeconds: 5
+      ---
+      # Source: external-secrets/templates/deployment.yaml
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: sample-external-secrets
+        namespace: openshift-operators
+        labels:
+          helm.sh/chart: external-secrets-0.11.0
+          app.kubernetes.io/name: external-secrets
+          app.kubernetes.io/instance: sample
+          app.kubernetes.io/version: "v0.11.0"
+          app.kubernetes.io/managed-by: Helm
+      spec:
+        replicas: 1
+        revisionHistoryLimit: 10
+        selector:
+          matchLabels:
+            app.kubernetes.io/name: external-secrets
+            app.kubernetes.io/instance: sample
+        template:
+          metadata:
+            labels:
+              helm.sh/chart: external-secrets-0.11.0
+              app.kubernetes.io/name: external-secrets
+              app.kubernetes.io/instance: sample
+              app.kubernetes.io/version: "v0.11.0"
+              app.kubernetes.io/managed-by: Helm
+          spec:
+            serviceAccountName: sample-external-secrets
+            automountServiceAccountToken: true
+            hostNetwork: false
+            containers:
+              - name: external-secrets
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+                  readOnlyRootFilesystem: true
+                  runAsNonRoot: true
+                  seccompProfile: null
+                image: ghcr.io/external-secrets/external-secrets:v0.11.0
+                imagePullPolicy: IfNotPresent
+                args:
+                - --concurrent=1
+                - --metrics-addr=:8080
+                - --loglevel=info
+                - --zap-time-encoding=epoch
+                ports:
+                  - containerPort: 8080
+                    protocol: TCP
+                    name: metrics
+            dnsPolicy: ClusterFirst
+      ---
+      # Source: external-secrets/templates/webhook-deployment.yaml
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: sample-external-secrets-webhook
+        namespace: openshift-operators
+        labels:
+          helm.sh/chart: external-secrets-0.11.0
+          app.kubernetes.io/name: external-secrets-webhook
+          app.kubernetes.io/instance: sample
+          app.kubernetes.io/version: "v0.11.0"
+          app.kubernetes.io/managed-by: Helm
+      spec:
+        replicas: 1
+        revisionHistoryLimit: 10
+        selector:
+          matchLabels:
+            app.kubernetes.io/name: external-secrets-webhook
+            app.kubernetes.io/instance: sample
+        template:
+          metadata:
+            labels:
+              helm.sh/chart: external-secrets-0.11.0
+              app.kubernetes.io/name: external-secrets-webhook
+              app.kubernetes.io/instance: sample
+              app.kubernetes.io/version: "v0.11.0"
+              app.kubernetes.io/managed-by: Helm
+          spec:
+            hostNetwork: false
+            serviceAccountName: external-secrets-webhook
+            automountServiceAccountToken: true
+            containers:
+              - name: webhook
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+                  readOnlyRootFilesystem: true
+                  runAsNonRoot: true
+                  seccompProfile: null
+                image: ghcr.io/external-secrets/external-secrets:v0.11.0
+                imagePullPolicy: IfNotPresent
+                args:
+                - webhook
+                - --port=10250
+                - --dns-name=sample-external-secrets-webhook.openshift-operators.svc
+                - --cert-dir=/tmp/certs
+                - --check-interval=5m
+                - --metrics-addr=:8080
+                - --healthz-addr=:8081
+                - --loglevel=info
+                - --zap-time-encoding=epoch
+                ports:
+                  - containerPort: 8080
+                    protocol: TCP
+                    name: metrics
+                  - containerPort: 10250
+                    protocol: TCP
+                    name: webhook
+                readinessProbe:
+                  httpGet:
+                    port: 8081
+                    path: /readyz
+                  initialDelaySeconds: 20
+                  periodSeconds: 5
+                volumeMounts:
+                  - name: certs
+                    mountPath: /tmp/certs
+                    readOnly: true
+            volumes:
+              - name: certs
+                secret:
+                  secretName: sample-external-secrets-webhook
+      ---
+      # Source: external-secrets/templates/validatingwebhook.yaml
+      apiVersion: admissionregistration.k8s.io/v1
+      kind: ValidatingWebhookConfiguration
+      metadata:
+        name: secretstore-validate
+        labels:
+          helm.sh/chart: external-secrets-0.11.0
+          app.kubernetes.io/name: external-secrets-webhook
+          app.kubernetes.io/instance: sample
+          app.kubernetes.io/version: "v0.11.0"
+          app.kubernetes.io/managed-by: Helm
+          external-secrets.io/component: webhook
+      webhooks:
+      - name: "validate.secretstore.external-secrets.io"
+        rules:
+        - apiGroups:   ["external-secrets.io"]
+          apiVersions: ["v1beta1"]
+          operations:  ["CREATE", "UPDATE", "DELETE"]
+          resources:   ["secretstores"]
+          scope:       "Namespaced"
+        clientConfig:
+          service:
+            namespace: openshift-operators
+            name: sample-external-secrets-webhook
+            path: /validate-external-secrets-io-v1beta1-secretstore
+        admissionReviewVersions: ["v1", "v1beta1"]
+        sideEffects: None
+        timeoutSeconds: 5
+
+      - name: "validate.clustersecretstore.external-secrets.io"
+        rules:
+        - apiGroups:   ["external-secrets.io"]
+          apiVersions: ["v1beta1"]
+          operations:  ["CREATE", "UPDATE", "DELETE"]
+          resources:   ["clustersecretstores"]
+          scope:       "Cluster"
+        clientConfig:
+          service:
+            namespace: openshift-operators
+            name: sample-external-secrets-webhook
+            path: /validate-external-secrets-io-v1beta1-clustersecretstore
+        admissionReviewVersions: ["v1", "v1beta1"]
+        sideEffects: None
+        timeoutSeconds: 5
+      ---
+      # Source: external-secrets/templates/validatingwebhook.yaml
+      apiVersion: admissionregistration.k8s.io/v1
+      kind: ValidatingWebhookConfiguration
+      metadata:
+        name: externalsecret-validate
+        labels:
+          helm.sh/chart: external-secrets-0.11.0
+          app.kubernetes.io/name: external-secrets-webhook
+          app.kubernetes.io/instance: sample
+          app.kubernetes.io/version: "v0.11.0"
+          app.kubernetes.io/managed-by: Helm
+          external-secrets.io/component: webhook
+      webhooks:
+      - name: "validate.externalsecret.external-secrets.io"
+        rules:
+        - apiGroups:   ["external-secrets.io"]
+          apiVersions: ["v1beta1"]
+          operations:  ["CREATE", "UPDATE", "DELETE"]
+          resources:   ["externalsecrets"]
+          scope:       "Namespaced"
+        clientConfig:
+          service:
+            namespace: openshift-operators
+            name: sample-external-secrets-webhook
+            path: /validate-external-secrets-io-v1beta1-externalsecret
+        admissionReviewVersions: ["v1", "v1beta1"]
+        sideEffects: None
+        timeoutSeconds: 5
+        failurePolicy: Fail
+    name: sample
