@@ -102,15 +102,15 @@ applications:
     source:
       path: components/external-secrets-operator-configuration         
 
-# htpasswd creation
-  htpasswd-configuration:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '1'
-    destination:
-      namespace: default
-    source:
-      path: components/htpasswd-configuration         
+# # htpasswd creation
+#   htpasswd-configuration:
+#     annotations:
+#       argocd.argoproj.io/compare-options: IgnoreExtraneous
+#       argocd.argoproj.io/sync-wave: '1'
+#     destination:
+#       namespace: default
+#     source:
+#       path: components/htpasswd-configuration         
            
 # # Lightspeed
  
