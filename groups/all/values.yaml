@@ -101,6 +101,16 @@ applications:
       namespace: external-secrets-operator-configuration
     source:
       path: components/external-secrets-operator-configuration         
+
+# htpasswd creation
+  htpasswd-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '1'
+    destination:
+      namespace: default
+    source:
+      path: components/htpasswd-configuration         
            
 # # Lightspeed
  
