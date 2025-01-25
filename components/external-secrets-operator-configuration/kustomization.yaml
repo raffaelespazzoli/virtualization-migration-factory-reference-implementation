@@ -5,3 +5,4 @@ kind: Kustomization
 resources:
   - ./operator-config.yaml
   - ./cluster-secret-store.yaml
+  - ./external-secret.yaml
