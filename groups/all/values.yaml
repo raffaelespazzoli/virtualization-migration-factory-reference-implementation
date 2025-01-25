@@ -9,7 +9,8 @@ projects:
     description: Project for overall cluster configuration
     namespace: openshift-gitops
     sourceRepos:
-    - ${INFRA_GITOPS_REPO}
+    #- ${INFRA_GITOPS_REPO}
+    - https://github.com/mnoble1971/virtualization-migration-factory-reference-implementation.git
     destinations: |
       - namespace: '*'
         server: https://kubernetes.default.svc
