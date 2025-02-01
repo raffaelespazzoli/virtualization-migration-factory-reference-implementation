@@ -94,14 +94,14 @@ applications:
       path: components/external-secrets-operator           
 
 # vault config operator
-  # vault-config-operator:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '6'
-  #   destination:
-  #     namespace: vault-config-operator
-  #   source:
-  #     path: components/vault-config-operator        
+  vault-config-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '6'
+    destination:
+      namespace: vault-config-operator
+    source:
+      path: components/vault-config-operator        
 
 
 # # htpasswd creation
