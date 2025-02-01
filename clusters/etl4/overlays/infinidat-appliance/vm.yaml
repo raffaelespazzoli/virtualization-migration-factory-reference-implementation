@@ -11,7 +11,8 @@ spec:
       metadata:
         name: vm-ibox1
       spec:
-        pvc:
+        sourceRef:
+          kind: DataSource
           name: infinibox-demo-7.3.11.0
           namespace: openshift-virtualization-os-images
         storage:
