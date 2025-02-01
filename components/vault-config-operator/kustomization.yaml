@@ -5,4 +5,11 @@ namespace: vault-config-operator
 
 resources:
   - ./namespace.yaml
-  - ./operator.yaml
+#  - ./operator.yaml
+
+
+helmCharts:
+  - name: vault-config-operator
+    namespace: vault-config-operator
+    releaseName: vault-config-operator
+    repo: https://github.com/hashicorp/vault-secrets-operator/tree/main/chart
