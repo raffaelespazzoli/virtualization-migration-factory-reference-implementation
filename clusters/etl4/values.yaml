@@ -134,9 +134,9 @@ applications:
 
 # Infinidat
 
-  # infinidat-appliance-configuration:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '25'     
-  #   source:
-  #     path: clusters/etl4/overlays/infinidat-appliance
+  infinidat-appliance-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '25'     
+    source:
+      path: clusters/etl4/overlays/infinidat-appliance

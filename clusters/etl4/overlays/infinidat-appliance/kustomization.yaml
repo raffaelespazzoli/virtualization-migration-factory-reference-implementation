@@ -4,3 +4,4 @@ namespace: infinidat-appliance
 
 resources: 
 - namespace.yaml
+- vm.yaml

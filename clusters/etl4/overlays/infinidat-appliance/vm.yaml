@@ -1,0 +1,63 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  labels:
+    kubevirt.io/vm: vm-ibox
+  name: vm-ibox 
+spec:
+  dataVolumeTemplates:
+    - apiVersion: cdi.kubevirt.io/v1beta1
+      kind: DataVolume
+      metadata:
+        name: vm-ibox1
+      spec:
+        pvc:
+          name: infinibox-demo-7.3.11.0
+          namespace: openshift-virtualization-os-images
+        storage:
+          resources:
+            requests:
+              storage: 200Gi
+
+  running: true
+  template:
+    metadata:
+      labels:
+        kubevirt.io/vm: vm-ibox
+    spec:
+      domain:
+        devices:
+          disks:
+          - disk:
+              bus: scsi
+            name: datavolumedisk1
+          interfaces:
+            - bridge: {}
+              model: e1000
+              name: default
+            - bridge: {}
+              model: e1000
+              name: nic-bronze-earthworm-37
+            - bridge: {}
+              model: e1000
+              name: nic-aquamarine-turkey-69
+        machine:
+          type: ""
+        resources:
+          requests:
+            memory: 25Gi
+            cpu: 8
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - dataVolume:
+          name: vm-ibox1
+        name: datavolumedisk1
+      networks:
+        - name: default
+          pod: {}
+        - multus:
+            networkName: default/vlan-1512
+          name: nic-bronze-earthworm-37
+        - multus:
+            networkName: default/vlan-1512
+          name: nic-aquamarine-turkey-69
