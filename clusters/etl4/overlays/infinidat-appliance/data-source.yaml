@@ -1,9 +1,6 @@
 apiVersion: cdi.kubevirt.io/v1beta1
 kind: DataSource
 metadata:
-  annotations:
-    operator-sdk/primary-resource: openshift-cnv/ssp-kubevirt-hyperconverged
-    operator-sdk/primary-resource-type: SSP.ssp.kubevirt.io
   labels:
     app.kubernetes.io/component: storage
     app.kubernetes.io/managed-by: cdi-controller
