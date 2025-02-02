@@ -63,5 +63,5 @@ spec:
             networkName: default/vlan-1512
           name: nic-bronze-earthworm-37
         - multus:
-            networkName: default/vlan-1512
+            networkName: infinidat-appliance/vlan-1512
           name: nic-aquamarine-turkey-69
