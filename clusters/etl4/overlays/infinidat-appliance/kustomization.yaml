@@ -5,3 +5,4 @@ namespace: infinidat-appliance
 resources: 
 - namespace.yaml
 - vm.yaml
+- data-source.yaml
