@@ -39,7 +39,7 @@ spec:
     alignCPUs: false
     enableManagedTenantQuota: false
     deployVmConsoleProxy: false
-    persistentReservation: false
+    persistentReservation: true
     autoResourceLimits: false
   workloadUpdateStrategy:
     batchEvictionInterval: 1m0s
