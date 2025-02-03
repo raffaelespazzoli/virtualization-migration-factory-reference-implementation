@@ -7,3 +7,4 @@ resources:
 - vm.yaml
 - data-source.yaml
 - nad.yaml
+- service.yaml
