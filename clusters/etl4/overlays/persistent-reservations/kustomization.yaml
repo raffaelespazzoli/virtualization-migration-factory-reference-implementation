@@ -7,4 +7,5 @@ resources:
 - vm.yaml
 - ssh-key-secret.yaml
 - pvc.yaml
+- service.yaml
 
