@@ -1,0 +1,123 @@
+<domain type="kvm" xmlns:qemu="http://libvirt.org/schemas/domain/qemu/1.0">
+	<name>persistent-reservations_fedora-vm1</name>
+	<memory unit="b">2147483648</memory>
+	<maxMemory unit="b" slots="0">8589934592</maxMemory>
+	<os>
+		<type arch="x86_64" machine="pc-q35-rhel9.4.0">hvm</type>
+		<smbios mode="sysinfo"></smbios>
+		<loader readonly="yes" secure="yes" type="pflash">/usr/share/OVMF/OVMF_CODE.secboot.fd</loader>
+		<nvram template="/usr/share/OVMF/OVMF_VARS.secboot.fd">/var/run/kubevirt-private/libvirt/qemu/nvram/fedora-vm1_VARS.fd</nvram>
+	</os>
+	<sysinfo type="smbios">
+		<system>
+			<entry name="uuid">eabec7a8-b1c5-501a-8f85-dedb0b9e98b5</entry>
+			<entry name="manufacturer">Red Hat</entry>
+			<entry name="family">Red Hat</entry>
+			<entry name="product">OpenShift Virtualization</entry>
+			<entry name="sku">4.17.3</entry>
+			<entry name="version">4.17.3</entry>
+		</system>
+		<bios></bios>
+		<baseBoard></baseBoard>
+		<chassis></chassis>
+	</sysinfo>
+	<devices>
+		<interface type="ethernet">
+			<source></source>
+			<target dev="tap0" managed="no"></target>
+			<model type="virtio-non-transitional"></model>
+			<mac address="02:a5:cf:00:00:08"></mac>
+			<mtu size="1400"></mtu>
+			<alias name="ua-default"></alias>
+			<rom enabled="no"></rom>
+		</interface>
+		<interface type="ethernet">
+			<source></source>
+			<target dev="placeholder-0" managed="no"></target>
+			<model type="virtio-non-transitional"></model>
+		</interface>
+		<interface type="ethernet">
+			<source></source>
+			<target dev="placeholder-1" managed="no"></target>
+			<model type="virtio-non-transitional"></model>
+		</interface>
+		<interface type="ethernet">
+			<source></source>
+			<target dev="placeholder-2" managed="no"></target>
+			<model type="virtio-non-transitional"></model>
+		</interface>
+		<channel type="unix">
+			<target name="org.qemu.guest_agent.0" type="virtio"></target>
+		</channel>
+		<controller type="usb" index="0" model="none"></controller>
+		<controller type="scsi" index="0" model="virtio-non-transitional"></controller>
+		<controller type="virtio-serial" index="0" model="virtio-non-transitional"></controller>
+		<video>
+			<model type="vga" heads="1" vram="16384"></model>
+		</video>
+		<graphics type="vnc">
+			<listen type="socket" socket="/var/run/kubevirt-private/0e9fd1d6-8fdf-4924-9342-486b232484e5/virt-vnc"></listen>
+		</graphics>
+		<memballoon model="virtio-non-transitional" freePageReporting="on">
+			<stats period="10"></stats>
+		</memballoon>
+		<disk device="disk" type="block" model="virtio-non-transitional">
+			<source dev="/dev/rootdisk" name="rootdisk"></source>
+			<target bus="virtio" dev="vda"></target>
+			<driver cache="none" error_policy="stop" io="native" name="qemu" type="raw" discard="unmap"></driver>
+			<alias name="ua-rootdisk"></alias>
+			<filesystemOverhead>0</filesystemOverhead>
+			<capacity>32212254720</capacity>
+			<expandDisksEnabled>true</expandDisksEnabled>
+		</disk>
+		<disk device="disk" type="file" model="virtio-non-transitional">
+			<source file="/var/run/kubevirt-ephemeral-disks/cloud-init-data/persistent-reservations/fedora-vm1/noCloud.iso"></source>
+			<target bus="virtio" dev="vdb"></target>
+			<driver cache="none" error_policy="stop" name="qemu" type="raw" discard="unmap"></driver>
+			<alias name="ua-cloudinitdisk"></alias>
+		</disk>
+		<disk device="lun" type="block">
+			<source dev="/dev/prdisk" name="prdisk">
+				<reservations managed="no">
+					<source type="unix" path="/var/run/kubevirt/daemons/pr/pr-helper.sock" mode="client"></source>
+				</reservations>
+			</source>
+			<target bus="sata" dev="sda"></target>
+			<driver cache="none" error_policy="stop" io="native" name="qemu" type="raw" discard="unmap"></driver>
+			<alias name="ua-prdisk"></alias>
+			<filesystemOverhead>0</filesystemOverhead>
+			<capacity>10737418240</capacity>
+			<expandDisksEnabled>true</expandDisksEnabled>
+		</disk>
+		<serial type="unix">
+			<target port="0"></target>
+			<source mode="bind" path="/var/run/kubevirt-private/0e9fd1d6-8fdf-4924-9342-486b232484e5/virt-serial0"></source>
+		</serial>
+		<console type="pty">
+			<target type="serial" port="0"></target>
+		</console>
+		<rng model="virtio-non-transitional">
+			<backend model="random">/dev/urandom</backend>
+		</rng>
+	</devices>
+	<metadata>
+		<kubevirt xmlns="http://kubevirt.io">
+			<uid></uid>
+		</kubevirt>
+	</metadata>
+	<features>
+		<acpi></acpi>
+		<smm></smm>
+	</features>
+	<cpu mode="host-model">
+		<topology sockets="4" cores="1" threads="1"></topology>
+	</cpu>
+	<vcpu placement="static">4</vcpu>
+	<vcpus>
+		<vcpu id="0" enabled="yes" hotpluggable="no"></vcpu>
+		<vcpu id="1" enabled="no" hotpluggable="yes"></vcpu>
+		<vcpu id="2" enabled="no" hotpluggable="yes"></vcpu>
+		<vcpu id="3" enabled="no" hotpluggable="yes"></vcpu>
+	</vcpus>
+	<iothreads>1</iothreads>
+</domain>
