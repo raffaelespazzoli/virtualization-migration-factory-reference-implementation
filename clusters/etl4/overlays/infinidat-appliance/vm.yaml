@@ -60,7 +60,7 @@ spec:
         - name: default
           pod: {}
         - multus:
-            networkName: default/vlan-1512
+            networkName: infinidat-appliance/ia-vlan-1512-1
           name: nic-bronze-earthworm-37
         - multus:
             networkName: infinidat-appliance/ia-vlan-1512
