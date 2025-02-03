@@ -27,7 +27,7 @@ spec:
 kind: Route
 apiVersion: route.openshift.io/v1
 metadata:
-  name: kube-ops-view
+  name: infinibox
 spec:
   to:
     kind: Service
