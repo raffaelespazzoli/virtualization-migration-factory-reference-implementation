@@ -50,7 +50,8 @@ spec:
             - name: prdisk
               lun: 
                 reservation: true
-              shareable: false                
+                bus: scsi
+              shareable: true                
           interfaces:
             - macAddress: '02:a5:cf:00:00:08'
               masquerade: {}
