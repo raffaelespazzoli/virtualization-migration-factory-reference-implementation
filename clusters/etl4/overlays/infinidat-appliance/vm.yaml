@@ -38,10 +38,6 @@ spec:
               macAddress: 02:fb:ed:00:00:00            
               model: e1000
               name: default
-              ports:  
-              - name: https
-                port: 443
-                protocol: TCP
             - bridge: {}
               model: e1000
               name: nic-bronze-earthworm-37
