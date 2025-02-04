@@ -35,6 +35,7 @@ spec:
             name: datavolumedisk1
           interfaces:
             - masquerade: {}
+              macAddress: 02:fb:ed:00:00:00            
               model: e1000
               name: default
               ports:  
