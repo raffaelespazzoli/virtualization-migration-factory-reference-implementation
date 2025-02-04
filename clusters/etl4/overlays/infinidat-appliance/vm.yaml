@@ -34,7 +34,7 @@ spec:
               bus: scsi
             name: datavolumedisk1
           interfaces:
-            - bridge: {}
+            - masquerade: {}
               model: e1000
               name: default
               ports:  
