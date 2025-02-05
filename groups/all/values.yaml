@@ -73,15 +73,15 @@ applications:
     source:
       path: components/nmstate-configuration            
 
-# LVM configuration
-  lvm-configuration:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '4'
-    destination:
-      namespace: openshift-storage
-    source:
-      path: components/lvm-configuration   
+# # LVM configuration
+#   lvm-configuration:
+#     annotations:
+#       argocd.argoproj.io/compare-options: IgnoreExtraneous
+#       argocd.argoproj.io/sync-wave: '4'
+#     destination:
+#       namespace: openshift-storage
+#     source:
+#       path: components/lvm-configuration   
 
 # external secrets manager
   external-secrets-operator:
