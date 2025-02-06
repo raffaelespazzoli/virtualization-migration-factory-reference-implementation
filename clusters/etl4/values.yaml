@@ -45,27 +45,7 @@ applications:
   #       - group: 'service.isf.ibm.com'
   #         jsonPointers:
   #           - /spec/doInstall
-  #         kind: FusionServiceInstance      
-
-# HA
-
-  node-health-check-configuration:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '15'
-    destination:
-      namespace: openshift-workload-availability
-    source:
-      path: clusters/etl4/overlays/node-health-check-configuration   
-
-# Observability
-
-  power-monitoring-configuration:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '15'
-    source:
-      path: clusters/etl4/overlays/power-monitoring-configuration       
+  #         kind: FusionServiceInstance            
 
 
 # VDI

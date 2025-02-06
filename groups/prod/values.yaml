@@ -68,7 +68,16 @@ applications:
     destination:
       namespace: openshift-workload-availability
     source:
-      path: components/node-health-check-operator     
+      path: components/node-health-check-operator
+
+  node-health-check-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: openshift-workload-availability
+    source:
+      path: components/node-health-check-configuration   
 
 ## Storage
 
@@ -156,3 +165,10 @@ applications:
       namespace: openshift-operators
     source:
       path: components/power-monitoring-operator
+
+  power-monitoring-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    source:
+      path: components/power-monitoring-configuration           
