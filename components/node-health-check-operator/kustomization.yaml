@@ -7,3 +7,4 @@ resources:
   - namespace.yaml
   - far-operator.yaml
   - nhc-operator.yaml
+  - node-maintenance-operator.yaml
