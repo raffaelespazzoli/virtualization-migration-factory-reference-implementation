@@ -5,4 +5,3 @@ namespace: openshift-workload-availability
 
 resources:
 - node-health-check.yaml
-- far-template.yaml
