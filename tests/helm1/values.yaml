@@ -1,0 +1,7 @@
+configmaps:
+  - configmap1:
+      ping: pong
+      key2: value2
+  - configmap2:
+      key1: value1
+      key2: value2
