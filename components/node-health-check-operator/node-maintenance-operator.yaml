@@ -9,4 +9,3 @@ spec:
   name: node-maintenance-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace
-  package: node-maintenance-operator
