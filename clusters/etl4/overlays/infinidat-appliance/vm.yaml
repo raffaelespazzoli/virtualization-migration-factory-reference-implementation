@@ -61,8 +61,8 @@ spec:
         - name: default
           pod: {}
         - multus:
-            networkName: default/2901
+            networkName: default/vlan-2901
           name: nic-bronze-earthworm-37
         - multus:
-            networkName: default/2911
+            networkName: default/vlan-2911
           name: nic-aquamarine-turkey-69
