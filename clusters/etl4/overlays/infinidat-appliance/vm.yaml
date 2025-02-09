@@ -64,5 +64,5 @@ spec:
             networkName: default/2901
           name: nic-bronze-earthworm-37
         - multus:
-            networkName: default-appliance/2911
+            networkName: default/2911
           name: nic-aquamarine-turkey-69
