@@ -14,7 +14,7 @@ spec:
       "topology": "localnet",
       "netAttachDefName": "default/vlan-1522",
       "vlanID": 1522,
-      "mtu": 1500,
+      "mtu": 1500
     }
 ---
 apiVersion: k8s.cni.cncf.io/v1
@@ -33,7 +33,7 @@ spec:
       "topology": "localnet",
       "netAttachDefName": "default/vlan-2901",
       "vlanID": 2901,
-      "mtu": 1500,
+      "mtu": 1500
     }
 ---
 #VLAN2901: 192.168.90.0/24
@@ -54,5 +54,5 @@ spec:
       "topology": "localnet",
       "netAttachDefName": "default/vlan-2911",
       "vlanID": 2911,
-      "mtu": 1500,
+      "mtu": 1500
     }    
