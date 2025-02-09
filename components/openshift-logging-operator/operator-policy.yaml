@@ -1,0 +1,33 @@
+apiVersion: policy.open-cluster-management.io/v1beta1
+kind: OperatorPolicy
+metadata:
+  name: cluster-logging
+  namespace: open-cluster-management-policies
+spec:
+  upgradeApproval: Automatic
+  complianceConfig:
+    catalogSourceUnhealthy: Compliant
+    deploymentsUnavailable: NonCompliant
+    upgradesAvailable: Compliant
+  complianceType: musthave
+  remediationAction: enforce
+  removalBehavior:
+    clusterServiceVersions: Delete
+    customResourceDefinitions: Keep
+    operatorGroups: DeleteIfUnused
+    subscriptions: Delete
+  severity: medium
+  operatorGroup: # optional
+    name: cluster-logging
+    namespace: openshift-logging
+    targetNamespaces:
+        - openshift-logging
+  subscription:
+    channel: stable-6.1
+    name: cluster-logging
+    namespace: openshift-logging
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+    startingCSV: cluster-logging.v6.1.1
+  versions: 
+    - cluster-logging.v6.1.1

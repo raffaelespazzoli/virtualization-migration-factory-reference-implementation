@@ -1,0 +1,31 @@
+apiVersion: policy.open-cluster-management.io/v1beta1
+kind: OperatorPolicy
+metadata:
+  name: ansible-automation-platform-operator
+  namespace: open-cluster-management-policies
+spec:
+  upgradeApproval: Automatic
+  complianceConfig:
+    catalogSourceUnhealthy: Compliant
+    deploymentsUnavailable: NonCompliant
+    upgradesAvailable: Compliant
+  complianceType: musthave
+  remediationAction: enforce
+  removalBehavior:
+    clusterServiceVersions: Delete
+    customResourceDefinitions: Keep
+    operatorGroups: DeleteIfUnused
+    subscriptions: Delete
+  severity: medium
+  operatorGroup: # optional
+    name: ansible-automation-platform-operator
+    namespace: aap
+  subscription:
+    channel: stable-2.5-cluster-scoped
+    name: ansible-automation-platform-operator
+    namespace: aap
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+    startingCSV: aap-operator.v2.5.0-0.1737676792
+  versions: 
+    - aap-operator.v2.5.0-0.1737676792

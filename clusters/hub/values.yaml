@@ -109,8 +109,6 @@ applications:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
-    destination:
-      namespace: odf-multicluster-operator
     source:
       path: components/odf-multicluster-operator
 
@@ -145,8 +143,6 @@ applications:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
-    destination:
-      namespace: aap
     source:      
       path: components/aap-operator
 
@@ -165,8 +161,6 @@ applications:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
-    destination:
-      namespace: openshift-mtv
     source:
       path: components/mtv-operator
 

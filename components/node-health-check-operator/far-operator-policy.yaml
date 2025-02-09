@@ -1,0 +1,28 @@
+apiVersion: policy.open-cluster-management.io/v1beta1
+kind: OperatorPolicy
+metadata:
+  name: fence-agents-remediation
+  namespace: open-cluster-management-policies
+spec:
+  upgradeApproval: Automatic
+  complianceConfig:
+    catalogSourceUnhealthy: Compliant
+    deploymentsUnavailable: NonCompliant
+    upgradesAvailable: Compliant
+  complianceType: musthave
+  remediationAction: enforce
+  removalBehavior:
+    clusterServiceVersions: Delete
+    customResourceDefinitions: Keep
+    operatorGroups: DeleteIfUnused
+    subscriptions: Delete
+  severity: medium
+  subscription:
+    channel: stable
+    name: fence-agents-remediation
+    namespace: openshift-workload-availability
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+    startingCSV: fence-agents-remediation.v0.5.0
+  versions: 
+    - fence-agents-remediation.v0.5.0

@@ -1,0 +1,33 @@
+apiVersion: policy.open-cluster-management.io/v1beta1
+kind: OperatorPolicy
+metadata:
+  name: redhat-oadp-operator
+  namespace: open-cluster-management-policies
+spec:
+  upgradeApproval: Automatic
+  complianceConfig:
+    catalogSourceUnhealthy: Compliant
+    deploymentsUnavailable: NonCompliant
+    upgradesAvailable: Compliant
+  complianceType: musthave
+  remediationAction: enforce
+  removalBehavior:
+    clusterServiceVersions: Delete
+    customResourceDefinitions: Keep
+    operatorGroups: DeleteIfUnused
+    subscriptions: Delete
+  severity: medium
+  operatorGroup: # optional
+    name: redhat-oadp-operator
+    namespace: openshift-oadp
+    targetNamespaces:
+        - openshift-oadp
+  subscription:
+    channel: stable-1.4
+    name: redhat-oadp-operator
+    namespace: openshift-oadp
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+    startingCSV: oadp-operator.v1.4.2
+  versions: 
+    - oadp-operator.v1.4.2

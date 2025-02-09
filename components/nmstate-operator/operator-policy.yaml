@@ -1,0 +1,33 @@
+apiVersion: policy.open-cluster-management.io/v1beta1
+kind: OperatorPolicy
+metadata:
+  name: kubernetes-nmstate-operator
+  namespace: open-cluster-management-policies
+spec:
+  upgradeApproval: Automatic
+  complianceConfig:
+    catalogSourceUnhealthy: Compliant
+    deploymentsUnavailable: NonCompliant
+    upgradesAvailable: Compliant
+  complianceType: musthave
+  remediationAction: enforce
+  removalBehavior:
+    clusterServiceVersions: Delete
+    customResourceDefinitions: Keep
+    operatorGroups: DeleteIfUnused
+    subscriptions: Delete
+  severity: medium
+  operatorGroup: # optional
+    name: kubernetes-nmstate-operator
+    namespace: openshift-nmstate
+    targetNamespaces:
+        - openshift-nmstate
+  subscription:
+    channel: stable
+    name: kubernetes-nmstate-operator
+    namespace: openshift-nmstate
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+    startingCSV: kubernetes-nmstate-operator.4.17.0-202501301304
+  versions: 
+    - kubernetes-nmstate-operator.4.17.0-202501301304

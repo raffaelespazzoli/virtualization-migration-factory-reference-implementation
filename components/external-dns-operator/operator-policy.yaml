@@ -1,0 +1,33 @@
+apiVersion: policy.open-cluster-management.io/v1beta1
+kind: OperatorPolicy
+metadata:
+  name: external-dns-operator
+  namespace: open-cluster-management-policies
+spec:
+  upgradeApproval: Automatic
+  complianceConfig:
+    catalogSourceUnhealthy: Compliant
+    deploymentsUnavailable: NonCompliant
+    upgradesAvailable: Compliant
+  complianceType: musthave
+  remediationAction: enforce
+  removalBehavior:
+    clusterServiceVersions: Delete
+    customResourceDefinitions: Keep
+    operatorGroups: DeleteIfUnused
+    subscriptions: Delete
+  severity: medium
+  operatorGroup: # optional
+    name: external-dns-operator
+    namespace: external-dns-operator
+    targetNamespaces:
+        - external-dns-operator
+  subscription:
+    channel: stable-v1
+    name: external-dns-operator
+    namespace: external-dns-operator
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+    startingCSV: external-dns-operator.v1.3.0
+  versions: 
+    - external-dns-operator.v1.3.0

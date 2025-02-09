@@ -16,8 +16,6 @@ applications:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
-    destination:
-      namespace: openshift-cnv
     source:
       path: components/openshift-virtualization-operator
 
@@ -34,8 +32,6 @@ applications:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
-    destination:
-        namespace: openshift-kube-descheduler-operator
     source:
       path: components/descheduler-operator  
 
@@ -65,8 +61,6 @@ applications:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
-    destination:
-      namespace: openshift-workload-availability
     source:
       path: components/node-health-check-operator
 
@@ -105,8 +99,6 @@ applications:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
-    destination:
-      namespace: openshift-adp
     source:
       path: components/oadp-operator
 
@@ -123,8 +115,6 @@ applications:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
-    destination:
-      namespace: trilio-system
     source:
       path: components/trilio-operator
 
@@ -161,8 +151,6 @@ applications:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
-    destination:
-      namespace: openshift-operators
     source:
       path: components/power-monitoring-operator
 

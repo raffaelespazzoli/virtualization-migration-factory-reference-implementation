@@ -1,0 +1,31 @@
+apiVersion: policy.open-cluster-management.io/v1beta1
+kind: OperatorPolicy
+metadata:
+  name: loki-operator
+  namespace: open-cluster-management-policies
+spec:
+  upgradeApproval: Automatic
+  complianceConfig:
+    catalogSourceUnhealthy: Compliant
+    deploymentsUnavailable: NonCompliant
+    upgradesAvailable: Compliant
+  complianceType: musthave
+  remediationAction: enforce
+  removalBehavior:
+    clusterServiceVersions: Delete
+    customResourceDefinitions: Keep
+    operatorGroups: DeleteIfUnused
+    subscriptions: Delete
+  severity: medium
+  operatorGroup: # optional
+    name: loki-operator
+    namespace: openshift-loki-operator
+  subscription:
+    channel: stable-6.1
+    name: loki-operator
+    namespace: openshift-loki-operator
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+    startingCSV: loki-operator.v6.1.1
+  versions: 
+    - loki-operator.v6.1.1
