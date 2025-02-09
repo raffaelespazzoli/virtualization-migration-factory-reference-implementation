@@ -22,4 +22,4 @@ spec:
       mutate:
         patchStrategicMerge:
           spec:
-            running: {{ eq (dr-cm.data.{{request.object.metadata.labels.tier}}  | fromYaml | .${CLUSTER_NAME}) "active" }}
+            running: '{{ eq (dr-cm.data.{{request.object.metadata.labels.tier}}  | fromYaml | .${CLUSTER_NAME}) "active" }}'
