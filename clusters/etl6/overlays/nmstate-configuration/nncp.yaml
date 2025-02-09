@@ -29,6 +29,12 @@ spec:
       - localnet: vlan-1522 
         bridge: ovs-br1 
         state: present
+      - localnet: vlan-2901 
+        bridge: ovs-br1 
+        state: present
+      - localnet: vlan-2911 
+        bridge: ovs-br1 
+        state: present                
 
 
 

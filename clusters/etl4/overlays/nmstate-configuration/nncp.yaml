@@ -39,6 +39,12 @@ spec:
         - bridge: ovs-br1
           localnet: vlan-1512
           state: present
+        - localnet: vlan-2901 
+          bridge: ovs-br1 
+          state: present
+        - localnet: vlan-2911 
+          bridge: ovs-br1 
+          state: present           
   nodeSelector:
     node-role.kubernetes.io/worker: ''
 ---

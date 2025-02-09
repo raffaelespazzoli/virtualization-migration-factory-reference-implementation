@@ -6,7 +6,7 @@ metadata:
     app.kubernetes.io/managed-by: cdi-controller
     app.kubernetes.io/part-of: hyperconverged-cluster
     app.kubernetes.io/version: 4.17.3
-  name: infinibox-demo-7.3.11.0
+  name: infinibox-demo-7.3.11.0-1
 spec:
   source:
     snapshot:
