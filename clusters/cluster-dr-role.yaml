@@ -4,12 +4,12 @@ metadata:
   name: cluster-dr-role
   namespace: openshift-gitops
 data:
-  tier-1: |-
-    etl6: active
-    elt7: passive
-  tier-2: |-
+  tier1: |-
     etl6: active
     etl7: passive
-  tier-3: |-
+  tier2: |-
+    etl6: active
+    etl7: passive
+  tier3: |-
     etl6: active
     etl7: passive
