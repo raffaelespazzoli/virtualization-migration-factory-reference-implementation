@@ -20,8 +20,6 @@ spec:
   operatorGroup: # optional
     name: k8s-triliovault
     namespace: trilio-system
-    targetNamespaces:
-        - openshift-oadp
   subscription:
     channel: 4.0.x
     name: k8s-triliovault
