@@ -20,7 +20,7 @@ spec:
   subscription:
     channel: development
     name: cluster-observability-operator
-    namespace: aap
+    namespace: openshift-operators
     source: redhat-operators
     sourceNamespace: openshift-marketplace
     startingCSV: cluster-observability-operator.0.4.1

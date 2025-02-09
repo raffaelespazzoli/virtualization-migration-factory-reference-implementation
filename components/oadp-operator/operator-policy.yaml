@@ -19,13 +19,13 @@ spec:
   severity: medium
   operatorGroup: # optional
     name: redhat-oadp-operator
-    namespace: openshift-oadp
+    namespace: openshift-adp
     targetNamespaces:
-        - openshift-oadp
+        - openshift-adp
   subscription:
     channel: stable-1.4
     name: redhat-oadp-operator
-    namespace: openshift-oadp
+    namespace: openshift-adp
     source: redhat-operators
     sourceNamespace: openshift-marketplace
     startingCSV: oadp-operator.v1.4.2

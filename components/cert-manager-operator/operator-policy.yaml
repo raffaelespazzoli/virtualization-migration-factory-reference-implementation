@@ -19,13 +19,13 @@ spec:
   severity: medium
   operatorGroup: # optional
     name: openshift-cert-manager-operator
-    namespace: cert-manager-operator
+    namespace: cert-manager
     targetNamespaces:
-        - cert-manager-operator
+        - cert-manager
   subscription:
     channel: stable-v1
     name: openshift-cert-manager-operator
-    namespace: cert-manager-operator
+    namespace: cert-manager
     source: redhat-operators
     sourceNamespace: openshift-marketplace
     startingCSV: cert-manager-operator.v1.15.0
