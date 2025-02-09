@@ -9,6 +9,20 @@ applications:
     source:
       path: groups/prod/overlays/openshift-config
 
+  kyverno-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    source:
+      path: components/kyverno-operator
+
+  kyverno-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    source:
+      path: groups/prod/overlays/kyverno-configuration      
+
 
 ## Virtualization
 

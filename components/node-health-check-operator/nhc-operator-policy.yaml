@@ -17,9 +17,6 @@ spec:
     operatorGroups: DeleteIfUnused
     subscriptions: Delete
   severity: medium
-  operatorGroup: # optional
-    name: node-healthcheck-operator
-    namespace: openshift-workload-availability
   subscription:
     channel: stable
     name: node-healthcheck-operator

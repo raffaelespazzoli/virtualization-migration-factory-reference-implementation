@@ -1,0 +1,25 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: manager-vm-dr
+spec:
+  rules:
+    - name: manager-vm-dr
+      skipBackgroundRequests: false
+      context:
+      - name: dr-cm
+        configMap:
+          name: cluster-dr-role
+          namespace: openshift-config      
+      match:
+        any:
+        - resources:
+            kinds:
+            - VirtualMachine
+            selector:
+              matchLabels:
+                dr-managed: "true"
+      mutate:
+        patchStrategicMerge:
+          spec:
+            running: {{ eq (dr-cm.data.{{request.object.metadata.labels.tier}}  | fromYaml | .${CLUSTER_NAME}) "active" }}
