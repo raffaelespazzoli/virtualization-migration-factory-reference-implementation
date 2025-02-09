@@ -4,4 +4,4 @@ kind: Kustomization
 namespace: openshift-operators
 
 resources:
-  - ./operator-kustomization.yaml
+  - ./operator-policy.yaml
