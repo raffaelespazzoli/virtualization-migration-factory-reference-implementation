@@ -5,4 +5,4 @@ namespace: openshift-nmstate
 
 resources:
   - namespace.yaml
-  - operator-operator.yaml
+  - operator-policy.yaml
