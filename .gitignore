@@ -13,3 +13,5 @@ clusters/hub/overlays/cluster-etl4/bmc-credentials-secret.yaml
 clusters/hub/overlays/cluster-etl4/pull-secret.yaml
 clusters/etl4/overlays/fedora-vdi/output
 components/ibm-spectrum-scale-container-native-operator/pull-secret.yaml
+components/infinidat-appliance/infinibox-demo-7.3.11.0-cbdev-7.3.11-RHOSV-20250206-1.qcow2
+components/infinidat-appliance/raffa-secret.yaml

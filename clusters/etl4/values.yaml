@@ -135,7 +135,7 @@ applications:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '25'     
     source:
-      path: clusters/etl4/overlays/infinidat-appliance
+      path: components/infinidat-appliance
 
 # persistent-reservations
 

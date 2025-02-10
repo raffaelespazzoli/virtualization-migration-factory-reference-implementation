@@ -20,7 +20,6 @@ spec:
           resources:
             requests:
               storage: 200Gi
-
   running: true
   template:
     metadata:
@@ -35,17 +34,17 @@ spec:
             name: datavolumedisk1
           interfaces:
             - masquerade: {}
-              macAddress: 02:fb:ed:00:00:01            
+              macAddress: 02:fb:ed:00:00:00            
               model: virtio
               name: default
             - bridge: {}
               model: virtio
               name: nic-bronze-earthworm-37
-              macAddress: 02:fb:ed:00:01:67              
+              macAddress: 02:fb:ed:00:01:62              
             - bridge: {}
               model: virtio
               name: nic-aquamarine-turkey-69
-              macAddress: 02:fb:ed:00:01:68
+              macAddress: 02:fb:ed:00:01:63
         machine:
           type: "pc-q35-rhel9.4.0"
         resources:
