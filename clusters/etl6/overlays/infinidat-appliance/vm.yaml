@@ -104,7 +104,7 @@ spec:
             name: datavolumedisk1
           interfaces:
             - masquerade: {}
-              macAddress: 02:fb:ed:00:00:01            
+              macAddress: 02:fb:ed:00:00:02          
               model: virtio
               name: default
             - bridge: {}
