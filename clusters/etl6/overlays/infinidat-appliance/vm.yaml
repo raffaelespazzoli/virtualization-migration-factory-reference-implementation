@@ -38,6 +38,9 @@ spec:
               macAddress: 02:fb:ed:00:00:01            
               model: virtio
               name: default
+              ports:
+              - port: 443
+              - port: 22
             - bridge: {}
               model: virtio
               name: nic-bronze-earthworm-37
