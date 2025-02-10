@@ -19,11 +19,15 @@ spec:
     nodeSelector:
       scale.spectrum.ibm.com/daemon-selector: ""
     roles:
-    - name: client
+    - limits: {}	
+      name: client	
+      profile: {}    
       resources:
         cpu: "2"
         memory: 4Gi
-    - name: storage
+    - limits: {}	
+      name: storage	
+      profile: {}    
       resources:
         cpu: "2"
         memory: 8Gi
