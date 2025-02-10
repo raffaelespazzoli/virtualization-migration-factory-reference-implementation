@@ -15,3 +15,11 @@ do
   oc label ${master_node} scale.spectrum.ibm.com/daemon-selector=""
 done
 ```
+
+# discover volumes in each node
+
+```sh
+iscsiadm --mode discovery -t sendtargets --portal 192.168.51.228
+iscsiadm -m node -l
+iscsiadm -m node -T iqn.1992-08.com.netapp:sn.23ef8da95f5611efa2c200a09884167a:vs.40 -p 192.168.51.228:3260 -l
+```
