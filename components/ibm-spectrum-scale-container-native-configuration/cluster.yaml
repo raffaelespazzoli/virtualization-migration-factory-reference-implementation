@@ -1,0 +1,33 @@
+apiVersion: scale.spectrum.ibm.com/v1beta1
+kind: Cluster
+metadata:
+  labels:
+    app.kubernetes.io/instance: ibm-spectrum-scale
+    app.kubernetes.io/name: cluster
+  name: ibm-spectrum-scale
+  namespace: ibm-spectrum-scale
+spec:
+  daemon:
+    clusterProfile:
+      controlSetxattrImmutableSELinux: "yes"
+      enforceFilesetQuotaOnRoot: "yes"
+      ignorePrefetchLUNCount: "yes"
+      initPrefetchBuffers: "128"
+      maxblocksize: 16M
+      prefetchPct: "25"
+      prefetchTimeout: "30"
+    nodeSelector:
+      scale.spectrum.ibm.com/daemon-selector: ""
+    roles:
+    - name: client
+      resources:
+        cpu: "2"
+        memory: 4Gi
+    - name: storage
+      resources:
+        cpu: "2"
+        memory: 8Gi
+  license:
+    accept: true
+    license: data-management
+  networkPolicy: {}

@@ -32,6 +32,22 @@ applications:
     source:
       path: clusters/etl4/overlays/trident-configuration
 
+  ibm-spectrum-scale-container-native-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    source:
+      path: components/ibm-spectrum-scale-container-native-operator 
+
+  ibm-spectrum-scale-container-native-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: ibm-spectrum-scale
+    source:
+      path: components/ibm-spectrum-scale-container-native-configuration         
+
   # ibm-fusion-configuration:
   #   annotations:
   #     argocd.argoproj.io/compare-options: IgnoreExtraneous
