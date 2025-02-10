@@ -24,6 +24,19 @@ spec:
       targetPort: 433
   type: ClusterIP
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: https-vm-nodeport
+spec:
+  selector:
+    kubevirt.io/vm: vm-ibox
+  ports:
+    - protocol: TCP
+      port: 443
+      targetPort: 433
+  type: NodePort
+---
 kind: Route
 apiVersion: route.openshift.io/v1
 metadata:
