@@ -124,7 +124,7 @@ spec:
       terminationGracePeriodSeconds: 10
       volumes:
       - dataVolume:
-          name: vm-ibox1
+          name: vm-ibox1-1
         name: datavolumedisk1
       networks:
         - name: default
