@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ssh-vm
+spec:
+  selector:
+    kubevirt.io/vm: vm-ibox
+  ports:
+    - protocol: TCP
+      port: 22
+      targetPort: 22
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: https-vm
+spec:
+  selector:
+    kubevirt.io/vm: vm-ibox
+  ports:
+    - protocol: TCP
+      port: 443
+      targetPort: 433
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: https-vm-nodeport
+spec:
+  selector:
+    kubevirt.io/vm: vm-ibox
+  ports:
+    - protocol: TCP
+      port: 443
+      targetPort: 433
+  type: NodePort
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: infinibox
+spec:
+  to:
+    kind: Service
+    name: https-vm
+    weight: 100
+  port:
+    targetPort: 443
+  wildcardPolicy: None
+  tls:
+    termination: passthrough
+    insecureEdgeTerminationPolicy: Redirect      

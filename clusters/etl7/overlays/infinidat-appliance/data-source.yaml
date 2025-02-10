@@ -1,0 +1,24 @@
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: infinibox-demo-7.3.11.0-1-snapshot
+  namespace: openshift-virtualization-os-images
+spec:
+  source:
+    persistentVolumeClaimName: infinibox-demo-7.3.11.0-1
+  volumeSnapshotClassName: trident-snapshotclass
+---
+apiVersion: cdi.kubevirt.io/v1beta1
+kind: DataSource
+metadata:
+  labels:
+    app.kubernetes.io/component: storage
+    app.kubernetes.io/managed-by: cdi-controller
+    app.kubernetes.io/part-of: hyperconverged-cluster
+    app.kubernetes.io/version: 4.17.3
+  name: infinibox-demo-7.3.11.0-1
+spec:
+  source:
+    snapshot:
+      name: infinibox-demo-7.3.11.0-1-snapshot
+      namespace: infinidat-appliance
