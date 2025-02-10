@@ -22,4 +22,4 @@ spec:
       mutate:
         patchStrategicMerge:
           spec:
-            running: '{{(DRConfigMap.data.{{request.object.metadata.labels.tier}}|parse_yaml(@).etl7) == "active"}}'
+            running: '{{(DRConfigMap.data.{{request.object.metadata.labels.tier}}|parse_yaml(@).${CLUSTER_NAME}) == "active"}}'

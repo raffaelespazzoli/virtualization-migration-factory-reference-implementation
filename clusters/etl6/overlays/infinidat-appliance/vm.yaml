@@ -1,0 +1,68 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  labels:
+    kubevirt.io/vm: vm-ibox
+  name: vm-ibox 
+spec:
+  dataVolumeTemplates:
+    - apiVersion: cdi.kubevirt.io/v1beta1
+      kind: DataVolume
+      metadata:
+        name: vm-ibox1
+        creationTimestamp: null
+      spec:
+        sourceRef:
+          kind: DataSource
+          name: infinibox-demo-7.3.11.0-1
+          namespace: infinidat-appliance
+        storage:
+          resources:
+            requests:
+              storage: 200Gi
+
+  running: true
+  template:
+    metadata:
+      labels:
+        kubevirt.io/vm: vm-ibox
+    spec:
+      domain:
+        devices:
+          disks:
+          - disk:
+              bus: scsi
+            name: datavolumedisk1
+          interfaces:
+            - masquerade: {}
+              macAddress: 02:fb:ed:00:00:01            
+              model: virtio
+              name: default
+            - bridge: {}
+              model: virtio
+              name: nic-bronze-earthworm-37
+              macAddress: 02:fb:ed:00:01:64              
+            - bridge: {}
+              model: virtio
+              name: nic-aquamarine-turkey-69
+              macAddress: 02:fb:ed:00:01:65
+        machine:
+          type: "pc-q35-rhel9.4.0"
+        resources:
+          requests:
+            memory: 25Gi
+            cpu: '8'
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - dataVolume:
+          name: vm-ibox1
+        name: datavolumedisk1
+      networks:
+        - name: default
+          pod: {}
+        - multus:
+            networkName: default/vlan-2901
+          name: nic-bronze-earthworm-37
+        - multus:
+            networkName: default/vlan-2911
+          name: nic-aquamarine-turkey-69
