@@ -4,5 +4,5 @@ podman push quay.io/raffaelespazzoli/infinibox-demo-7.3.11.0-cbdev-7.3.11:202502
 ```
 
 ```sh
-oc apply -f raffa-secret.yaml -n infinidat-appliance
+oc apply -f raffa-secret.yaml -n openshift-cnv
 ```

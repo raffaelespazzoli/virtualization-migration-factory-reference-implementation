@@ -2,7 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - https://raw.githubusercontent.com/IBM/ibm-spectrum-scale-container-native/v5.2.1.x/generated/scale/install.yaml
+  - https://raw.githubusercontent.com/IBM/ibm-spectrum-scale-container-native/v5.2.2.x/generated/scale/install.yaml
   - machine-config.yaml
   - image-mirror-set.yaml
 
