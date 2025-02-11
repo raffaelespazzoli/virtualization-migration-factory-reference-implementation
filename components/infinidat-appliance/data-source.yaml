@@ -16,8 +16,8 @@ spec:
     spec:
       source:
         registry:
-          pullMethod: node
           url: 'docker://quay.io/raffaelespazzoli/infinibox-demo-7.3.11.0-cbdev-7.3.11:20250206-1'
+          secretRef: raffa-quay
       storage:
         resources:
           requests:
