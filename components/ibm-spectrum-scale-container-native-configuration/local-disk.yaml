@@ -7,7 +7,7 @@ metadata:
   name: shared-lun
   namespace: ibm-spectrum-scale
 spec:
-  device: /dev/disk/by-id/scsi-22b492d4e34762f0000a0983830336165
-  node: x240m5-11.etl4.ocp.rht-labs.com
+  device: /dev/sdb
+  node: x240m5-13.etl4.ocp.rht-labs.com
   # set below only during testing
   existingDataSkipVerify: true
