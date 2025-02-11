@@ -5,3 +5,21 @@ resources:
   - https://raw.githubusercontent.com/IBM/ibm-spectrum-scale-container-native/v5.2.1.x/generated/scale/install.yaml
   - machine-config.yaml
   - image-mirror-set.yaml
+
+patches:
+- patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: ibm-spectrum-scale-controller-manager
+    spec:
+      template:
+        spec:
+          containers:
+          - name: manager
+            env:
+            - name: GOMEMLIMIT
+              valueFrom:
+                resourceFieldRef:
+                  divisor: '0'
+                  resource: limits.memory            
