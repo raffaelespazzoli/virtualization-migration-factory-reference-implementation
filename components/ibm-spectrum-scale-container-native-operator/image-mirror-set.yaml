@@ -1,0 +1,21 @@
+apiVersion: config.openshift.io/v1
+kind: ImageDigestMirrorSet
+metadata:
+  name: ibm-scale-mirror
+spec:
+  imageDigestMirrors:
+  - mirrors:
+    - quay.io/rhsysdeseng/cpopen
+    source: icr.io/cpopen
+  - mirrors:
+    - quay.io/rhsysdeseng/cp/spectrum/scale/data-access
+    source: cp.icr.io/cp/spectrum/scale/data-access
+  - mirrors:
+    - quay.io/rhsysdeseng/cp/spectrum/scale/data-management
+    source: cp.icr.io/cp/spectrum/scale/data-management
+  - mirrors:
+    - quay.io/rhsysdeseng/cp/spectrum/scale
+    source: cp.icr.io/cp/spectrum/scale
+  - mirrors:
+    - quay.io/rhsysdeseng/cp/spectrum/scale/csi
+    source: cp.icr.io/cp/spectrum/scale/csi
