@@ -11,7 +11,7 @@ oc apply -f pull-secret.yaml -n ibm-spectrum-scale-csi
 update global pull-secret:
 
 ```sh
-PS=$(cat pull-secret.yaml | yq .stringData[.dockerconfigjson])
+PS=$(cat pull-secret.yaml | yq .stringData[.dockerconfigjson] | jq .auths)
 NEW_PS=$(oc -n openshift-config get secret pull-secret -o jsonpath='{.data.\.dockerconfigjson}' | base64 -d  | jq -c '.auths += '${PS}'' | base64 -w 0)
 oc -n openshift-config patch secret pull-secret -p "{\"data\":{\".dockerconfigjson\":\"$NEW_PS\"}}"
 

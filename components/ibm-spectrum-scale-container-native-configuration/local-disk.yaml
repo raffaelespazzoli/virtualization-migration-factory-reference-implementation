@@ -7,7 +7,7 @@ metadata:
   name: shared-lun
   namespace: ibm-spectrum-scale
 spec:
-  device: /dev/disk/by-id/dm-uuid-mpath-3600a098038303361652b492d4e34762
-  node: openshift-ctlplane-0
+  device: /dev/disk/by-id/scsi-22b492d4e34762f0000a0983830336165
+  node: x240m5-11.etl4.ocp.rht-labs.com
   # set below only during testing
   existingDataSkipVerify: true

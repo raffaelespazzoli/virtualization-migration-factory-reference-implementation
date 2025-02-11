@@ -4,8 +4,6 @@ metadata:
   annotations:
     cdi.kubevirt.io/storage.bind.immediate.requested: 'true'
     cdi.kubevirt.io/storage.import.storageClass: ontap-san
-    operator-sdk/primary-resource: openshift-cnv/ssp-kubevirt-hyperconverged
-    operator-sdk/primary-resource-type: SSP.ssp.kubevirt.io
   name: infinibox-demo-7.3.11.0-cbdev-7.3.11
   labels:
     kubevirt.io/dynamic-credentials-support: 'true'
