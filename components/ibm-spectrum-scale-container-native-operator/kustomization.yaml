@@ -12,6 +12,7 @@ patches:
     kind: Deployment
     metadata:
       name: ibm-spectrum-scale-controller-manager
+      namespace: ibm-spectrum-scale-operator
     spec:
       template:
         spec:
