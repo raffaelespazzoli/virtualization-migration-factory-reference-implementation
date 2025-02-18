@@ -5,6 +5,7 @@ resources:
   - https://raw.githubusercontent.com/IBM/ibm-spectrum-scale-container-native/v5.2.2.x/generated/scale/install.yaml
   - machine-config.yaml
   - image-mirror-set.yaml
+  - link.yaml
 
 patches:
 - patch: |-
