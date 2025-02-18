@@ -32,13 +32,13 @@ spec:
 #   source:
 #     persistentVolumeClaimName: infinibox-demo-7.3.11.0-cbdev-7.3.11
 #   volumeSnapshotClassName: trident-snapshotclass
----  
-apiVersion: cdi.kubevirt.io/v1beta1
-kind: DataSource
-metadata:
-  name: infinibox-demo-7.3.11.0-cbdev-7.3.11
-spec:
-  source:
-    snapshot:
-      name: infinibox-demo-7.3.11.0-cbdev-7.3.11
-      namespace: infinibox-appliance
+#---  
+# apiVersion: cdi.kubevirt.io/v1beta1
+# kind: DataSource
+# metadata:
+#   name: infinibox-demo-7.3.11.0-cbdev-7.3.11
+# spec:
+#   source:
+#     snapshot:
+#       name: infinibox-demo-7.3.11.0-cbdev-7.3.11
+#       namespace: infinibox-appliance
