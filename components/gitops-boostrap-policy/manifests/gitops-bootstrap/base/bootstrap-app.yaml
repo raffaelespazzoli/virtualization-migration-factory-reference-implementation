@@ -54,7 +54,7 @@ object-templates-raw: |
     #       duration: 5s # the amount to back off. Default unit is seconds, but could also be a duration (e.g. "2m", "1h")
     #       factor: 2 # a factor to multiply the base duration after each failed retry
     #       maxDuration: 3m # the maximum amount of time allowed for the backoff strategy
-  {{- $myApp := (lookup "argoproj.io/v1alpha1" "Application" $appNamespace $appName) }}
+  {{- $myApp := (lookup "argoproj.io/v1alpha1" "Application" "openshift-gitops" "root-applications") }}
   {{/* - if eq "noval" ((dig "spec" "syncPolicy" "noval" $myApp) | toRawJson | trimAll "\"") */}}
   {{- if not $myApp }}
         syncPolicy:
@@ -78,4 +78,4 @@ object-templates-raw: |
               maxDuration: 3m # the maximum amount of time allowed for the backoff strategy
   {{- else }}
         syncPolicy: '{{ $myApp.spec.syncPolicy | toRawJson | toLiteral }}'
-  {{- end }}  
+  {{- end }}
