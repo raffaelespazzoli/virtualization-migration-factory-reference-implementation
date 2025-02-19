@@ -21,7 +21,7 @@ policies:
       - path: manifests/gitops-instance/base/
   - name: policy-gitops-bootstrap
     manifests:
-      - path: manifests/gitops-bootstrap/base/
+      - path: manifests/gitops-bootstrap/base/bootstrap-app.yaml
 policySets:
   - name: "gitops"
     description: "Policy for bootstrapping cluster with gitops"
