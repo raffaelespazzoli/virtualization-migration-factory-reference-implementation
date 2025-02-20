@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../groups/all
+ # - ../../groups/all
+  #- ../../groups/prod
+  # - ../../components/kube-ops-view
+  # - ../../components/nmstate-configuration
+  # - ../../components/test
+  # - ../../components/lightspeed
+  # - ../../web-terminal-operator
+ # - ../../components/local-storage-configuration
+helmGlobals:
+  chartHome: ../../.helm-charts
+
+# helmCharts:
+# - name: argocd-app-of-app
+#   valuesFile: values.yaml
+# namespace: openshift-gitops
+
+# helmCharts:
+#   - name: super-simple-nginx
+#     namespace: openshift-gitops
+# patches: [] 
