@@ -5,15 +5,15 @@ namespace: trident-protect
 resources:
   - namespace.yaml
 
+helmGlobals:
+  chartHome: ./charts/trident-protect-crds-100.2410.1
+
 helmCharts:
 
   - name: trident-protect-crds
     releaseName: trident-protect-crds
     namespace: trident-protect
-    repo: https://netapp.github.io/trident-protect-helm-chart
     version: "100.2410.1"
-    valuesInline: 
-      no: value
 
   - name: trident-protect
     releaseName: trident-protect

@@ -1,0 +1,158 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.3
+  name: resticvolumerestores.protect.trident.netapp.io
+spec:
+  group: protect.trident.netapp.io
+  names:
+    kind: ResticVolumeRestore
+    listKind: ResticVolumeRestoreList
+    plural: resticvolumerestores
+    singular: resticvolumerestore
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.state
+      name: State
+      type: string
+    - jsonPath: .status.error
+      name: Error
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: ResticVolumeRestore is the Schema for the resticvolumerestores
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ResticVolumeRestoreSpec defines the desired state of ResticVolumeRestore
+            properties:
+              appVaultRef:
+                description: Name of the AppVault to use as the target of the restic
+                  volume backup
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+              repositoryPath:
+                description: RepositoryPath is the path to the repository within the
+                  storage location.
+                type: string
+              resticSnapshotID:
+                description: ID of the Restic snapshot that needs to be restored
+                type: string
+              targetPVCRef:
+                description: Config for the PVC to restore the restic snapshot into
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+            required:
+            - appVaultRef
+            - repositoryPath
+            - resticSnapshotID
+            - targetPVCRef
+            type: object
+          status:
+            description: ResticVolumeRestoreStatus defines the observed state of ResticVolumeRestore
+            properties:
+              completionTimestamp:
+                description: |-
+                  CompletionTimestamp records the time the ResticVolumeRestore completed.
+                  The server's time is used for CompletionTimestamps
+                format: date-time
+                nullable: true
+                type: string
+              error:
+                description: Error indicates the most recent error that has occurred.
+                  The error may not be permanent, so progress may continue after temporarily
+                  seeing an error.
+                type: string
+              resticJobCleanedUp:
+                description: Indicates whether the Restic job has been cleaned up
+                type: boolean
+              resticJobInfo:
+                description: Information about the restic job
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                  progress:
+                    description: Progress is the current progress of this restore
+                      as reported by the kopia cli.
+                    properties:
+                      bytesCompleted:
+                        description: The current number of bytes moved.
+                        format: int64
+                        type: integer
+                      bytesRemaining:
+                        description: The number of bytes yet to be moved.
+                        format: int64
+                        type: integer
+                      bytesTotal:
+                        description: The total number of bytes to move.
+                        format: int64
+                        type: integer
+                      updatedAt:
+                        description: |-
+                          A field only updated when progress is being made. This should be updated
+                          when `BytesCompleted` has increased.
+                        format: date-time
+                        type: string
+                    required:
+                    - bytesCompleted
+                    - bytesRemaining
+                    - bytesTotal
+                    type: object
+                  status:
+                    description: status of the current restic restore
+                    type: string
+                required:
+                - name
+                - namespace
+                - status
+                type: object
+              state:
+                description: State indicates a high level summary of the ResticVolumeRestore's
+                  state
+                type: string
+            required:
+            - resticJobCleanedUp
+            - state
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

@@ -1,0 +1,78 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.3
+  name: autosupportbundleschedules.protect.trident.netapp.io
+spec:
+  group: protect.trident.netapp.io
+  names:
+    kind: AutoSupportBundleSchedule
+    listKind: AutoSupportBundleScheduleList
+    plural: autosupportbundleschedules
+    shortNames:
+    - asbs
+    singular: autosupportbundleschedule
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.enabled
+      name: Enabled
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: AutoSupportBundleSchedule is the Schema for the autosupportbundleschedules
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: AutoSupportBundleScheduleSpec defines the desired state of
+              AutoSupportBundleSchedule
+            properties:
+              enabled:
+                description: Enabled determines if scheduled AutoSupportBundles are
+                  run or not
+                type: boolean
+            type: object
+          status:
+            description: AutoSupportBundleScheduleStatus defines the observed state
+              of AutoSupportBundleSchedule
+            properties:
+              RunningAutoSupportBundleCRName:
+                description: RunningAsupCRName The name of the running autosupport
+                  CR initiated by the schedule controller
+                type: string
+              nextScheduledTimestamp:
+                description: NextScheduledTimestamp The time to run the next scheduled
+                  autosupport
+                format: date-time
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

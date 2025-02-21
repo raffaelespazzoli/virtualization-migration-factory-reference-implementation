@@ -1,0 +1,339 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.3
+  name: exechooksruns.protect.trident.netapp.io
+spec:
+  group: protect.trident.netapp.io
+  names:
+    kind: ExecHooksRun
+    listKind: ExecHooksRunList
+    plural: exechooksruns
+    shortNames:
+    - ehr
+    singular: exechooksrun
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.state
+      name: State
+      type: string
+    - jsonPath: .spec.stage
+      name: Stage
+      type: string
+    - jsonPath: .spec.action
+      name: Action
+      type: string
+    - jsonPath: .status.error
+      name: Error
+      type: string
+    - jsonPath: .spec.applicationRef
+      name: Application Reference
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: ExecHooksRun is the Schema for the exechooksruns API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              ExecHooksRunSpec defines the desired state of ExecHooksRun
+              The ExecHooksRun exists to provide the results of running ExecHooks
+              Action current operation being performed, possible values are snapshot, backup, restore and failover
+              Stage the location within the action being performed, possible values are pre and post
+              It will be responsible for getting all ExecHooks matching the application, stage and action
+              It will be responsible for filtering the containers based on each ExecHook's matching criteria
+              It will create an exec hook job for each matching container
+              It will contain the results of each execution
+            properties:
+              action:
+                description: Action The current action to run execution hooks for
+                enum:
+                - Snapshot
+                - Backup
+                - Restore
+                - Failover
+                type: string
+              appArchivePath:
+                description: AppArchivePath The specific location in AppVault of the
+                  resourcebackup to retrieve pods and containers from
+                type: string
+              appVaultRef:
+                description: AppVaultRef The location of the resourcebackup to retrieve
+                  pods and containers from
+                type: string
+              applicationRef:
+                description: ApplicationRef is the reference to the Application to
+                  execute hooks against
+                type: string
+              completionTimeout:
+                description: |-
+                  CompletionTimeout specifies the time to wait for the entire ExecHooksRun to complete before returning timeout error.
+                  The default value is 30 minutes.
+                type: string
+              resourceFilter:
+                description: ResourceFilter Should be populated by the user, if only
+                  certain resources should be considered for executing hooks, which
+                  is often useful when doing a selective restore
+                properties:
+                  resourceMatchers:
+                    description: ResourceMatchers is a list of matchers where each
+                      matcher matches one or more resources
+                    items:
+                      properties:
+                        group:
+                          description: Group of the kubernetes resource that has to
+                            be matched
+                          type: string
+                        kind:
+                          description: Kind of the kubernetes resource that has to
+                            be matched
+                          type: string
+                        labelSelectors:
+                          description: |-
+                            LabelSelectors  is used to match resource(s) based on the metadata.labels field of the
+                            kubernetes resource
+                          items:
+                            type: string
+                          type: array
+                        names:
+                          description: Names kubernetes metadata.name field of the
+                            resource(s) that must be matched.
+                          items:
+                            type: string
+                          type: array
+                        namespaces:
+                          description: Namespaces kubernetes metadata.namespace field
+                            of the resource(s) that must be matched.
+                          items:
+                            type: string
+                          type: array
+                        version:
+                          description: Version of the kubernetes resource that has
+                            to be matched.
+                          type: string
+                      type: object
+                    type: array
+                  resourceSelectionCriteria:
+                    description: |-
+                      ResourceSelectionCriteria used to determine if the resources matching the provided resources matchers
+                      should be included into the collection or excluded from the collection.
+                    enum:
+                    - Include
+                    - Exclude
+                    type: string
+                type: object
+              stage:
+                description: Stage The current stage to run execution hooks for
+                enum:
+                - Pre
+                - Post
+                type: string
+            required:
+            - action
+            - appArchivePath
+            - appVaultRef
+            - applicationRef
+            - stage
+            type: object
+          status:
+            description: ExecHooksRunStatus defines the observed state of ExecHooksRun
+            properties:
+              completionTimestamp:
+                description: CompletionTimestamp The time that the ExecutionHooksRun
+                  completed
+                format: date-time
+                type: string
+              conditions:
+                description: Each Condition contains details for one aspect of the
+                  current state of the ExecHooksRun.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              error:
+                description: Error indicates the most recent error that has occurred.
+                  The error may not be permanent, so progress may continue after temporarily
+                  seeing an error.
+                type: string
+              matchingContainers:
+                description: MatchingContainers The status of each ExecHook that was
+                  run on each container
+                items:
+                  properties:
+                    completionTimestamp:
+                      description: CompletionTimestamp the time the exec hook run
+                        was finished regardless of failures
+                      format: date-time
+                      type: string
+                    containerImage:
+                      description: ContainerImage the image of the container the exec
+                        hook is run on
+                      type: string
+                    containerName:
+                      description: ContainerName the name of the container the exec
+                        hook is run on
+                      type: string
+                    execHookRef:
+                      description: ExecHookRef reference to the ExecHook being run
+                      type: string
+                    execHookUID:
+                      description: ExecHookUID UID of the ExecHook being run
+                      type: string
+                    failures:
+                      description: Failures list of failures that may occur when attempting
+                        to run the exec hook
+                      items:
+                        description: Failure - most of this data is used for posting
+                          events and notifications
+                        properties:
+                          error:
+                            description: Error if a golang error was produced during
+                              the process of running an exec hook
+                            type: string
+                          exitCode:
+                            description: |-
+                              ExitCode if the script was executed but returned a non-zero exit code it is captured here.
+                                Note that customers can define their own exit code with special meanings to them
+                            type: integer
+                          isExecError:
+                            description: IsExecError this indicates that the script
+                              itself returned an error vs an error in other parts
+                              of the process such as copying the script onto the container
+                            type: boolean
+                          isTimeout:
+                            description: IsTimeout indicates that the exec hook took
+                              too long and was abandoned, this is parity with Astra
+                            type: boolean
+                          stderr:
+                            description: Stderr the stderr captured when executing
+                              the script
+                            type: string
+                          timeoutMinutes:
+                            description: TimeoutMinutes indicates the amount of time
+                              that was given to the exec hook to run. In trident-protect
+                              it is used for Activity/Event/Notification messages
+                            type: integer
+                        required:
+                        - isExecError
+                        - isTimeout
+                        type: object
+                      type: array
+                    jobName:
+                      description: JobName name of the job created to run an execution
+                        hook
+                      type: string
+                    namespace:
+                      description: Namespace the namespace from the target application
+                        where the container is located
+                      type: string
+                    podName:
+                      description: PodName the name of the pod where the exec hook
+                        will be run
+                      type: string
+                    podUID:
+                      description: PodUID the uid of the pod where the exec hook will
+                        be run
+                      type: string
+                    startTimestamp:
+                      description: StartedTimestamp the time the exec hook started
+                        running
+                      format: date-time
+                      type: string
+                  required:
+                  - containerImage
+                  - containerName
+                  - execHookRef
+                  - execHookUID
+                  - namespace
+                  - podName
+                  - podUID
+                  type: object
+                type: array
+              state:
+                description: State indicates a high level summary of the ExecHooksRun's
+                  state
+                type: string
+            required:
+            - state
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

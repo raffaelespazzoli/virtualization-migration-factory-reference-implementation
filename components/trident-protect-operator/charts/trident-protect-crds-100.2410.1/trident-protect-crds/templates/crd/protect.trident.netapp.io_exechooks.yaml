@@ -1,0 +1,155 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.3
+  name: exechooks.protect.trident.netapp.io
+spec:
+  group: protect.trident.netapp.io
+  names:
+    kind: ExecHook
+    listKind: ExecHookList
+    plural: exechooks
+    shortNames:
+    - eh
+    singular: exechook
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.stage
+      name: Stage
+      type: string
+    - jsonPath: .spec.action
+      name: Action
+      type: string
+    - jsonPath: .spec.applicationRef
+      name: Application Reference
+      type: string
+    - jsonPath: .spec.enabled
+      name: Enabled
+      type: boolean
+    - jsonPath: .status.error
+      name: Error
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: ExecHook is the Schema for the exechooks API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              ExecHookSpec defines the desired state of ExecHook
+              It is associated with one application.
+              Its purpose is to define the hook source, arguments and what to execute the script against.
+              It contains criteria to match against application containers
+              It can be enabled/disabled
+              It contains parameters to pass into the script
+            properties:
+              action:
+                description: 'Action String that indicates which action the execution
+                  hook will run for, assuming the match criteria are met. values:
+                  snapshot, backup, restore and failover'
+                enum:
+                - Snapshot
+                - Backup
+                - Restore
+                - Failover
+                type: string
+              applicationRef:
+                description: ApplicationRef is the reference to the Application this
+                  exec hook is associated with
+                type: string
+              arguments:
+                description: Arguments Array of strings for the arguments to pass
+                  to the exec hook source when executing on the container
+                items:
+                  type: string
+                maxItems: 127
+                minItems: 0
+                type: array
+              enabled:
+                default: true
+                description: Enabled allows the execution hook to be enabled or disabled.  Disabled
+                  execution hooks are not executed regardless of matching criteria.
+                type: boolean
+              hookSource:
+                description: HookSource Base64 encoded string containing the source
+                  of a shell script which will be executed on matching containers
+                maxLength: 131072
+                minLength: 0
+                type: string
+              matchingCriteria:
+                description: MatchingCriteria Array describing the match criteria
+                  for the execution hook to match against containers the hook will
+                  execute on
+                items:
+                  properties:
+                    type:
+                      description: Type indicates the matching criteria type specified
+                        by MatchingCriteriaType
+                      type: string
+                    value:
+                      description: Value string containing a regex to match for the
+                        given match. Uses RE2 syntax described at https://golang.org/s/re2syntax
+                      type: string
+                  type: object
+                maxItems: 10
+                minItems: 0
+                type: array
+              stage:
+                description: 'Stage String that indicates at what stage during the
+                  action the hook will be executed, values: pre and post'
+                enum:
+                - Pre
+                - Post
+                type: string
+              timeout:
+                default: 25
+                description: Timeout int that defines the max time in minutes an execution
+                  hook will be allowed to run. Min is 1 minute. Defaults to 25 min
+                  if not specified
+                minimum: 1
+                type: integer
+            required:
+            - action
+            - applicationRef
+            - hookSource
+            - stage
+            type: object
+          status:
+            description: ExecHookStatus defines the observed state of ExecHook
+            properties:
+              error:
+                description: Error indicates the most recent error that has occurred.
+                  The error may not be permanent, so progress may continue after temporarily
+                  seeing an error.
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

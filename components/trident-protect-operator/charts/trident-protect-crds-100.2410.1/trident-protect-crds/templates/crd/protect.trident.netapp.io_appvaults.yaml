@@ -1,0 +1,154 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.3
+  name: appvaults.protect.trident.netapp.io
+spec:
+  group: protect.trident.netapp.io
+  names:
+    kind: AppVault
+    listKind: AppVaultList
+    plural: appvaults
+    singular: appvault
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: The current state of the AppVault
+      jsonPath: .status.state
+      name: State
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: AppVault is the Schema for the appvaults API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: AppVaultSpec defines the desired state of AppVault
+            properties:
+              prefix:
+                description: Prefix is an optional path which will be prefixed to
+                  the names of all entities stored in the vault.
+                type: string
+              providerConfig:
+                description: ProviderConfig stores the configuration necessary to
+                  access the AppVault using the specified provider.
+                properties:
+                  azure:
+                    description: Azure stores the configurations of Azure storage
+                      provider.
+                    properties:
+                      accountName:
+                        type: string
+                      bucketName:
+                        type: string
+                      endpoint:
+                        type: string
+                    required:
+                    - accountName
+                    - bucketName
+                    - endpoint
+                    type: object
+                  gcp:
+                    description: GCP Stores the configurations of GCP storage provider
+                      configurations.
+                    properties:
+                      bucketName:
+                        type: string
+                      projectID:
+                        type: string
+                    required:
+                    - bucketName
+                    - projectID
+                    type: object
+                  s3:
+                    description: S3 stores the configurations for storage providers
+                      such as ONTAP, StorageGRID, Generic S3, and AWS.
+                    properties:
+                      bucketName:
+                        type: string
+                      endpoint:
+                        type: string
+                      proxyURL:
+                        type: string
+                      secure:
+                        description: If unspecified, defaults to true.
+                        type: string
+                      skipCertValidation:
+                        type: string
+                    required:
+                    - bucketName
+                    - endpoint
+                    type: object
+                type: object
+              providerCredentials:
+                additionalProperties:
+                  properties:
+                    valueFromSecret:
+                      description: ValueFromSecret indicates that the credential value
+                        should come from a secret.
+                      properties:
+                        key:
+                          description: The key of the secret to select from. Must
+                            be a valid secret key.
+                          type: string
+                        name:
+                          description: Name of the secret containing the value for
+                            this field. Must be in the same namespace.
+                          type: string
+                      required:
+                      - key
+                      - name
+                      type: object
+                  required:
+                  - valueFromSecret
+                  type: object
+                description: ProviderCredentials stores references to any credentials
+                  required to access the AppVault using the specified provider.
+                type: object
+              providerType:
+                description: ProviderType determines what provides the backup, e.g.
+                  OntapS3, StorageGridS3, GenericS3, AWS, Azure, GCP.
+                type: string
+            required:
+            - providerConfig
+            - providerType
+            type: object
+          status:
+            description: AppVaultStatus defines the observed state of AppVault
+            properties:
+              error:
+                type: string
+              state:
+                type: string
+              uid:
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
