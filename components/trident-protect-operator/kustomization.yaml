@@ -12,6 +12,7 @@ helmCharts:
     namespace: trident-protect
     repo: https://netapp.github.io/trident-protect-helm-chart
     version: "100.2410.1"
+    valuesInline: {}
 
   - name: trident-protect
     releaseName: trident-protect
