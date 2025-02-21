@@ -39,11 +39,12 @@ spec:
         namespace: openshift-gitops
     - name: volumeStatusLookupTable
       variable:
-        non-replicated: split
-        replicated-primary: none
-        replicated-secondary: none 
-        "true": primary
-        "false": secondary        
+        value: |-
+          non-replicated: split
+          replicated-primary: none
+          replicated-secondary: none 
+          "true": primary
+          "false": secondary        
     match:
       any:
       - resources:
@@ -55,5 +56,5 @@ spec:
     mutate:
       patchStrategicMerge:
         spec:
-          desiredPairState: '{{volumeStatusLookupTable.{{(DRConfigMap.data.{{request.object.metadata.labels.tier}}|parse_yaml(@).volumes.${CLUSTER_NAME})}}}}'
-          replicationAttribute: '{{volumeStatusLookupTable.{{starts_with(DRConfigMap.data.{{request.object.metadata.labels.tier}}|parse_yaml(@).volumes.${CLUSTER_NAME} , "replicated")|to_string(@)}}}}'
+          desiredPairState: '{{parse_yaml(volumeStatusLookupTable).{{(DRConfigMap.data.{{request.object.metadata.labels.tier}}|parse_yaml(@).volumes.${CLUSTER_NAME})}}}}'
+          replicationAttribute: '{{parse_yaml(volumeStatusLookupTable).{{starts_with(DRConfigMap.data.{{request.object.metadata.labels.tier}}|parse_yaml(@).volumes.${CLUSTER_NAME} , "replicated")|to_string(@)}}}}'
