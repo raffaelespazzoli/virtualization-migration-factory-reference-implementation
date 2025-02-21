@@ -135,7 +135,16 @@ applications:
     destination:
       namespace: trilio-system
     source:
-      path: components/trilio-object-store          
+      path: components/trilio-object-store 
+
+  trident-protect-object-store:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: trident-protect
+    source:
+      path: components/trident-protect-object-store               
 
 # AAP          
 

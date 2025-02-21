@@ -1,10 +1,10 @@
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy
 metadata:
-  name: manager-vm-dr
+  name: manage-vm-dr
 spec:
   rules:
-    - name: manager-vm-dr
+    - name: manage-vm-dr
       skipBackgroundRequests: false
       context:
       - name: DRConfigMap
@@ -22,4 +22,39 @@ spec:
       mutate:
         patchStrategicMerge:
           spec:
-            running: '{{(DRConfigMap.data.{{request.object.metadata.labels.tier}}|parse_yaml(@).${CLUSTER_NAME}) == "active"}}'
+            running: '{{(DRConfigMap.data.{{request.object.metadata.labels.tier}}|parse_yaml(@).workloads.${CLUSTER_NAME}) == "active"}}'
+---            
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: manage-hitachi-volumes-dr
+spec:
+  rules:
+    - name: manage-hitachi-volumes-dr
+      skipBackgroundRequests: false
+      context:
+      - name: DRConfigMap
+        configMap:
+          name: cluster-dr-role
+          namespace: openshift-gitops
+      - name: volumeStatusLookupTable
+        variable:
+          non-replicated: split
+          replicated-primary: none
+          replicated-secondary: none 
+          true: primary
+          false: secondary        
+      match:
+        any:
+        - resources:
+            kinds:
+            - Replication
+            selector:
+              matchLabels:
+                dr-managed: "true"
+      mutate:
+        patchStrategicMerge:
+          spec:
+            desiredPairState: '{{volumeStatusLookupTable.{{(DRConfigMap.data.{{request.object.metadata.labels.tier}}|parse_yaml(@).volumes.${CLUSTER_NAME})}}}}'
+            replicationAttribute: {{volumeStatusLookupTable.{{starts_with(DRConfigMap.data.{{request.object.metadata.labels.tier}}|parse_yaml(@).volumes.${CLUSTER_NAME} , "replicated")|to_string(@)}}}}'
+```

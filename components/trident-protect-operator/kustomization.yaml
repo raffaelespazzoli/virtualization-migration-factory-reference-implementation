@@ -1,0 +1,24 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: trident-protect
+
+resources:
+  - namespace.yaml
+
+helmCharts:
+
+  - name: trident-protect-crds
+    releaseName: trident-protect-crds
+    namespace: trident-protect
+    repo: https://netapp.github.io/trident-protect-helm-chart
+    version: "100.2410.1"
+
+  - name: trident-protect
+    releaseName: trident-protect
+    namespace: trident-protect
+    repo: https://netapp.github.io/trident-protect-helm-chart
+    version: "100.2410.1"
+    valuesInline:
+      clusterName: ${CLUSTER_NAME}
+      autoSupport:
+        enabled: false

@@ -7,5 +7,6 @@
     'clusters/hub/overlays/vm-dr-test/vms/fedora-vms.yaml',
     'components/trilio-instance/license.yaml',
     'clusters/etl6/overlays/trilio-vm-tests/fedora-vms.yaml',
-    'clusters/etl4/overlays/persistent-reservations/vm.yaml'
+    'clusters/etl4/overlays/persistent-reservations/vm.yaml',
+    'components/trident-protect-configuration/object-store-secret.yaml'
   ]

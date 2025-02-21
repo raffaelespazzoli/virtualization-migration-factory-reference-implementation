@@ -4,12 +4,28 @@ metadata:
   name: cluster-dr-role
   namespace: openshift-gitops
 data:
+# workloads possible values [active|passive]
+# volumes possible values [non-replicated|replicated-active|replicated-passive]
   tier1: |-
-    etl6: active
-    etl7: passive
+    workloads:
+      etl6: active
+      etl7: passive
+    volumes:
+      etl6: replicated-active
+      etl7: replicated-passive  
   tier2: |-
-    etl6: active
-    etl7: passive
+    workloads:
+      etl6: active
+      etl7: passive
+    volumes:
+      etl6: replicated-active
+      etl7: replicated-passive 
   tier3: |-
-    etl6: active
-    etl7: passive
+    workloads:
+      etl6: active
+      etl7: passive
+    volumes:
+      etl6: replicated-active
+      etl7: replicated-passive 
+
+ 

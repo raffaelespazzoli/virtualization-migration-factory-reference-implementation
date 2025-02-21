@@ -23,6 +23,24 @@ applications:
     source:
       path: clusters/etl6/overlays/trident-configuration
 
+  trident-protect-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: trident-protect
+    source:
+      path: components/trident-protect-operator
+
+  trident-protect-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: trident-protect
+    source:
+      path: components/trident-protect-configuration      
+
   # ibm-fusion-configuration:
   #   annotations:
   #     argocd.argoproj.io/compare-options: IgnoreExtraneous

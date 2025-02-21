@@ -1,0 +1,19 @@
+apiVersion: protect.trident.netapp.io/v1
+kind: AppVault
+metadata:
+  name: app-vault
+spec:
+  providerType: GenericS3
+  providerConfig:
+    s3:
+      bucketName: trident-protect
+      endpoint: trilio-bucket-trilio-system.apps.${HUB_BASE_DOMAIN}
+  providerCredentials:
+    accessKeyID:
+      valueFromSecret:
+        key: accessKeyID
+        name: trident-s3-secret
+    secretAccessKey:
+      valueFromSecret:
+        key: secretAccessKey
+        name: trident-s3-secret
