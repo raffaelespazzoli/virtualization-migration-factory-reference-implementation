@@ -56,5 +56,4 @@ spec:
         patchStrategicMerge:
           spec:
             desiredPairState: '{{volumeStatusLookupTable.{{(DRConfigMap.data.{{request.object.metadata.labels.tier}}|parse_yaml(@).volumes.${CLUSTER_NAME})}}}}'
-            replicationAttribute: {{volumeStatusLookupTable.{{starts_with(DRConfigMap.data.{{request.object.metadata.labels.tier}}|parse_yaml(@).volumes.${CLUSTER_NAME} , "replicated")|to_string(@)}}}}'
-```
+            replicationAttribute: '{{volumeStatusLookupTable.{{starts_with(DRConfigMap.data.{{request.object.metadata.labels.tier}}|parse_yaml(@).volumes.${CLUSTER_NAME} , "replicated")|to_string(@)}}}}'
