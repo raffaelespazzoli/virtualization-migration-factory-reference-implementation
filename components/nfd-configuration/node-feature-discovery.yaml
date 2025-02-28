@@ -116,12 +116,3 @@ spec:
     image: 'registry.redhat.io/openshift4/ose-node-feature-discovery-rhel9@sha256:7c13438d67bb046d565b1115c89db3dbc8f4f3d9bfc73a5d3800db9f44a701db'
     imagePullPolicy: IfNotPresent
     servicePort: 12000
-  customConfig:
-    configData: |
-      #    - name: "more.kernel.features"
-      #      matchOn:
-      #      - loadedKMod: ["example_kmod3"]
-      #    - name: "more.features.by.nodename"
-      #      value: customValue
-      #      matchOn:
-      #      - nodename: ["special-.*-node-.*"]
