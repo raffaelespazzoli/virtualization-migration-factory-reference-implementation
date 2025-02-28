@@ -24,7 +24,7 @@ spec:
     channel: 8.0.400x
     name: infoscale-sds-operator
     namespace: infoscale-vtas
-    source: redhat-operators
+    source: certified-operators
     sourceNamespace: openshift-marketplace
     startingCSV: infoscale-sds-operator.v8.0.400
   versions: 
