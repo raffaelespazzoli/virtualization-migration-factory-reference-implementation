@@ -134,14 +134,14 @@ applications:
     source:
       path: clusters/etl4/overlays/guacamole
 
-  ldap:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '15'
-    destination:
-      namespace: ldap      
-    source:
-      path: clusters/etl4/overlays/ldap     
+  # ldap:
+  #   annotations:
+  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
+  #     argocd.argoproj.io/sync-wave: '15'
+  #   destination:
+  #     namespace: ldap      
+  #   source:
+  #     path: clusters/etl4/overlays/ldap     
 
   rhsso-operator:
     annotations:
