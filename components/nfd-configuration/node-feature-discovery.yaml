@@ -1,13 +1,9 @@
-kind: NodeFeatureDiscovery
 apiVersion: nfd.openshift.io/v1
+kind: NodeFeatureDiscovery
 metadata:
   name: nfd-instance
+  namespace: openshift-nfd
 spec:
-  operand:
-    # bug: an image has to be defined otherwise the deployment fails
-    # bug: this behavior recently changed
-    image: registry.redhat.io/openshift4/ose-node-feature-discovery-rhel9:latest
-    servicePort: 12000
   workerConfig:
     configData: |
       core:
@@ -24,7 +20,7 @@ spec:
       #    stderrthreshold: 2
       #    v: 0
       #    vmodule:
-      ##   NOTE: the following options are not dynamically run-time
+      ##   NOTE: the following options are not dynamically run-time 
       ##          configurable and require a nfd-worker restart to take effect
       ##          after being changed
       #    logDir:
@@ -116,3 +112,16 @@ spec:
       #            vendor: ["15b3"]
       #            device: ["1014", "1017"]
       #          loadedKMod : ["vendor_kmod1", "vendor_kmod2"]
+  operand:
+    image: 'registry.redhat.io/openshift4/ose-node-feature-discovery-rhel9@sha256:7c13438d67bb046d565b1115c89db3dbc8f4f3d9bfc73a5d3800db9f44a701db'
+    imagePullPolicy: IfNotPresent
+    servicePort: 12000
+  customConfig:
+    configData: |
+      #    - name: "more.kernel.features"
+      #      matchOn:
+      #      - loadedKMod: ["example_kmod3"]
+      #    - name: "more.features.by.nodename"
+      #      value: customValue
+      #      matchOn:
+      #      - nodename: ["special-.*-node-.*"]
