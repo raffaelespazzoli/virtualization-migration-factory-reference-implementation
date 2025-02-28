@@ -169,9 +169,9 @@ applications:
 
 # persistent-reservations
 
-  persistent-reservations:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '25'     
-    source:
-      path: clusters/etl4/overlays/persistent-reservations      
+  # persistent-reservations:
+  #   annotations:
+  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
+  #     argocd.argoproj.io/sync-wave: '25'     
+  #   source:
+  #     path: clusters/etl4/overlays/persistent-reservations      
