@@ -69,6 +69,13 @@ applications:
     source:
       path: components/infoscale-sds-operator 
 
+  infoscale-sds-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    source:
+      path: components/infoscale-sds-configuration      
+
   # infoscale-sds-configuration:
   #   annotations:
   #     argocd.argoproj.io/compare-options: IgnoreExtraneous

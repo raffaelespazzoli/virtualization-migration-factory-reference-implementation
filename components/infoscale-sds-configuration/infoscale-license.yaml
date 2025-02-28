@@ -1,0 +1,6 @@
+kind: License
+apiVersion: vlic.veritas.com/v1
+metadata:
+  name: license-dev
+spec:
+  licenseEdition: Enterprise
