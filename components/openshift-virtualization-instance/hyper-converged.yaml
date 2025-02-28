@@ -6,6 +6,7 @@ metadata:
     deployOVS: 'false'
   namespace: openshift-cnv
 spec:
+  tuningPolicy: highBurst
   higherWorkloadDensity:
     memoryOvercommitPercentage: 400
   virtualMachineOptions:

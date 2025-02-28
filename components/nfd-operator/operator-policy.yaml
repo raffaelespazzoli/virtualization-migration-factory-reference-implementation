@@ -1,0 +1,33 @@
+apiVersion: policy.open-cluster-management.io/v1beta1
+kind: OperatorPolicy
+metadata:
+  name: nfd
+  namespace: open-cluster-management-policies
+spec:
+  upgradeApproval: Automatic
+  complianceConfig:
+    catalogSourceUnhealthy: Compliant
+    deploymentsUnavailable: NonCompliant
+    upgradesAvailable: Compliant
+  complianceType: musthave
+  remediationAction: enforce
+  removalBehavior:
+    clusterServiceVersions: Delete
+    customResourceDefinitions: Keep
+    operatorGroups: DeleteIfUnused
+    subscriptions: Delete
+  severity: medium
+  operatorGroup: # optional
+    name: nfd
+    namespace: openshift-nfd
+    targetNamespaces:
+        - openshift-nfd
+  subscription:
+    channel: stable
+    name: nfd
+    namespace: openshift-nfd
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+    startingCSV: nfd.4.17.0-202502111335
+  versions: 
+    - nfd.4.17.0-202502111335
