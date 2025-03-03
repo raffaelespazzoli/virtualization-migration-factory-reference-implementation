@@ -6,6 +6,7 @@ metadata:
     deployOVS: 'false'
   namespace: openshift-cnv
 spec:
+  vddkInitImage: quay.io/raffaelespazzoli/vddk:v8.0.3
   tuningPolicy: highBurst
   higherWorkloadDensity:
     memoryOvercommitPercentage: 400
