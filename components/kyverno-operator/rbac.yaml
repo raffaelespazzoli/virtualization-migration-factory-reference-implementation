@@ -18,4 +18,7 @@ subjects:
   namespace: kyverno
 - kind: ServiceAccount
   name: kyverno-reports-controller
-  namespace: kyverno      
+  namespace: kyverno
+- kind: ServiceAccount
+  name: kyverno-migrate-resources
+  namespace: kyverno
