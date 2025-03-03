@@ -6,3 +6,4 @@ kind: Kustomization
 resources:
   - hyper-converged.yaml
   - kubelet-config.yaml
+  - v2v-configmap.yaml
