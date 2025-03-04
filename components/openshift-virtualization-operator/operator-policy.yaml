@@ -31,3 +31,4 @@ spec:
     startingCSV: kubevirt-hyperconverged-operator.v4.17.4
   versions: 
     - kubevirt-hyperconverged-operator.v4.17.4
+    - kubevirt-hyperconverged-operator.v4.17.5

@@ -26,3 +26,4 @@ spec:
     startingCSV: power-monitoring-operator.v0.3.0
   versions: 
     - power-monitoring-operator.v0.3.0
+    - power-monitoring-operator.v0.4.0

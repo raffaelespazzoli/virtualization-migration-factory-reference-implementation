@@ -26,4 +26,4 @@ spec:
     startingCSV: cluster-observability-operator.0.4.1
   versions: 
     - cluster-observability-operator.0.4.1
-    - cluster-observability-operator.1.0.0
+    - cluster-observability-operator.v1.0.0

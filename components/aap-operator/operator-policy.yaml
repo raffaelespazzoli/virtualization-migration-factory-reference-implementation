@@ -29,3 +29,4 @@ spec:
     startingCSV: aap-operator.v2.5.0-0.1737676792
   versions: 
     - aap-operator.v2.5.0-0.1737676792
+    - aap-operator.v2.5.0-0.1739248649

@@ -29,3 +29,4 @@ spec:
     startingCSV: loki-operator.v6.1.1
   versions: 
     - loki-operator.v6.1.1
+    - loki-operator.v6.1.2
