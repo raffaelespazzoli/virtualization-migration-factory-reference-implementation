@@ -14,7 +14,7 @@ spec:
       spec:
         sourceRef:
           kind: DataSource
-          name: infinibox-demo-7.3.11.0-1
+          name: infinibox-demo-7.3.11.0-cbdev-7.3.11
           namespace: infinidat-appliance
         storage:
           resources:
