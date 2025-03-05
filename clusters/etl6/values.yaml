@@ -63,7 +63,21 @@ applications:
   #       - group: 'service.isf.ibm.com'
   #         jsonPointers:
   #           - /spec/doInstall
-  #         kind: FusionServiceInstance      
+  #         kind: FusionServiceInstance   
+
+  infoscale-sds-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    source:
+      path: components/infoscale-sds-operator 
+
+  # infoscale-sds-configuration:
+  #   annotations:
+  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
+  #     argocd.argoproj.io/sync-wave: '15'
+  #   source:
+  #     path: components/infoscale-sds-configuration     
 
 # VMs 
 
