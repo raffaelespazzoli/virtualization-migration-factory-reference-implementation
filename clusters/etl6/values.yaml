@@ -3,6 +3,20 @@ projects: {}
 
 applications: 
 
+  nfd-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    source:
+      path: components/nfd-operator
+
+  nfd-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    source:
+      path: components/nfd-configuration
+
 # Networking
 
   nmstate-configuration:
