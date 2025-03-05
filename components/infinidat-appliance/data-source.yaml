@@ -21,7 +21,7 @@ spec:
       storage:
         resources:
           requests:
-            storage: 30Gi
+            storage: 160Gi
     status: {}
 # ---
 # apiVersion: snapshot.storage.k8s.io/v1
