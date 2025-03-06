@@ -1,12 +1,12 @@
 apiVersion: infoscale.veritas.com/v1
 kind: InfoScaleCluster
 metadata:
-  name: infoscalecluster-dev
+  name: infoscalecluster
   namespace: infoscale-vtas
 spec:
   nodeSelector:
     matchExpressions:
-      - key: 'node-role.kubernetes.io/master: '''''
+      - key: 'node-role.kubernetes.io/master'
         operator: Exists
   encrypted: false
   clusterInfo:
@@ -59,7 +59,7 @@ spec:
       ip:
         - 10.9.52.140
         - 10.9.52.141
-      nodeName: dl380g9-7.etl6.ocp.rht-labs.com
+      nodeName: dl380g9-6.etl6.ocp.rht-labs.com
     - excludeDevice:
         - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-0'
         - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-1'
@@ -91,7 +91,7 @@ spec:
       ip:
         - 10.9.52.142
         - 10.9.52.143
-      nodeName: dl380g9-5.etl6.ocp.rht-labs.com
+      nodeName: dl380g9-7.etl6.ocp.rht-labs.com
   sameEncKey: false
   enableScsi3pr: false
   isSharedStorage: false
