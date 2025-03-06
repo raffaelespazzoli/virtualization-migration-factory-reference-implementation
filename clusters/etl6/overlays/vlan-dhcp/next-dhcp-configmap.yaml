@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dhcp-config
+  namespace: dhcp
+data:
+  Dhcpfile: |-
+    192.168.90.2/24 {
+        lease 24h
+        interface eth1
+        range 192.168.90.128 192.168.90.254
+        static 02:fb:ed:00:01:62 192.168.90.3
+        static 02:fb:ed:00:01:63 192.168.90.4
+        static 02:fb:ed:00:01:66 192.168.90.5
+        static 02:fb:ed:00:01:67 192.168.90.6
+        option router 192.168.90.1
+        option nameserver 8.8.8.8 1.1.1.1
+        option netmask 255.255.255.0
+        option broadcast-address 192.168.90.255
+        log debug
+    }
+    192.168.91.2/24 {
+        lease 24h
+        interface eth2
+        range 192.168.91.128 192.168.91.254
+        static 02:fb:ed:00:01:64 192.168.91.3
+        static 02:fb:ed:00:01:65 192.168.91.4
+        static 02:fb:ed:00:01:68 192.168.91.5
+        static 02:fb:ed:00:01:69 192.168.91.6
+        option router 192.168.91.1
+        option nameserver 8.8.8.8 1.1.1.1
+        option netmask 255.255.255.0
+        option broadcast-address 192.168.91.255
+        log debug
+    }

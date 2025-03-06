@@ -139,7 +139,7 @@ applications:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '25'     
     source:
-      path: components/infinidat-appliance
+      path: clusters/etl6/overlays/infinidat-appliance
 
   # udn-test:
   #   annotations:

@@ -45,4 +45,11 @@ applications:
   #       - group: 'service.isf.ibm.com'
   #         jsonPointers:
   #           - /spec/doInstall
-  #         kind: FusionServiceInstance                       
+  #         kind: FusionServiceInstance
+
+  infinidat-appliance:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '25'     
+    source:
+      path: clusters/etl7/overlays/infinidat-appliance                         

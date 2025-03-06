@@ -39,12 +39,20 @@ spec:
               name: default
             - bridge: {}
               model: virtio
-              name: nic-bronze-earthworm-37
-              macAddress: 02:fb:ed:00:01:62              
+              name: data-link1
+              macAddress: 02:fb:ed:00:01:66              
             - bridge: {}
               model: virtio
-              name: nic-aquamarine-turkey-69
-              macAddress: 02:fb:ed:00:01:63
+              name: data-link2
+              macAddress: 02:fb:ed:00:01:67
+            - bridge: {}
+              model: virtio
+              name: data-link3
+              macAddress: 02:fb:ed:00:01:68
+            - bridge: {}
+              model: virtio
+              name: iscis-link
+              macAddress: 02:fb:ed:00:01:69                            
         machine:
           type: "pc-q35-rhel9.4.0"
         resources:
@@ -61,7 +69,13 @@ spec:
           pod: {}
         - multus:
             networkName: default/vlan-2901
-          name: nic-bronze-earthworm-37
+          name: data-link1
+        - multus:
+            networkName: default/vlan-2901
+          name: data-link2          
         - multus:
             networkName: default/vlan-2911
-          name: nic-aquamarine-turkey-69
+          name: data-link3
+        - multus:
+            networkName: default/vlan-2911
+          name: iscsi-link          
