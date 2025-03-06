@@ -141,6 +141,13 @@ applications:
     source:
       path: clusters/etl6/overlays/infinidat-appliance
 
+  vlan-dhcp:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '24'     
+    source:
+      path: clusters/etl6/overlays/vlan-dhcp      
+
   # udn-test:
   #   annotations:
   #     argocd.argoproj.io/compare-options: IgnoreExtraneous
