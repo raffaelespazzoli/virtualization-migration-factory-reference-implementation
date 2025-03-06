@@ -4,10 +4,6 @@ metadata:
   name: infoscalecluster
   namespace: infoscale-vtas
 spec:
-  nodeSelector:
-    matchExpressions:
-      - key: 'node-role.kubernetes.io/master'
-        operator: Exists
   encrypted: false
   clusterInfo:
     - excludeDevice:
