@@ -51,7 +51,7 @@ spec:
               macAddress: 02:fb:ed:00:01:68
             - bridge: {}
               model: virtio
-              name: iscis-link
+              name: iscsi-link
               macAddress: 02:fb:ed:00:01:69                            
         machine:
           type: "pc-q35-rhel9.4.0"
