@@ -1,0 +1,99 @@
+apiVersion: infoscale.veritas.com/v1
+kind: InfoScaleCluster
+metadata:
+  name: infoscalecluster-dev
+  namespace: infoscale-vtas
+spec:
+  nodeSelector:
+    matchExpressions:
+      - key: 'node-role.kubernetes.io/master: '''''
+        operator: Exists
+  encrypted: false
+  clusterInfo:
+    - excludeDevice:
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-0'
+        - '/dev/disk/by-path/ip-192.168.52.229:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-0'
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-1'
+        - '/dev/disk/by-path/ip-192.168.52.229:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-1'
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-4'
+        - '/dev/disk/by-path/ip-192.168.52.229:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-4'
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-5'
+        - '/dev/disk/by-path/ip-192.168.52.229:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-5'
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-6'
+        - '/dev/disk/by-path/ip-192.168.52.229:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-6'
+        - '/dev/disk/by-path/pci-0000:08:00.0-scsi-0:1:0:0'
+        - '/dev/disk/by-path/pci-0000:08:00.0-scsi-0:1:0:0-part1'
+        - '/dev/disk/by-path/pci-0000:08:00.0-scsi-0:1:0:0-part2'
+        - '/dev/disk/by-path/pci-0000:08:00.0-scsi-0:1:0:0-part3'
+        - '/dev/disk/by-path/pci-0000:08:00.0-scsi-0:1:0:0-part4'
+      fencingDevice:
+        - ' /dev/disk/by-path/ip-192.168.52.229:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-4'
+        - ' /dev/disk/by-path/ip-192.168.52.229:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-5'
+        - ' /dev/disk/by-path/ip-192.168.52.229:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-6'
+      ip:
+        - 10.9.52.138
+        - 10.9.52.139
+      nodeName: dl380g9-5.etl6.ocp.rht-labs.com
+    - excludeDevice:
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-1'
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-2'
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-3'
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-4'
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-5'
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-6'
+        - '/dev/disk/by-path/ip-192.168.52.229:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-1'
+        - '/dev/disk/by-path/ip-192.168.52.229:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-2'
+        - '/dev/disk/by-path/ip-192.168.52.229:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-3'
+        - '/dev/disk/by-path/ip-192.168.52.229:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-4'
+        - '/dev/disk/by-path/ip-192.168.52.229:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-5'
+        - '/dev/disk/by-path/ip-192.168.52.229:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-6'
+        - '/dev/disk/by-path/pci-0000:08:00.0-scsi-0:1:0:0'
+        - '/dev/disk/by-path/pci-0000:08:00.0-scsi-0:1:0:0-part1'
+        - '/dev/disk/by-path/pci-0000:08:00.0-scsi-0:1:0:0-part2'
+        - '/dev/disk/by-path/pci-0000:08:00.0-scsi-0:1:0:0-part3'
+        - '/dev/disk/by-path/pci-0000:08:00.0-scsi-0:1:0:0-part4'
+      fencingDevice:
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-1'
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-2'
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-3'
+      ip:
+        - 10.9.52.140
+        - 10.9.52.141
+      nodeName: dl380g9-5.etl6.ocp.rht-labs.com
+    - excludeDevice:
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-0'
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-1'
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-2'
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-3'
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-4'
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-5'
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-7'
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-8'
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-9'
+        - '/dev/disk/by-path/ip-192.168.52.229:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-0'
+        - '/dev/disk/by-path/ip-192.168.52.229:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-1'
+        - '/dev/disk/by-path/ip-192.168.52.229:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-2'
+        - '/dev/disk/by-path/ip-192.168.52.229:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-3'
+        - '/dev/disk/by-path/ip-192.168.52.229:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-4'
+        - '/dev/disk/by-path/ip-192.168.52.229:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-5'
+        - '/dev/disk/by-path/ip-192.168.52.229:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-7'
+        - '/dev/disk/by-path/ip-192.168.52.229:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-8'
+        - '/dev/disk/by-path/ip-192.168.52.229:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-9'
+        - '/dev/disk/by-path/pci-0000:08:00.0-scsi-0:1:0:0'
+        - '/dev/disk/by-path/pci-0000:08:00.0-scsi-0:1:0:0-part1'
+        - '/dev/disk/by-path/pci-0000:08:00.0-scsi-0:1:0:0-part2'
+        - '/dev/disk/by-path/pci-0000:08:00.0-scsi-0:1:0:0-part3'
+        - '/dev/disk/by-path/pci-0000:08:00.0-scsi-0:1:0:0-part4'
+      fencingDevice:
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-7'
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-8'
+        - '/dev/disk/by-path/ip-192.168.52.228:3260-iscsi-iqn.1992-08.com.netapp:sn.f2f805d25fa911efa2c200a09884167a:vs.44-lun-9'
+      ip:
+        - 10.9.52.142
+        - 10.9.52.143
+      nodeName: dl380g9-5.etl6.ocp.rht-labs.com
+  sameEncKey: false
+  enableScsi3pr: false
+  isSharedStorage: false
+  version: 8.0.400
+  clusterID: 12345
