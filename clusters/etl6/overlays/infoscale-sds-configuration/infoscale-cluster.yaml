@@ -95,5 +95,5 @@ spec:
   sameEncKey: false
   enableScsi3pr: false
   isSharedStorage: false
-  version: v8.0.400
+  version: "8.0.400"
   clusterID: 12345
