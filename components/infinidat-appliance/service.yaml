@@ -19,10 +19,12 @@ spec:
   selector:
     kubevirt.io/vm: vm-ibox
   ports:
-    - protocol: TCP
+    - name: https
+      protocol: TCP
       port: 443
       targetPort: 433
-    - protocol: TCP
+    - name: http
+      protocol: TCP
       port: 80
       targetPort: 80      
   type: ClusterIP
