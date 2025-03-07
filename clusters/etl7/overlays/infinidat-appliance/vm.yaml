@@ -74,8 +74,8 @@ spec:
             networkName: default/vlan-2901-1
           name: data-link2          
         - multus:
-            networkName: default/vlan-2911
+            networkName: default/vlan-2901-2
           name: data-link3
         - multus:
-            networkName: default/vlan-2911-1
+            networkName: default/vlan-2911-iscsi
           name: iscsi-link          
