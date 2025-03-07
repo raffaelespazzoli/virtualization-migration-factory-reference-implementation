@@ -19,7 +19,7 @@ spec:
     - name: linux-br-iscsi
       description: |-
         A dedicated bridge for the infinidat iscsi traffic
-      type: linux-brige
+      type: linux-bridge
       state: up
       ipv4:
         enabled: true
