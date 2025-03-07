@@ -71,11 +71,11 @@ spec:
             networkName: default/vlan-2901
           name: data-link1
         - multus:
-            networkName: default/vlan-2901
+            networkName: default/vlan-2901-1
           name: data-link2          
         - multus:
             networkName: default/vlan-2911
           name: data-link3
         - multus:
-            networkName: default/vlan-2911
+            networkName: default/vlan-2911-1
           name: iscsi-link          
