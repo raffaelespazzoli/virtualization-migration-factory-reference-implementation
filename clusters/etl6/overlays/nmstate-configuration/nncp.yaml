@@ -7,6 +7,33 @@ spec:
     node-role.kubernetes.io/worker: '' 
   desiredState:
     interfaces:
+    - ipv4:
+        dhcp: false
+        enabled: false
+      name: bond0.2911
+      state: up
+      type: vlan
+      vlan:
+        base-iface: bond0
+        id: 2911
+    - name: linux-br-iscsi
+      description: |-
+        A dedicated bridge for the infinidat iscsi traffic
+      type: linux-brige
+      state: up
+      ipv4:
+        enabled: true
+        address:
+          - ip: 192.168.91.7
+            prefix-length: 24 
+      ipv6:
+        enabled: false      
+      bridge:
+        options:
+          stp: 
+            enabled: false
+        port:
+        - name: bond0.2911             
     - name: ovs-br1 
       description: |-
         A dedicated OVS bridge with bond0 as a port
