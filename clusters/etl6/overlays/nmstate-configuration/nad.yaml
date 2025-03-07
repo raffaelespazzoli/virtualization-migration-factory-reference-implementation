@@ -71,7 +71,7 @@ spec:
       "name": "vlan-2901",
       "type": "ovn-k8s-cni-overlay",
       "topology": "localnet",
-      "netAttachDefName": "default/vlan-2901",
+      "netAttachDefName": "default/vlan-2901-1",
       "vlanID": 2901,
       "mtu": 1500
     }
@@ -92,7 +92,7 @@ spec:
       "name": "vlan-2911",
       "type": "ovn-k8s-cni-overlay",
       "topology": "localnet",
-      "netAttachDefName": "default/vlan-2911",
+      "netAttachDefName": "default/vlan-2911-1",
       "vlanID": 2911,
       "mtu": 1500
     }        
