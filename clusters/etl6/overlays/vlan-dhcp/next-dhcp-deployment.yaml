@@ -22,10 +22,10 @@ spec:
             "ips": ["192.168.90.2/24"],
             "interface": "eth1"
           },{
-            "name": "vlan-2911",
+            "name": "vlan-2911-iscsi",
             "namespace": "default",
             "ips": ["192.168.91.2/24"],
-            "interface": "eth1"
+            "interface": "eth2"
           }]        
     spec:
       containers:
