@@ -25,14 +25,14 @@ spec:
   admin_user: admin
   loadbalancer_protocol: http
   nodeport_port: 30080
-  database:
-    resource_requirements:
-      requests:
-        cpu: 200m
-        memory: 512Mi
-    storage_requirements:
-      requests:
-        storage: 100Gi
+  # database:
+  #   resource_requirements:
+  #     requests:
+  #       cpu: 200m
+  #       memory: 512Mi
+  #   storage_requirements:
+  #     requests:
+  #       storage: 100Gi
   controller:
     disabled: false
   eda:
