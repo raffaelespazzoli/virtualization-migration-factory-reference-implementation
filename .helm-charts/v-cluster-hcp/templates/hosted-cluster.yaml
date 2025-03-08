@@ -45,3 +45,6 @@ spec:
   - service: Ignition
     servicePublishingStrategy:
       type: Route
+  - service: APIServer	
+    servicePublishingStrategy:	
+      type: LoadBalancer      
