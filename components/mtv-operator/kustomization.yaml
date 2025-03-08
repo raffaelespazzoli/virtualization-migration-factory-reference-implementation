@@ -4,4 +4,4 @@ kind: Kustomization
 
 resources:
   - ./namespace.yaml
-  - ./operator-operator.yaml
+  - ./operator-policy.yaml
