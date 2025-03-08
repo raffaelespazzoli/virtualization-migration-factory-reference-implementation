@@ -20,3 +20,4 @@ components/trident-protect-operator/charts/trident-protect-crds-100.2410.1/tride
 components/trident-protect-operator/charts/trident-protect-crds-100.2410.1/trident-protect-crds-100.2410.1.tgz
 components/mtv-configuration/vddk
 clusters/hub/overlays/cluster-virtual-cop-1/pull-secret.yaml
+clusters/hub/overlays/cluster-virtual-ocp-1/pull-secret.yaml
