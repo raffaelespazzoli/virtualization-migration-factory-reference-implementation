@@ -1,0 +1,10 @@
+etcd:
+  storageClassName: 'ontap-san'
+clusterSet: default
+clusterVersion: 4.17.19
+networking:
+  podCIDR: 0.0.0.0/0
+  serviceCIDR: 0.0.0.0/0
+  hostPrefix: 24
+  ingressVIP: "0.0.0.0"
+  apiVIP: "0.0.0.0"

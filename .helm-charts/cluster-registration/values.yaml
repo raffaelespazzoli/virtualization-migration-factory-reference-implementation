@@ -4,4 +4,13 @@ labels:
   cloud: BareMetal
   vendor: OpenShift
   gitops: deploy
+
+submariner:
+  enabled: true
+
+mtv_integration:
+  enabled: true
+
+acm_virtualization_features:
+  enabled: true      
   

@@ -1,3 +1,4 @@
+{{ if .Values.mtv_integration.enabled }}
 apiVersion: forklift.konveyor.io/v1beta1
 kind: Provider
 metadata:
@@ -9,3 +10,4 @@ spec:
     namespace: {{ .Release.Name }}
   type: openshift
   url: 'https://api.{{ .Release.Name }}.${PLATFORM_BASE_DOMAIN}:6443'
+{{ end }}  

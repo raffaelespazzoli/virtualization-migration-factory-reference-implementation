@@ -1,3 +1,4 @@
+{{ if .Values.submariner.enabled }}
 apiVersion: addon.open-cluster-management.io/v1alpha1
 kind: ManagedClusterAddOn
 metadata:
@@ -13,4 +14,5 @@ metadata:
     namespace: {{ .Release.Name }}
 spec:
   gatewayConfig:
-    gateways: 1    
+    gateways: 1 
+{{ end }}       

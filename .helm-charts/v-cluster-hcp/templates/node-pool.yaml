@@ -1,0 +1,23 @@
+apiVersion: hypershift.openshift.io/v1beta1
+kind: NodePool
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  arch: amd64
+  clusterName: {{ .Release.Name }}
+  replicas: 2
+  management:
+    autoRepair: true
+    upgradeType: Replace
+  platform:
+    type: KubeVirt
+    kubevirt:
+      compute:
+        cores: 2
+        memory: 8Gi
+      rootVolume:
+        type: Persistent
+        persistent:
+          size: 32Gi
+  release:
+    image: quay.io/openshift-release-dev/ocp-release:{{ .Values.clusterVersion }}-multi

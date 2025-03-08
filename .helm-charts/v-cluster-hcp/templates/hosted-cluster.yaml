@@ -1,0 +1,47 @@
+apiVersion: hypershift.openshift.io/v1beta1
+kind: HostedCluster
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    "cluster.open-cluster-management.io/clusterset": '{{ .Values.clusterset }}'
+    {{- include "v-cluster-hcp.labels" . | nindent 4 }}    
+spec:
+  etcd:
+    managed:
+      storage:
+        persistentVolume:
+          size: 8Gi
+          storageClassName: {{ .Values.etcd.storageClassName }}
+        type: PersistentVolume
+    managementType: Managed
+  release:
+    image: quay.io/openshift-release-dev/ocp-release:{{ .Values.clusterVersion }}-multi
+  pullSecret:
+    name: pullsecret-{{ .Release.Name }}
+  sshKey:
+    name: sshkey-{{ .Release.Name }}
+  networking:
+    clusterNetwork:
+      - cidr: {{ .Values.networking.podCIDR }}
+    serviceNetwork:
+      - cidr: {{ .Values.networking.serviceCIDR }}
+    networkType: OVNKubernetes
+  controllerAvailabilityPolicy: HighlyAvailable
+  platform:
+    type: KubeVirt
+    kubevirt:
+      baseDomainPassthrough: true
+  infraID: {{ .Release.Name }}
+  services:
+  - service: OAuthServer
+    servicePublishingStrategy:
+      type: Route
+  - service: OIDC
+    servicePublishingStrategy:
+      type: Route
+  - service: Konnectivity
+    servicePublishingStrategy:
+      type: Route
+  - service: Ignition
+    servicePublishingStrategy:
+      type: Route
