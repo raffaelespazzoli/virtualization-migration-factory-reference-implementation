@@ -90,5 +90,6 @@ spec:
       "name": "vlan-2911-iscsi",
       "type": "bridge",
       "bridge": "linux-br-iscsi",
-      "mtu": 1500
+      "mtu": 1500,
+      "ipam": {}
     }        
