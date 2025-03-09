@@ -91,5 +91,8 @@ spec:
       "type": "bridge",
       "bridge": "linux-br-iscsi",
       "mtu": 1500,
-      "ipam": {}
+      "ipam": {
+        "type": "host-local",
+        "subnet": "192.168.91.0/24"
+      }    
     }        
