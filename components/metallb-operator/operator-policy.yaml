@@ -26,7 +26,7 @@ spec:
     namespace: metallb-system
     source: redhat-operators
     sourceNamespace: openshift-marketplace
-    startingCSV: metallb-operator.v4.17.0-202501241706
+    startingCSV: metallb-operator.v4.17.0-202502250404
   versions: 
     - metallb-operator.v4.17.0-202501241706
     - metallb-operator.v4.17.0-202502051233
