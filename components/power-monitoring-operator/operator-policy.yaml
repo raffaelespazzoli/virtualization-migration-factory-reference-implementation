@@ -23,7 +23,7 @@ spec:
     namespace: openshift-operators
     source: redhat-operators
     sourceNamespace: openshift-marketplace
-    startingCSV: power-monitoring-operator.v0.3.0
+    startingCSV: power-monitoring-operator.v0.4.0
   versions: 
     - power-monitoring-operator.v0.3.0
     - power-monitoring-operator.v0.4.0
