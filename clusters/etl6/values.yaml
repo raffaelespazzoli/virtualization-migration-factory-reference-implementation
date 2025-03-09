@@ -8,7 +8,7 @@ applications:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '16'      
     source:
-      path: clutsers/etl6/overlays/openshift-config
+      path: clusters/etl6/overlays/openshift-config
 
   nfd-operator:
     annotations:
