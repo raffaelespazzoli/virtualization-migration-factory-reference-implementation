@@ -60,30 +60,7 @@ applications:
     destination:
       namespace: ibm-spectrum-scale
     source:
-      path: components/ibm-spectrum-scale-container-native-configuration 
-
-  infoscale-sds-operator:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '5'
-    source:
-      path: components/infoscale-sds-operator 
-
-  infoscale-sds-configuration:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '15'
-    source:
-      path: components/infoscale-sds-configuration      
-
-  # infoscale-sds-configuration:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '15'
-  #   destination:
-  #     namespace: infoscale-vtas
-  #   source:
-  #     path: components/infoscale-sds-configuration              
+      path: components/ibm-spectrum-scale-container-native-configuration           
 
   # ibm-fusion-configuration:
   #   annotations:
