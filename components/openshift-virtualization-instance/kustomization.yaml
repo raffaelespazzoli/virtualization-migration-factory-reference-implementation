@@ -8,3 +8,4 @@ resources:
   - kubelet-config.yaml
   - v2v-configmap.yaml
   - service-account-patch.yaml  
+  - ./namespace.yaml
