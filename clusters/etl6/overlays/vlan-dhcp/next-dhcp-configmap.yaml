@@ -21,15 +21,15 @@ data:
         option broadcast-address 192.168.90.255
         log debug
     }
-    192.168.91.2/24 {
-        lease 24h
-        interface eth2
-        range 192.168.91.128 192.168.91.254
-        static 02:fb:ed:00:01:65 192.168.91.3
-        static 02:fb:ed:00:01:69 192.168.91.4
-        option router 192.168.91.1
-        option nameserver 8.8.8.8 1.1.1.1
-        option netmask 255.255.255.0
-        option broadcast-address 192.168.91.255
-        log debug
-    }
+  # 192.168.91.2/24 {
+  #     lease 24h
+  #     interface eth2
+  #     range 192.168.91.128 192.168.91.254
+  #     static 02:fb:ed:00:01:65 192.168.91.3
+  #     static 02:fb:ed:00:01:69 192.168.91.4
+  #     option router 192.168.91.1
+  #     option nameserver 8.8.8.8 1.1.1.1
+  #     option netmask 255.255.255.0
+  #     option broadcast-address 192.168.91.255
+  #     log debug
+  # }

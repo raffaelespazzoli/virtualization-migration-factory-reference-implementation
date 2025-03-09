@@ -21,19 +21,26 @@ spec:
             "namespace": "default",
             "ips": ["192.168.90.2/24"],
             "interface": "eth1"
-          },{
-            "name": "vlan-2911-iscsi",
-            "namespace": "default",
-            "interface": "eth2",
-            "ipam": {
-              "type": "static",
-                "addresses": [
-                  {
-                    "address": "192.168.91.2/24"
-                  }
-                ]
-            }            
-          }]        
+          }]   
+        # k8s.v1.cni.cncf.io/networks: |
+        #  [{
+        #     "name": "vlan-2901",
+        #     "namespace": "default",
+        #     "ips": ["192.168.90.2/24"],
+        #     "interface": "eth1"
+        #   },{
+        #     "name": "vlan-2911-iscsi",
+        #     "namespace": "default",
+        #     "interface": "eth2",
+        #     "ipam": {
+        #       "type": "static",
+        #         "addresses": [
+        #           {
+        #             "address": "192.168.91.2/24"
+        #           }
+        #         ]
+        #     }            
+        #   }]        
     spec:
       containers:
       - name: next-dhcp
