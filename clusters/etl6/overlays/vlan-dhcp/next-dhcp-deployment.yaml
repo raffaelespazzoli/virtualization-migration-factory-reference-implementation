@@ -24,8 +24,15 @@ spec:
           },{
             "name": "vlan-2911-iscsi",
             "namespace": "default",
-            "ips": ["192.168.91.2/24"],
-            "interface": "eth2"
+            "interface": "eth2",
+            "ipam": {
+              "type": "static",
+                "addresses": [
+                  {
+                    "address": "192.168.91.2/24"
+                  }
+                ]
+            }            
           }]        
     spec:
       containers:
