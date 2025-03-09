@@ -6,11 +6,13 @@ metadata:
   name: cluster
 spec:
   plugins:
-  - gitops-plugin
   - monitoring-plugin
-  - acm
-  - mce
-  - forklift-console-plugin
+  - gitops-plugin
+  - kubevirt-plugin
   - nmstate-console-plugin
-  - logging-view-plugin
+  - node-remediation-console-plugin
   - networking-console-plugin
+  - tvk-console-plugin
+  - logging-view-plugin
+  - acm
+  - mce  

@@ -3,6 +3,13 @@ projects: {}
 
 applications: 
 
+  openshift-config:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '16'      
+    source:
+      path: clutsers/etl4/overlays/openshift-config
+
   nfd-operator:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
