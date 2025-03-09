@@ -14,7 +14,7 @@ data:
         static 02:fb:ed:00:01:64 192.168.91.5
         static 02:fb:ed:00:01:66 192.168.90.6
         static 02:fb:ed:00:01:67 192.168.90.7
-        static 02:fb:ed:00:01:68 192.168.91.8        
+        static 02:fb:ed:00:01:68 192.168.90.8        
         option router 192.168.90.1
         option nameserver 8.8.8.8 1.1.1.1
         option netmask 255.255.255.0

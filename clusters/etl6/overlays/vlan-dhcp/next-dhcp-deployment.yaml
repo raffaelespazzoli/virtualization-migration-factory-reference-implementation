@@ -31,10 +31,10 @@ spec:
       containers:
       - name: next-dhcp
         image: quay.io/raffaelespazzoli/nextdhcp@sha256:70c1e5b241eaffac8f45067ddaad7be393d4aa644a18716e008a70b3a7877cd2
-        # command:
-        #   - /bin/bash
-        #   - -c
-        #   - sleep infinity
+        command:
+          - /bin/bash
+          - -c
+          - sleep infinity
         args:
         - --conf
         - /etc/nextdhcp/config/Dhcpfile
