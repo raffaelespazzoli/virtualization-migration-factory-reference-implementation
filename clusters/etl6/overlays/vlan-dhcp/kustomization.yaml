@@ -7,3 +7,4 @@ resources:
   - namespace.yaml
   - next-dhcp-configmap.yaml
   - next-dhcp-deployment.yaml
+  - nad.yaml
