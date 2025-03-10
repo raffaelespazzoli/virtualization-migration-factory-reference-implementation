@@ -24,8 +24,7 @@ spec:
           },{
             "name": "vlan-2911-iscsi",
             "namespace": "vlan-dhcp",
-            "interface": "eth2",
-            "ips": ["192.168.91.2/24"]            
+            "interface": "eth2"      
           }]        
     spec:
       containers:
