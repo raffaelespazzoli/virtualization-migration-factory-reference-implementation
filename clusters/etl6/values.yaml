@@ -5,21 +5,18 @@ applications:
 
   openshift-config:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '16'      
     source:
       path: clusters/etl6/overlays/openshift-config
 
   nfd-operator:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
     source:
       path: components/nfd-operator
 
   nfd-configuration:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     source:
       path: components/nfd-configuration
@@ -28,14 +25,12 @@ applications:
 
   nmstate-configuration:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     source:
       path: clusters/etl6/overlays/nmstate-configuration
 
   metallb-configuration:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '6'
     destination:
       namespace: metallb-system
@@ -46,7 +41,6 @@ applications:
 
   trident-configuration:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '6'
     destination:
       namespace: netapp-trident
@@ -55,7 +49,6 @@ applications:
 
   trident-protect-operator:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
     destination:
       namespace: trident-protect
@@ -64,7 +57,6 @@ applications:
 
   trident-protect-configuration:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     destination:
       namespace: trident-protect
@@ -88,14 +80,12 @@ applications:
 
   infoscale-sds-operator:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
     source:
       path: components/infoscale-sds-operator 
 
   infoscale-sds-configuration:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     source:
       path: clusters/etl6/overlays/infoscale-sds-configuration     
@@ -104,7 +94,6 @@ applications:
 
   vm-tests:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     destination:
       namespace: vm-tests
@@ -113,7 +102,6 @@ applications:
 
   trilio-vm-tests:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     destination:
       namespace: trilio-vm-tests
@@ -143,14 +131,12 @@ applications:
 
   infinidat-appliance:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '25'     
     source:
       path: clusters/etl6/overlays/infinidat-appliance
 
   vlan-dhcp:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '24'     
     source:
       path: clusters/etl6/overlays/vlan-dhcp      

@@ -1,5 +1,3 @@
-default: {}     
-
 projects:
 
   cluster-config:
@@ -24,7 +22,6 @@ applications:
 
   web-terminal-operator:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
     source:
       path: components/web-terminal-operator 
@@ -33,7 +30,6 @@ applications:
 
   trident-operator:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
     destination:
       namespace: netapp-trident      
@@ -42,7 +38,6 @@ applications:
 
   minio-operator:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5' 
     destination:
       namespace: minio-operator           
@@ -53,7 +48,6 @@ applications:
 
   kube-ops-view:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     destination:
       namespace: kube-ops-view
@@ -62,14 +56,12 @@ applications:
 
   loki-operator:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'            
     source:
       path: components/loki-operator
 
   loki-logging-configuration:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15' 
     destination:
       namespace: openshift-logging           
@@ -78,14 +70,12 @@ applications:
 
   openshift-logging-operator:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'           
     source:
       path: components/openshift-logging-operator              
 
   openshift-logging-configuration:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15' 
     destination:
       namespace: openshift-logging           
@@ -94,7 +84,6 @@ applications:
 
   cluster-observability-operator:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'            
     source:
       path: components/cluster-observability-operator        
@@ -103,14 +92,12 @@ applications:
 
   cert-manager-operator:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
     source:
       path: components/cert-manager-operator
 
   cert-manager-configuration:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '6'
     destination:
       namespace: cert-manager
@@ -119,14 +106,12 @@ applications:
 
   external-dns-operator:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
     source:
       path: components/external-dns-operator
 
   external-dns-configuration:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '6'
     destination:
       namespace: external-dns
@@ -135,21 +120,18 @@ applications:
 
   metallb-operator:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
     source:
       path: components/metallb-operator
 
   nmstate-operator:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
     source:
       path: components/nmstate-operator 
 
   nmstate-instance:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '6'
     destination:
       namespace: openshift-nmstate

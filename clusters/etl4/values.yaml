@@ -5,7 +5,6 @@ applications:
 
   openshift-config:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '16'      
     source:
       path: clusters/etl4/overlays/openshift-config
@@ -28,14 +27,12 @@ applications:
 
   nmstate-configuration:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     source:
       path: clusters/etl4/overlays/nmstate-configuration
 
   metallb-configuration:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '6'
     destination:
       namespace: metallb-system
@@ -46,7 +43,6 @@ applications:
 
   trident-configuration:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '6'
     destination:
       namespace: netapp-trident
@@ -89,7 +85,6 @@ applications:
 
   vault:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     destination:
       namespace: vault      
@@ -118,7 +113,6 @@ applications:
 
   guacamole:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     destination:
       namespace: guacamole      
@@ -136,14 +130,12 @@ applications:
 
   rhsso-operator:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'     
     source:
       path: clusters/etl4/overlays/rhsso-operator  
 
   rhsso-configuration:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'     
     source:
       path: clusters/etl4/overlays/rhsso-configuration                 

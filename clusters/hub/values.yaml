@@ -7,7 +7,6 @@ applications:
 
   openshift-config:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
     destination:
       namespace: openshift-config      
@@ -16,7 +15,6 @@ applications:
 
   reflector-operator:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
     destination:
       namespace: reflector-operator      
@@ -27,7 +25,6 @@ applications:
 
   metallb-configuration:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '6'
     destination:
       namespace: metallb-system
@@ -36,7 +33,6 @@ applications:
 
   nmstate-configuration:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '6'
     destination:
       namespace: metallb-system
@@ -47,7 +43,6 @@ applications:
 
   trident-configuration:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '6'
     destination:
       namespace: netapp-trident
@@ -66,7 +61,6 @@ applications:
 # ACM
   acm-operator:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
     destination:
       namespace: open-cluster-management
@@ -75,7 +69,6 @@ applications:
 
   acm-instance:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     source:
       path: components/acm-instance
@@ -83,21 +76,18 @@ applications:
 
   acm-configuration:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '25'
     source:
       path: components/acm-configuration
 
   acm-observability:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '25'
     source:
       path: components/acm-observability
 
   gitops-boostrap-policy:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     namespace: acm-policies  
     source:
@@ -114,7 +104,6 @@ applications:
 
   acm-fusion-dr:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '25'
     source:
       path: components/acm-fusion-dr
@@ -130,7 +119,6 @@ applications:
 
   trilio-object-store:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     destination:
       namespace: trilio-system
@@ -139,7 +127,6 @@ applications:
 
   trident-protect-object-store:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     destination:
       namespace: trident-protect
@@ -168,14 +155,12 @@ applications:
 
   mtv-operator:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
     source:
       path: components/mtv-operator
 
   mtv-configuration:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     destination:
       namespace: openshift-mtv
@@ -184,7 +169,6 @@ applications:
 
   ova-server:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '25'
     source:
       path: clusters/hub/overlays/ova-server
@@ -193,7 +177,6 @@ applications:
 
   etl4:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '25'
     destination:
       namespace: etl4
@@ -208,7 +191,6 @@ applications:
 
   etl6:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '25'
     destination:
       namespace: etl6
@@ -217,7 +199,6 @@ applications:
 
   etl7:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '25'
     destination:
       namespace: etl7

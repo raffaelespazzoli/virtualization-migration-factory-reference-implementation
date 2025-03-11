@@ -2,6 +2,10 @@ default:
   project:
   
   app:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+    finalizers:
+      - resources-finalizer.argocd.argoproj.io  
     enabled: true
     enableAutoSync: true
     autoSyncPrune: false

@@ -6,14 +6,12 @@ applications:
 
   kyverno-operator:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
     source:
       path: components/kyverno-operator
 
   kyverno-configuration:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     source:
       path: groups/prod/overlays/kyverno-configuration      
@@ -23,14 +21,12 @@ applications:
 
   openshift-virtualization:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
     source:
       path: components/openshift-virtualization-operator
 
   hyperconverged-instance:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     destination:
       namespace: openshift-cnv
@@ -39,14 +35,12 @@ applications:
 
   descheduler-operator:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
     source:
       path: components/descheduler-operator  
 
   descheduler-configuration:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     destination:
         namespace: openshift-kube-descheduler-operator      
@@ -68,14 +62,12 @@ applications:
 
   node-health-check-operator:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
     source:
       path: components/node-health-check-operator
 
   node-health-check-configuration:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     destination:
       namespace: openshift-workload-availability
@@ -122,14 +114,12 @@ applications:
 
   trilio-operator:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
     source:
       path: components/trilio-operator
 
   trilio-instance:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     destination:
       namespace: trilio-system
@@ -140,7 +130,6 @@ applications:
   trilio-configuration:
     enableAutoSync: false
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '25'
     destination:
       namespace: trilio-system
@@ -158,14 +147,12 @@ applications:
 
   power-monitoring-operator:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
     source:
       path: components/power-monitoring-operator
 
   power-monitoring-configuration:
     annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
     source:
       path: components/power-monitoring-configuration           
