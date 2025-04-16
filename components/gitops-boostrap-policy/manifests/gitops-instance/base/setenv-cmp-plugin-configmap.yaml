@@ -17,7 +17,7 @@ data:
         command:
           - sh
           - "-c"
-          - "set -o pipefail && kustomize build --load-restrictor LoadRestrictionsNone --enable-helm --enable-alpha-plugins . | envsub"
+          - "set -o pipefail && SSL_CERT_DIR=/app/config/tls kustomize build --load-restrictor LoadRestrictionsNone --enable-helm --enable-alpha-plugins . | envsub"
       discover:
         find:
           command: [sh, -c, 'find . -maxdepth 1 -name kustomization.yaml']   
