@@ -4,9 +4,9 @@ kind: Kustomization
 
 resources:
   - ./dr-managed-clusterset.yaml
-  - ./policy.yaml
+  #- ./policy.yaml
   - ./submariner-broker.yaml
-  - ./mirror-peer.yaml
+  #- ./mirror-peer.yaml
   - ./dr-managed-clusterset-binding.yaml
   - ./gitops-clusters.yaml
   - ./placement.yaml
