@@ -5,4 +5,4 @@ resources:
   - ../../../../components/openshift-config
   - ./console-patch.yaml
   - ./oauth.yaml
-  - ./cluster-version.yaml
+  # - ./cluster-version.yaml
