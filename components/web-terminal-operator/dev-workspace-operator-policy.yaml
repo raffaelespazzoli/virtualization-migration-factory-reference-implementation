@@ -1,0 +1,30 @@
+apiVersion: policy.open-cluster-management.io/v1beta1
+kind: OperatorPolicy
+metadata:
+  name: devworkspace-operator
+  namespace: open-cluster-management-policies
+spec:
+  upgradeApproval: Automatic
+  complianceConfig:
+    catalogSourceUnhealthy: Compliant
+    deploymentsUnavailable: NonCompliant
+    upgradesAvailable: Compliant
+  complianceType: musthave
+  remediationAction: enforce
+  removalBehavior:
+    clusterServiceVersions: Delete
+    customResourceDefinitions: Keep
+    operatorGroups: DeleteIfUnused
+    subscriptions: Delete
+  severity: medium
+  subscription:
+    channel: fast
+    name: devworkspace-operator
+    namespace: openshift-operators
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+    startingCSV: devworkspace-operator.v0.30.2
+  versions: 
+    - devworkspace-operator.v0.30.2
+    - devworkspace-operator.v0.32.1
+    - devworkspace-operator.v0.33.0
