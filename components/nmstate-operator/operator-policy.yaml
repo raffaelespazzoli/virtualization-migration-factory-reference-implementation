@@ -35,6 +35,7 @@ spec:
     - kubernetes-nmstate-operator.4.17.0-202502190034
     - kubernetes-nmstate-operator.4.17.0-202502250404
     - kubernetes-nmstate-operator.4.17.0-202503050235
+    - kubernetes-nmstate-operator.4.17.0-202504092035
     - kubernetes-nmstate-operator.4.18.0-202504090803
     - kubernetes-nmstate-operator.4.18.0-202504021503
     - kubernetes-nmstate-operator.4.18.0-202503260133
