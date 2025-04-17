@@ -31,4 +31,5 @@ spec:
     - loki-operator.v6.1.1
     - loki-operator.v6.1.2
     - loki-operator.v6.1.3
+    - loki-operator.v6.1.4    
     - loki-operator.v6.2.1    
