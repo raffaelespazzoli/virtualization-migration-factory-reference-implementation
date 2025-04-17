@@ -26,3 +26,4 @@ spec:
     startingCSV: cluster-observability-operator.v1.0.0
   versions: 
     - cluster-observability-operator.v1.0.0
+    - cluster-observability-operator.v1.1.0

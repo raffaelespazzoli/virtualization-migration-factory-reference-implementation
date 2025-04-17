@@ -31,3 +31,4 @@ spec:
     startingCSV: cert-manager-operator.v1.15.0
   versions: 
     - cert-manager-operator.v1.15.0
+    - cert-manager-operator.v1.15.1

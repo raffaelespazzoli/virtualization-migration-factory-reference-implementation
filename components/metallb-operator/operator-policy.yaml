@@ -33,3 +33,4 @@ spec:
     - metallb-operator.v4.17.0-202502111335
     - metallb-operator.v4.17.0-202502172135
     - metallb-operator.v4.17.0-202502250404
+    - metallb-operator.v4.18.0-202504090803
