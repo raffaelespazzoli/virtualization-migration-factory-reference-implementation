@@ -78,17 +78,17 @@ applications:
   #           - /spec/doInstall
   #         kind: FusionServiceInstance   
 
-  infoscale-sds-operator:
-    annotations:
-      argocd.argoproj.io/sync-wave: '5'
-    source:
-      path: components/infoscale-sds-operator 
+  # infoscale-sds-operator:
+  #   annotations:
+  #     argocd.argoproj.io/sync-wave: '5'
+  #   source:
+  #     path: components/infoscale-sds-operator 
 
-  infoscale-sds-configuration:
-    annotations:
-      argocd.argoproj.io/sync-wave: '15'
-    source:
-      path: clusters/etl6/overlays/infoscale-sds-configuration     
+  # infoscale-sds-configuration:
+  #   annotations:
+  #     argocd.argoproj.io/sync-wave: '15'
+  #   source:
+  #     path: clusters/etl6/overlays/infoscale-sds-configuration     
 
 # VMs 
 
