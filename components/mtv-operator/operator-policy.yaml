@@ -31,4 +31,5 @@ spec:
     startingCSV: mtv-operator.v2.7.10
   versions: 
     - mtv-operator.v2.7.10
+    - mtv-operator.v2.7.11
     - mtv-operator.v2.8.1
