@@ -510,7 +510,9 @@ spec:
             subPath: plugin.yaml
             name: setenv-cmp-plugin
           - mountPath: /etc/kustomize/plugin/policy.open-cluster-management.io/v1/policygenerator
-            name: policy-generator                    
+            name: policy-generator
+          - name: tls-certs
+            mountPath: /app/config/tls                                
     volumes:
       - configMap:
           name: setenv-cmp-plugin
