@@ -31,3 +31,5 @@ spec:
     startingCSV: rhsso-operator.7.6.11-opr-002
   versions: 
     - rhsso-operator.7.6.11-opr-003
+    - rhsso-operator.7.6.11-opr-004
+    - rhsso-operator.7.6.11-opr-005
