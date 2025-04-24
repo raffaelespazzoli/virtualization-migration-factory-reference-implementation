@@ -4,3 +4,4 @@ kind: Kustomization
 resources:
   - ./web-terminal-operator-policy.yaml
   - ./dev-workspace-operator-policy.yaml
+  - ./namespace.yaml
