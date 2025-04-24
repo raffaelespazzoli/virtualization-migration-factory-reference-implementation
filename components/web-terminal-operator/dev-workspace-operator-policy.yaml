@@ -20,7 +20,7 @@ spec:
   subscription:
     channel: fast
     name: devworkspace-operator
-    namespace: web-terminal-operator
+    namespace: devworkspace-operator
     source: redhat-operators
     sourceNamespace: openshift-marketplace
     startingCSV: devworkspace-operator.v0.30.2

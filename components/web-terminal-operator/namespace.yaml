@@ -8,3 +8,13 @@ metadata:
   labels:
     openshift.io/cluster-monitoring: "true"
     argocd.argoproj.io/managed-by: openshift-gitops
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: devworkspace-operator
+  annotations:
+    argocd.argoproj.io/sync-options: Delete=false
+  labels:
+    openshift.io/cluster-monitoring: "true"
+    argocd.argoproj.io/managed-by: openshift-gitops    
