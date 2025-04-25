@@ -23,7 +23,7 @@ spec:
     namespace: devworkspace-operator
     source: redhat-operators
     sourceNamespace: openshift-marketplace
-    startingCSV: devworkspace-operator.v0.30.2
+    startingCSV: devworkspace-operator.v0.33.0
   versions: 
     - devworkspace-operator.v0.30.2
     - devworkspace-operator.v0.32.1
