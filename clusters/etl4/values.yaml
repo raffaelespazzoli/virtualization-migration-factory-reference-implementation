@@ -197,7 +197,5 @@ applications:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '25'
-    destination:
-      namespace: test-udn
     source:
       path: clusters/etl4/overlays/test-udn    

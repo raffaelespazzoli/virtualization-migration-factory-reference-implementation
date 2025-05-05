@@ -4,6 +4,7 @@ metadata:
   labels:
     app: netshoot
   name: netshoot
+  namespace: test-udn-l3
 spec:
   replicas: 1
   selector:
