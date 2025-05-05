@@ -1,0 +1,13 @@
+apiVersion: k8s.ovn.org/v1
+kind: UserDefinedNetwork
+metadata:
+  name: udn-1
+spec:
+  topology: Layer3
+  layer3: 
+    role: Primary 
+    subnets:
+      - cidr: 10.150.0.0/16
+        hostSubnet: 24
+      - cidr: 2001:db8::/60
+        hostSubnet: 64
