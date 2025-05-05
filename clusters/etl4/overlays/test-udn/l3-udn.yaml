@@ -9,5 +9,3 @@ spec:
     subnets:
       - cidr: 10.150.0.0/16
         hostSubnet: 24
-      - cidr: 2001:db8::/60
-        hostSubnet: 64
