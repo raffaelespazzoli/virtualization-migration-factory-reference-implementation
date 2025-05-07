@@ -5,3 +5,4 @@ resources:
   - ./namespace.yaml
   - ./catalog-source.yaml
   - ./machine-config.yaml
+  - ./operator-policy.yaml
