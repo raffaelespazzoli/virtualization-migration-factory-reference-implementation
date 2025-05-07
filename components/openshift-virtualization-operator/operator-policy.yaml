@@ -34,3 +34,4 @@ spec:
     - kubevirt-hyperconverged-operator.v4.17.5
     - kubevirt-hyperconverged-operator.v4.17.7
     - kubevirt-hyperconverged-operator.v4.18.1
+    - kubevirt-hyperconverged-operator.v4.18.2

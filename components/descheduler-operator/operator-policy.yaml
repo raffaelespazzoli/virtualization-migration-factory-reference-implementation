@@ -31,3 +31,4 @@ spec:
     startingCSV: clusterkubedescheduleroperator.v5.1.1
   versions: 
     - clusterkubedescheduleroperator.v5.1.1
+    - clusterkubedescheduleroperator.v5.1.2
