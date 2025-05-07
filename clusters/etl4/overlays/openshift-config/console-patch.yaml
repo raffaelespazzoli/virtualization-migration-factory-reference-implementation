@@ -15,4 +15,5 @@ spec:
   - tvk-console-plugin
   - logging-view-plugin
   - acm
-  - mce  
+  - mce
+  - openshift-fusion-access-console
