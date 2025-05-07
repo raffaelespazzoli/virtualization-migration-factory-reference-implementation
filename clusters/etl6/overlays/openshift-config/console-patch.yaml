@@ -17,3 +17,4 @@ spec:
   - networking-console-plugin
   - tvk-console-plugin
   - logging-view-plugin
+  - openshift-fusion-access-console  
