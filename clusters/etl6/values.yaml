@@ -88,7 +88,23 @@ applications:
   #   annotations:
   #     argocd.argoproj.io/sync-wave: '15'
   #   source:
-  #     path: clusters/etl6/overlays/infoscale-sds-configuration     
+  #     path: clusters/etl6/overlays/infoscale-sds-configuration  
+
+  fusion-access-for-san-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    source:
+      path: components/fusion-access-for-san-operator
+
+  fusion-access-for-san-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: openshift-fusion-access   
+    source:
+      path: components/fusion-access-for-san-configuration      
 
 # VMs 
 

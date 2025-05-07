@@ -50,6 +50,22 @@ applications:
   #           - /spec/doInstall
   #         kind: FusionServiceInstance
 
+  fusion-access-for-san-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    source:
+      path: components/fusion-access-for-san-operator
+
+  fusion-access-for-san-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: openshift-fusion-access   
+    source:
+      path: components/fusion-access-for-san-configuration   
+
   infinidat-appliance:
     annotations:
       argocd.argoproj.io/sync-wave: '25'     

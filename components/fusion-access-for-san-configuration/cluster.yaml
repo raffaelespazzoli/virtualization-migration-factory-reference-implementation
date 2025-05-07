@@ -1,0 +1,32 @@
+apiVersion: scale.spectrum.ibm.com/v1beta1
+kind: Cluster
+metadata:
+  name: ibm-spectrum-scale
+spec:
+  daemon:
+    clusterProfile:
+      cloudEnv: general
+      ignoreReplicaSpaceOnStat: 'yes'
+      ignoreReplicationForQuota: 'yes'
+      ignoreReplicationOnStatfs: 'yes'
+      readReplicaPolicy: local
+      traceGenSubDir: /var/mmfs/tmp/traces
+      tscCmdPortRange: 60000-61000
+    nodeSelector:
+      scale.spectrum.ibm.com/role: storage
+    nsdDevicesConfig:
+      bypassDiscovery: true
+    update:
+      paused: false
+  gui:
+    enableSessionIPCheck: true
+  license:
+    accept: true
+    license: data-management
+  pmcollector:
+    nodeSelector:
+    # notice, something must have labeled the nodes
+      scale.spectrum.ibm.com/role: storage
+  site:
+    name: cluster
+    zone: etl4.ocp.rht-labs.com
