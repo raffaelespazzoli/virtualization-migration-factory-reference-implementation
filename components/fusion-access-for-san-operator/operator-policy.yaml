@@ -20,8 +20,6 @@ spec:
   operatorGroup: # optional
     name: openshift-fusion-access-operator
     namespace: openshift-fusion-access
-    targetNamespaces:
-        - openshift-fusion-access
   subscription:
     channel: alpha
     name: openshift-fusion-access-operator
