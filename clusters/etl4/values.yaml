@@ -49,12 +49,12 @@ applications:
     source:
       path: clusters/etl4/overlays/trident-configuration
 
-  ibm-fusion-access-for-san-operator:
+  fusion-access-for-san-operator:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '5'
     source:
-      path: components/ibm-fusion-access-for-san-operator
+      path: components/fusion-access-for-san-operator
 
   # ibm-spectrum-scale-container-native-operator:
   #   annotations:
