@@ -6,8 +6,7 @@ spec:
   local:
     blockSize: 4M
     pools:
-    - capacity: '0'
-      disks:
+    - disks:
       - main
       name: system
     # only 1-way is supported for LFS https://www.ibm.com/docs/en/scalecontainernative/5.2.1?topic=systems-local-file-system#filesystem-spec
