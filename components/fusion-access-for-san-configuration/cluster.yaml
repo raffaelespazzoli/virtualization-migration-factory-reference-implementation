@@ -13,7 +13,7 @@ spec:
       traceGenSubDir: /var/mmfs/tmp/traces
       tscCmdPortRange: 60000-61000
     nodeSelector:
-      scale.spectrum.ibm.com/role: storage
+      node-role.kubernetes.io/worker: ''
     nsdDevicesConfig:
       bypassDiscovery: true
     update:
@@ -25,8 +25,7 @@ spec:
     license: data-management
   pmcollector:
     nodeSelector:
-    # notice, something must have labeled the nodes
-      scale.spectrum.ibm.com/role: storage
+      node-role.kubernetes.io/worker: ''
   site:
     name: cluster
     zone: etl4.ocp.rht-labs.com

@@ -4,3 +4,5 @@ namespace: openshift-fusion-access
 
 resources:
   - ./fusion-access.yaml
+  - ./filesystem.yaml
+  - ./local-disk.yaml
