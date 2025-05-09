@@ -6,3 +6,4 @@ resources:
   - ./fusion-access.yaml
   - ./filesystem.yaml
   - ./local-disk.yaml
+  - ./snapshot-class.yaml
