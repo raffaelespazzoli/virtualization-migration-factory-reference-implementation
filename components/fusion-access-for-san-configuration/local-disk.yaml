@@ -3,7 +3,7 @@ kind: LocalDisk
 metadata:
   name: main
 spec:
-  device: /dev/disk/by-id/scsi-3600a098038303971795d4b4d59355349
+  device: /dev/dm-13
   node: dl380g9-5.etl6.ocp.rht-labs.com
   # set below only during testing
   existingDataSkipVerify: true
