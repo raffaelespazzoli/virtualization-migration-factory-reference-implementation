@@ -6,15 +6,12 @@ metadata:
   name: cluster
 spec:
   plugins:
-  #- logging-view-plugin
   - monitoring-plugin
   - gitops-plugin
   - kubevirt-plugin
   - nmstate-console-plugin
   - node-remediation-console-plugin
-  #- fusion-console
-  #- odf-console
   - networking-console-plugin
   - tvk-console-plugin
   - logging-view-plugin
-  - fusion-console 
+  - openshift-fusion-access-console
