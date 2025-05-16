@@ -1,0 +1,15 @@
+apiVersion: olm.operatorframework.io/v1
+kind: ClusterExtension
+metadata:
+  name: descheduler-operator
+spec:
+  namespace: openshift-kube-descheduler-operator
+  serviceAccount:
+    name: descheduler-operator
+  source:
+    sourceType: Catalog
+    catalog:
+      packageName: cluster-kube-descheduler-operator
+      channels:
+        - stable
+      version: "v5.1.2"
