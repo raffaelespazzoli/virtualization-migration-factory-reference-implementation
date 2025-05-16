@@ -26,6 +26,6 @@ spec:
     namespace: openshift-fusion-access
     source: test-fusion-access-operator
     sourceNamespace: openshift-marketplace
-    startingCSV: openshift-fusion-access-operator.v0.0.12
+    startingCSV: openshift-fusion-access-operator.v0.0.13
   versions: 
-    - openshift-fusion-access-operator.v0.0.12
+    - openshift-fusion-access-operator.v0.0.13
