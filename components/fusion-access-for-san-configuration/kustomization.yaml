@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: ibm-spectrum-scale
 
 resources:
+  - ./cluster.yaml
   - ./fusion-access.yaml
   - ./filesystem.yaml
   - ./local-disk.yaml
