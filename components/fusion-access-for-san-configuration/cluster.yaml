@@ -4,20 +4,34 @@ metadata:
   name: ibm-spectrum-scale
 spec:
   daemon:
+    nsdDevicesConfig:
+      localDevicePaths:
+      - devicePath: /dev/disk/by-id/*
+        deviceType: generic
     clusterProfile:
       cloudEnv: general
-      ignoreReplicaSpaceOnStat: 'yes'
-      ignoreReplicationForQuota: 'yes'
-      ignoreReplicationOnStatfs: 'yes'
-      readReplicaPolicy: local
-      traceGenSubDir: /var/mmfs/tmp/traces
-      tscCmdPortRange: 60000-61000
+      controlSetxattrImmutableSELinux: "yes"
+      enforceFilesetQuotaOnRoot: "yes"
+      ignorePrefetchLUNCount: "yes"
+      initPrefetchBuffers: "128"
+      maxblocksize: 16M
+      prefetchPct: "25"
+      prefetchTimeout: "30"
     nodeSelector:
       node-role.kubernetes.io/worker: ''
     nsdDevicesConfig:
       bypassDiscovery: true
     update:
       paused: false
+    roles:
+    - name: client
+      resources:
+        cpu: "2"
+        memory: 4Gi
+    - name: storage
+      resources:
+        cpu: "2"
+        memory: 8Gi      
   gui:
     enableSessionIPCheck: true
   license:
