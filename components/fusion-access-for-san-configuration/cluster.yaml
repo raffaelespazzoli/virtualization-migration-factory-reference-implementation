@@ -21,10 +21,14 @@ spec:
       node-role.kubernetes.io/worker: ''
     roles:
     - name: client
+      limits: {}
+      profile: {}
       resources:
         cpu: "2"
         memory: 4Gi
     - name: storage
+      limits: {}
+      profile: {}    
       resources:
         cpu: "2"
         memory: 16Gi
