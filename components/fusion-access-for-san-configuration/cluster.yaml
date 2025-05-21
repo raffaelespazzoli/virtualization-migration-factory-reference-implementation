@@ -19,10 +19,6 @@ spec:
       prefetchTimeout: "30"
     nodeSelector:
       node-role.kubernetes.io/worker: ''
-    nsdDevicesConfig:
-      bypassDiscovery: true
-    update:
-      paused: false
     roles:
     - name: client
       resources:
@@ -31,9 +27,7 @@ spec:
     - name: storage
       resources:
         cpu: "2"
-        memory: 8Gi      
-  gui:
-    enableSessionIPCheck: true
+        memory: 16Gi
   license:
     accept: true
     license: data-management
