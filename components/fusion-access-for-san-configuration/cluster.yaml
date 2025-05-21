@@ -28,4 +28,4 @@ spec:
       node-role.kubernetes.io/worker: ''
   site:
     name: cluster
-    zone: etl4.ocp.rht-labs.com
+    zone: etl6.ocp.rht-labs.com
