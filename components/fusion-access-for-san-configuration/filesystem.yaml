@@ -2,6 +2,8 @@ apiVersion: scale.spectrum.ibm.com/v1beta1
 kind: Filesystem
 metadata:
   name: main
+  labels:
+    scale.spectrum.ibm.com/allowDelete: ""
 spec:
   local:
     blockSize: 4M
@@ -17,3 +19,6 @@ spec:
     role: object_r
     type: container_file_t
     user: system_u
+
+
+

@@ -31,7 +31,7 @@ spec:
       profile: {}    
       resources:
         cpu: "2"
-        memory: 16Gi
+        memory: 16Gi        
   license:
     accept: true
     license: data-management

@@ -3,7 +3,7 @@ kind: LocalDisk
 metadata:
   name: main
 spec:
-  device: /dev/dm-13
+  device: /dev/dm-29
   node: dl380g9-5.etl6.ocp.rht-labs.com
   # set below only during testing
   existingDataSkipVerify: true
