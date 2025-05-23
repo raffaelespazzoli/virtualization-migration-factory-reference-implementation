@@ -9,7 +9,7 @@ applications:
       argocd.argoproj.io/sync-wave: '5'
       argocd.argoproj.io/compare-options: IgnoreExtraneous,ServerSideDiff=true
     source:
-      path: components/kyverno-operator
+      path: components/kyverno-operator   
 
   kyverno-configuration:
     annotations:

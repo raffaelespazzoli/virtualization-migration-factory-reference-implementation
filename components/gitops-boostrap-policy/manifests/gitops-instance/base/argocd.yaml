@@ -37,6 +37,12 @@ spec:
           jsonPointers:
             - /data
         kind: Secret
+      - customization:
+          jqPathExpressions:
+            - .metadata.finalizers[]? | select(. == "post-delete-finalizer.argocd.argoproj.io" or . == "post-delete-finalizer.argocd.argoproj.io/cleanup")
+            - if (.metadata.finalizers | length) == 0 then .metadata.finalizers else empty end
+        kind: Application
+        group: argoproj.io
   resourceHealthChecks:
   - group: argoproj.io
     kind: Application
