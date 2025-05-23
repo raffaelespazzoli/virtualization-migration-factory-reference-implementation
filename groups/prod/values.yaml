@@ -7,6 +7,7 @@ applications:
   kyverno-operator:
     annotations:
       argocd.argoproj.io/sync-wave: '5'
+      argocd.argoproj.io/compare-options: ServerSideDiff=true
     source:
       path: components/kyverno-operator
 
