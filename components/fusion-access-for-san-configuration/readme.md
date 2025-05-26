@@ -9,3 +9,15 @@ oc exec $(oc get pods -lapp.kubernetes.io/name=core -ojsonpath="{.items[0].metad
 
 
 iscsiadm -m session --rescan
+
+
+oc exec $(oc get pods -lapp.kubernetes.io/name=core -ojsonpath="{.items[0].metadata.name}" -n ibm-spectrum-scale) -it -c gpfs -n ibm-spectrum-scale -- bash
+
+/usr/lpp/mmfs/bin/mmchconfig maxblocksize=DELETE,prefetchPct=DELETE,enforceFilesetQuotaOnRoot=DELETE --force-rg-server --class-mode=vdisk
+
+to delete a partition:
+```
+fidsk delete partition
+multipath -f /dev
+multipath -r 
+```

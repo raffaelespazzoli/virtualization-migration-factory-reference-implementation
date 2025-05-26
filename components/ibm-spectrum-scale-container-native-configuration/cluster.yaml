@@ -18,6 +18,8 @@ spec:
       prefetchTimeout: "30"
     nodeSelector:
       scale.spectrum.ibm.com/daemon-selector: ""
+    nsdDevicesConfig:
+      bypassDiscovery: true      
     roles:
     - limits: {}	
       name: client	

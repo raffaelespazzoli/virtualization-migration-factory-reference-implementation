@@ -8,6 +8,8 @@ spec:
       localDevicePaths:
       - devicePath: /dev/disk/by-id/*
         deviceType: generic
+      - devicePath: /dev/dm-*
+        deviceType: generic
     clusterProfile:
       cloudEnv: general
       controlSetxattrImmutableSELinux: "yes"
