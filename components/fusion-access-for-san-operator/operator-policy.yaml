@@ -30,3 +30,4 @@ spec:
   versions: 
     - openshift-fusion-access-operator.v0.0.13
     - openshift-fusion-access-operator.v0.0.14
+    - openshift-fusion-access-operator.v0.0.15
