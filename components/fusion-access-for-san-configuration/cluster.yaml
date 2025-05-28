@@ -4,23 +4,20 @@ metadata:
   name: ibm-spectrum-scale
 spec:
   daemon:
-    nsdDevicesConfig:
-      localDevicePaths:
-      - devicePath: /dev/disk/by-id/*
-        deviceType: generic
-      - devicePath: /dev/dm-*
-        deviceType: generic
     clusterProfile:
       cloudEnv: general
-      controlSetxattrImmutableSELinux: "yes"
-      enforceFilesetQuotaOnRoot: "yes"
-      ignorePrefetchLUNCount: "yes"
-      initPrefetchBuffers: "128"
-      maxblocksize: 16M
-      prefetchPct: "25"
-      prefetchTimeout: "30"
+      ignoreReplicaSpaceOnStat: 'yes'
+      ignoreReplicationForQuota: 'yes'
+      ignoreReplicationOnStatfs: 'yes'
+      readReplicaPolicy: local
+      traceGenSubDir: /var/mmfs/tmp/traces
+      tscCmdPortRange: 60000-61000
     nodeSelector:
-      node-role.kubernetes.io/worker: ''
+      scale.spectrum.ibm.com/role: storage
+    nsdDevicesConfig:
+      bypassDiscovery: true
+    update:
+      paused: false
     roles:
     - name: client
       limits: {}
@@ -33,10 +30,13 @@ spec:
       profile: {}    
       resources:
         cpu: "2"
-        memory: 16Gi        
+        memory: 16Gi   
+  gui:
+    enableSessionIPCheck: true             
   license:
     accept: true
     license: data-management
   pmcollector:
+    storageClass: "ontap-nas"
     nodeSelector:
-      node-role.kubernetes.io/worker: ''
+      scale.spectrum.ibm.com/role: storage
