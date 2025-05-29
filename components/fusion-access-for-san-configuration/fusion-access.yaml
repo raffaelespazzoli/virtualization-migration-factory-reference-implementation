@@ -5,4 +5,4 @@ metadata:
 spec:
   storagedevicediscovery:
     create: true
-  ibm_cnsa_version: v5.2.3.0.rc1
+  ibm_cnsa_version: v5.2.3.0.1
