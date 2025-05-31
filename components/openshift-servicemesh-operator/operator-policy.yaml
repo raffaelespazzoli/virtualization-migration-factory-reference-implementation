@@ -1,0 +1,28 @@
+apiVersion: policy.open-cluster-management.io/v1beta1
+kind: OperatorPolicy
+metadata:
+  name: servicemeshoperator3
+  namespace: open-cluster-management-policies
+spec:
+  upgradeApproval: Automatic
+  complianceConfig:
+    catalogSourceUnhealthy: Compliant
+    deploymentsUnavailable: NonCompliant
+    upgradesAvailable: Compliant
+  complianceType: musthave
+  remediationAction: enforce
+  removalBehavior:
+    clusterServiceVersions: Delete
+    customResourceDefinitions: Keep
+    operatorGroups: DeleteIfUnused
+    subscriptions: Delete
+  severity: medium
+  subscription:
+    channel: stable
+    name: servicemeshoperator3
+    namespace: openshift-servicemesh-operator
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+    startingCSV: servicemeshoperator3.v3.0.2
+  versions: 
+    - servicemeshoperator3.v3.0.2

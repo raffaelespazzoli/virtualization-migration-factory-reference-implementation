@@ -9,20 +9,6 @@ applications:
     source:
       path: clusters/etl4/overlays/openshift-config
 
-  # nfd-operator:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '5'
-  #   source:
-  #     path: components/nfd-operator
-
-  # nfd-configuration:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '15'
-  #   source:
-  #     path: components/nfd-configuration
-
 # Networking
 
   nmstate-configuration:
@@ -47,38 +33,7 @@ applications:
     destination:
       namespace: netapp-trident
     source:
-      path: clusters/etl4/overlays/trident-configuration
-
-  # ibm-spectrum-scale-container-native-operator:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '5'
-  #   source:
-  #     path: components/ibm-spectrum-scale-container-native-operator 
-
-  # ibm-spectrum-scale-container-native-configuration:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '15'
-  #   destination:
-  #     namespace: ibm-spectrum-scale
-  #   source:
-  #     path: components/ibm-spectrum-scale-container-native-configuration           
-
-  # ibm-fusion-configuration:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '15'
-  #   destination:
-  #     namespace: ibm-spectrum-fusion-ns
-  #   source:
-  #     path: clusters/etl7/overlays/ibm-fusion-configuration
-  #   extraFields: |
-  #     ignoreDifferences:
-  #       - group: 'service.isf.ibm.com'
-  #         jsonPointers:
-  #           - /spec/doInstall
-  #         kind: FusionServiceInstance            
+      path: clusters/etl4/overlays/trident-configuration          
 
 
 # VDI
@@ -97,20 +52,6 @@ applications:
             - /spec/volumeClaimTemplates
           kind: StatefulSet      
 
-  # rhsso-operator:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '5'
-  #   source:
-  #     path: clusters/etl4/overlays/rhsso-operator
-
-  # rhsso-configuration:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '15'
-  #   source:
-  #     path: clusters/etl4/overlays/rhsso-configuration
-
   guacamole:
     annotations:
       argocd.argoproj.io/sync-wave: '15'
@@ -118,15 +59,6 @@ applications:
       namespace: guacamole      
     source:
       path: clusters/etl4/overlays/guacamole
-
-  # ldap:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '15'
-  #   destination:
-  #     namespace: ldap      
-  #   source:
-  #     path: clusters/etl4/overlays/ldap     
 
   rhsso-operator:
     annotations:
@@ -138,60 +70,7 @@ applications:
     annotations:
       argocd.argoproj.io/sync-wave: '15'     
     source:
-      path: clusters/etl4/overlays/rhsso-configuration                 
-
-
-# Infinidat
-
-  # infinidat-appliance-configuration:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '25'     
-  #   source:
-  #     path: components/infinidat-appliance
-
-# persistent-reservations
-
-  # persistent-reservations:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '25'     
-  #   source:
-  #     path: clusters/etl4/overlays/persistent-reservations  
-
-
-  # acm-operator:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '5'
-  #   destination:
-  #     namespace: open-cluster-management
-  #   source:
-  #     path: components/acm-operator
-
-  # acm-instance:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '15'
-  #   source:
-  #     path: components/acm-instance
-
-
-  # acm-configuration:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '25'
-  #   source:
-  #     path: components/acm-configuration      
-
-  # virtual-ocp-1:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '25'
-  #   destination:
-  #     namespace: virtual-ocp-1
-  #   source:
-  #     path: clusters/etl4/overlays/cluster-virtual-ocp-1       
+      path: clusters/etl4/overlays/rhsso-configuration                       
 
   test-udn:
     annotations:
@@ -199,3 +78,10 @@ applications:
       argocd.argoproj.io/sync-wave: '25'
     source:
       path: clusters/etl4/overlays/test-udn    
+
+  servicemesh-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'     
+    source:
+      path: components/openshift-servicemesh-operator      

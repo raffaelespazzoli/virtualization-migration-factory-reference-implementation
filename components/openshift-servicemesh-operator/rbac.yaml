@@ -1,0 +1,17 @@
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: servicemesh-operator-cluster-admin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: servicemesh-operator
+  namespace: openshift-servicemesh-operator
+---
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: servicemesh-operator
