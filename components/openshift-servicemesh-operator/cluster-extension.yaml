@@ -5,7 +5,7 @@ metadata:
 spec:
   namespace: openshift-servicemesh-operator
   serviceAccount:
-    name: metallb-operator
+    name: servicemesh-operator
   source:
     sourceType: Catalog
     catalog:
