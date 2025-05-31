@@ -79,6 +79,26 @@ applications:
     source:
       path: clusters/etl4/overlays/test-udn    
 
+# observability
+
+  openshift-tempo-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: openshift-tempo-operator
+    source:
+      path: components/openshift-tempo-operator
+
+  openshift-tempo-instance:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: openshift-tempo-instance
+    source:
+      path: components/openshift-tempo-instance
+
 # service mesh
 
   servicemesh-operator:
