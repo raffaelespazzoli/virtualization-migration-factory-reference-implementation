@@ -1,0 +1,57 @@
+kind: Istio
+apiVersion: sailoperator.io/v1
+metadata:
+  name: default
+spec:
+  namespace: istio-system
+  updateStrategy:
+    type: RevisionBased
+  values:
+    global:
+      proxy:
+        resources:
+          limits:
+            cpu: 100m
+            memory: 64Mi
+          requests:
+            cpu: 50m
+            memory: 32Mi
+      proxy_init:
+        resources:
+          limits:
+            cpu: 100m
+            memory: 64Mi
+          requests:
+            cpu: 50m
+            memory: 32Mi
+    meshConfig:
+      accessLogFile: /dev/stdout
+      defaultConfig:
+        proxyMetadata:
+          ISTIO_META_DNS_CAPTURE: "true"
+      discoverySelectors:
+      - matchExpressions:
+        - key: istio.io/rev
+          operator: Exists
+      - matchLabels:
+          kubernetes.io/metadata.name: istio-system
+      enablePrometheusMerge: true
+      enableTracing: true
+      extensionProviders:
+      - name: tempo
+        opentelemetry:
+          port: 4317
+          service: otel-collector.opentelemetry-collector.svc.cluster.local
+      outboundTrafficPolicy:
+        mode: REGISTRY_ONLY
+    pilot:
+      autoscaleEnabled: true
+      autoscaleMax: 2
+      autoscaleMin: 1
+      env:
+        PILOT_ENABLE_IP_AUTOALLOCATE: "true"
+      resources:
+        requests:
+          cpu: 50m
+          memory: 32Mi
+  version: v1.24.5
