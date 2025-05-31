@@ -11,7 +11,7 @@ resources:
   - ./tempo-tenant-secret.yaml
 
 helmGlobals:
-  chartHome: ../../.helm/charts
+  chartHome: ../../.helm-charts
 
 helmCharts:
   - name: tenant
