@@ -42,26 +42,26 @@ spec:
         use_kiali_token: false
         username: internal
       enabled: true
-      in_cluster_url: 'http://grafana-instance-service.openshift-user-workload-grafana-instance.svc:3000'
-      url: https://user-workload-grafana.apps.${CLUSTER_BASE_DOMAIN}
+      internal_url: 'http://grafana-instance-service.openshift-user-workload-grafana-instance.svc:3000'
+      external_url: https://user-workload-grafana.apps.${CLUSTER_BASE_DOMAIN}
     istio:
       config_map_name: istio-default-v1-24-5
       istio_sidecar_injector_config_map_name: istio-sidecar-injector-default-v1-24-5
       istiod_deployment_name: istiod-default-v1-24-5
-      url_service_version: 'http://istiod-main.istio-system:15014/version'
+      url_service_version: 'http://istiod-default-v1-24-5.istio-system:15014/version'
     prometheus:
       auth:
         insecure_skip_verify: true
         type: bearer
         use_kiali_token: true
       query_scope:
-        mesh_id: istio-system/main
+        mesh_id: istio-system/default-v1-24-5
       url: 'https://thanos-querier.openshift-monitoring.svc.cluster.local:9091'
     tracing:
       query_timeout: 30
       enabled: true
-      in_cluster_url: 'http://tempo-tempo-query-frontend.openshift-tempo-instance.svc.cluster.local:16685'
-      url: https://tempo.apps.${CLUSTER_BASE_DOMAIN}
+      internal_url: 'http://tempo-tempo-query-frontend.openshift-tempo-instance.svc.cluster.local:16685'
+      external_url: https://tempo.apps.${CLUSTER_BASE_DOMAIN}
       use_grpc: true
       # auth:
       #   password: {{ .Values.htpasswd }}
