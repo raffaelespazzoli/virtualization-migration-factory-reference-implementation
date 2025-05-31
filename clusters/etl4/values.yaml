@@ -79,6 +79,8 @@ applications:
     source:
       path: clusters/etl4/overlays/test-udn    
 
+# service mesh
+
   servicemesh-operator:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
@@ -91,4 +93,22 @@ applications:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'     
     source:
-      path: components/openshift-servicemesh-configuration           
+      path: components/openshift-servicemesh-configuration 
+
+  kiali-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: openshift-kiali-operator
+    source:
+      path: components/kiali-operator
+
+  kiali-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: istio-system
+    source:
+      path: components/kiali-configuration                

@@ -1,0 +1,15 @@
+apiVersion: olm.operatorframework.io/v1
+kind: ClusterExtension
+metadata:
+  name: kiali-operator
+spec:
+  namespace: openshift-kiali-operator
+  serviceAccount:
+    name: kiali-operator
+  source:
+    sourceType: Catalog
+    catalog:
+      packageName: kiali-ossm
+      channels:
+        - stable
+      version: "v2.4.5"
