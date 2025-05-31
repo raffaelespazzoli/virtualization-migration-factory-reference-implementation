@@ -14,6 +14,4 @@ spec:
   - networking-console-plugin
   - tvk-console-plugin
   - logging-view-plugin
-  - acm
-  - mce
-  - openshift-fusion-access-console
+  - ossmconsole
