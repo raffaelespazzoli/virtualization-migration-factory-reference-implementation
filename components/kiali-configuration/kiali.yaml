@@ -45,9 +45,9 @@ spec:
       in_cluster_url: 'http://grafana-instance-service.openshift-user-workload-grafana-instance.svc:3000'
       url: https://user-workload-grafana.apps.${CLUSTER_BASE_DOMAIN}
     istio:
-      config_map_name: istio-main
-      istio_sidecar_injector_config_map_name: istio-sidecar-injector-main
-      istiod_deployment_name: istiod-main
+      config_map_name: istio-default-v1-24-5
+      istio_sidecar_injector_config_map_name: istio-sidecar-injector-default-v1-24-5
+      istiod_deployment_name: istiod-default-v1-24-5
       url_service_version: 'http://istiod-main.istio-system:15014/version'
     prometheus:
       auth:
