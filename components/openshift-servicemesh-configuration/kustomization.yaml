@@ -3,6 +3,6 @@ kind: Kustomization
 namespace:  istio-system
 
 resources:
-  - ./namespace.yamls
+  - ./namespace.yaml
   - ./istio.yaml
   - ./istiocni.yaml
