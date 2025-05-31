@@ -1,15 +1,17 @@
-secrets:
-  name: tempo-env-configuration
-  accessKey: tempo 
-  secretKey: tempotempo
 tenant:
+  configSecret:
+    name: tempo-env-configuration
+    accessKey: tempo 
+    secretKey: tempotempo
   configuration:
     name: tempo-env-configuration
   name: tempo  
   pools:
     - name: pool-0
       servers: 1
-      storageClassName: gp3-csi
+      storageClassName: ontap-nas
+      volumesPerServer: 1
+      size: 50Gi      
   buckets:
     - name: tempo
       objectLock: false
