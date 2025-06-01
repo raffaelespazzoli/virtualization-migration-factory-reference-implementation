@@ -3,6 +3,5 @@ kind: Namespace
 metadata:
   labels:
     kubernetes.io/metadata.name: istio-system
-    openshift.io/cluster-monitoring: "true"
     argocd.argoproj.io/managed-by: openshift-gitops
   name: istio-system
