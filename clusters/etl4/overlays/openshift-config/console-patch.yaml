@@ -17,4 +17,4 @@ spec:
   - ossmconsole
   - troubleshooting-panel-console-plugin
   - distributed-tracing-console-plugin
-  - monitoing-console-plugin
+  - monitoring-console-plugin
