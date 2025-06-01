@@ -41,7 +41,7 @@ spec:
       - name: tempo
         opentelemetry:
           port: 4317
-          service: otel-collector.opentelemetry-collector.svc.cluster.local
+          service: otel-collector.istio-system.svc.cluster.local
       outboundTrafficPolicy:
         mode: REGISTRY_ONLY
     pilot:

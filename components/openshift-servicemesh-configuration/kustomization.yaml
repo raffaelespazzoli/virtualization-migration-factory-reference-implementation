@@ -6,3 +6,7 @@ resources:
   - ./namespace.yaml
   - ./istio.yaml
   - ./istiocni.yaml
+  - ./pod-monitor.yaml
+  - ./service-monitor.yaml
+  - ./open-telemetry-collector.yaml
+  - ./telemetry.yaml

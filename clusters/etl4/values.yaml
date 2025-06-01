@@ -106,7 +106,16 @@ applications:
     destination:
       namespace: openshift-observability
     source:
-      path: components/cluster-observability-configuration      
+      path: components/cluster-observability-configuration
+
+  otel-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: openshift-opentelemetry-operator
+    source:
+      path: components/otel-operator            
     
 
 # service mesh
@@ -141,4 +150,14 @@ applications:
     destination:
       namespace: istio-system
     source:
-      path: components/kiali-configuration                
+      path: components/kiali-configuration  
+
+
+  bookinfo:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '25'
+    destination:
+      namespace: bookinfo
+    source:
+      path: clusters/etl4/overlays/bookinfo         
