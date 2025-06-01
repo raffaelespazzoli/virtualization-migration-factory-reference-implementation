@@ -15,3 +15,5 @@ spec:
   - tvk-console-plugin
   - logging-view-plugin
   - ossmconsole
+  - troubleshooting-panel-console-plugin
+  - openshift-tempo-console-plugin
