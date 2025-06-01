@@ -16,4 +16,4 @@ spec:
   - logging-view-plugin
   - ossmconsole
   - troubleshooting-panel-console-plugin
-  - openshift-tempo-console-plugin
+  - distributed-tracing-console-plugin
