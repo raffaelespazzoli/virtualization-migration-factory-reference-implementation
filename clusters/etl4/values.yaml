@@ -99,6 +99,16 @@ applications:
     source:
       path: components/openshift-tempo-instance
 
+  cluster-observability-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: openshift-observability
+    source:
+      path: components/cluster-observability-configuration      
+    
+
 # service mesh
 
   servicemesh-operator:

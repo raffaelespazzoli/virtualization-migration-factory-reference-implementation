@@ -1,0 +1,15 @@
+apiVersion: monitoring.rhobs/v1alpha1
+kind: MonitoringStack
+metadata:
+  name: main
+spec:
+  logLevel: debug
+  retention: 1d
+  namespaceSelector:
+  # this will monitor all namespaces that are not monitored by the COO
+    matchExpressions:
+      - key: openshift.io/cluster-monitoring
+        operator: NotIn
+        values:
+          - "true"
+  resourceSelector: {}
