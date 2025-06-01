@@ -8,3 +8,4 @@ resources:
   - ./monitoring-stack.yaml
   - ./distributed-tracing-ui.yaml
   - ./troubleshooting-ui.yaml
+  - ./monitoring-ui.yaml
