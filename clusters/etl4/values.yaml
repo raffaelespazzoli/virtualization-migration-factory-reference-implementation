@@ -115,7 +115,41 @@ applications:
     destination:
       namespace: openshift-opentelemetry-operator
     source:
-      path: components/otel-operator            
+      path: components/otel-operator     
+
+  otel-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: otel-collector
+    source:
+      path: components/otel-configuration
+
+  user-workload-monitoring:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    source:
+      path: components/user-workload-monitoring
+
+  openshift-grafana-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: openshift-grafana-operator
+    source:
+      path: components/openshift-grafana-operator
+
+  user-workload-grafana-instance:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: openshift-user-workload-grafana-instance     
+    source:
+      path: components/user-workload-grafana-instance      
     
 
 # service mesh

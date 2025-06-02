@@ -8,5 +8,4 @@ resources:
   - ./istiocni.yaml
   - ./pod-monitor.yaml
   - ./service-monitor.yaml
-  - ./open-telemetry-collector.yaml
   - ./telemetry.yaml

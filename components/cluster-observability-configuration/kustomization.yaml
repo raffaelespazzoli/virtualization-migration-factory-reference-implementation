@@ -5,7 +5,7 @@ namespace: openshift-observability
 
 resources:
   - ./namespace.yaml
-  - ./monitoring-stack.yaml
+  #- ./monitoring-stack.yaml
   - ./distributed-tracing-ui.yaml
   - ./troubleshooting-ui.yaml
   - ./monitoring-ui.yaml

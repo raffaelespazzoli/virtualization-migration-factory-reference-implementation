@@ -1,0 +1,64 @@
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel
+spec:
+  mode: deployment
+  serviceAccount: otel-collector
+  config:
+    extensions:
+      bearertokenauth: 
+        filename: "/var/run/secrets/kubernetes.io/serviceaccount/token"  
+    receivers: 
+      otlp:
+        protocols:
+          grpc:
+          http:
+      jaeger:
+        protocols:
+          grpc: 
+            endpoint: '0.0.0.0:4317'
+          thrift_binary: {}
+          thrift_compact: {}
+          thrift_http: {}
+      zipkin: {}
+      opencensus: {}
+    processors:
+      batch: {}
+      k8sattributes: {}
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 50
+        spike_limit_percentage: 30
+      resourcedetection:
+        detectors: [openshift]
+    exporters: 
+      otlp:
+        endpoint: 'tempo-tempo-distributor.openshift-tempo-instance.svc.cluster.local:4317'
+        tls:
+          insecure: true 
+      otlp/dev:
+        endpoint: tempo-tempo-gateway.openshift-tempo-instance.svc.cluster.local:8090
+        tls:
+          insecure: false
+          ca_file: "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
+        auth:
+          authenticator: bearertokenauth
+        headers:
+          X-Scope-OrgID: "dev"
+      otlphttp/dev:
+        endpoint: https://tempo-tempo-gateway.openshift-tempo-instance.svc.cluster.local:8080/api/traces/v1/dev
+        tls:
+          insecure: false
+          ca_file: "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"
+        auth:
+          authenticator: bearertokenauth
+        headers:
+          X-Scope-OrgID: "dev"               
+    service:
+      extensions: [bearertokenauth]
+      pipelines:
+        traces:
+          receivers: [otlp,jaeger,zipkin,opencensus]
+          processors: [memory_limiter, k8sattributes, resourcedetection, batch]
+          exporters: [oltp/dev]
