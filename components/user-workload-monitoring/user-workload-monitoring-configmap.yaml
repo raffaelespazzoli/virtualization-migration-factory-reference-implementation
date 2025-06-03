@@ -8,3 +8,30 @@ metadata:
 data:
   config.yaml: |
     enableUserWorkload: true
+    nodeExporter:	
+      collectors:	
+        buddyinfo: {}	
+        cpufreq: {}	
+        ksmd: {}	
+        mountstats: {}	
+        netclass: {}	
+        netdev: {}	
+        processes: {}	
+        systemd: {}	
+        tcpstat: {}	
+    prometheusK8s:	
+      additionalAlertmanagerConfigs:	
+      - apiVersion: v2	
+        bearerToken:	
+          key: token	
+          name: observability-alertmanager-accessor	
+        scheme: https	
+        staticConfigs:	
+        - alertmanager-open-cluster-management-observability.apps.hub2.ocp.rht-labs.com	
+        tlsConfig:	
+          ca:	
+            key: service-ca.crt	
+            name: hub-alertmanager-router-ca	
+          insecureSkipVerify: false	
+      externalLabels:	
+        managed_cluster: 234ce2bd-1b5c-4ea5-a29d-26e1bb4c1bac    
