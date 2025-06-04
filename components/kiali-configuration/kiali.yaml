@@ -58,22 +58,20 @@ spec:
         mesh_id: istio-system/default-v1-24-5
       url: 'https://thanos-querier.openshift-monitoring.svc.cluster.local:9091'
     tracing:
-      query_timeout: 30
       enabled: true
-      internal_url: 'http://tempo-tempo-query-frontend.openshift-tempo-instance.svc.cluster.local:16685'
-      external_url: https://tempo.apps.${CLUSTER_BASE_DOMAIN}
-      use_grpc: true
-      # auth:
-      #   password: {{ .Values.htpasswd }}
-      #   type: basic
-      #   use_kiali_token: false
-      #   username: internal
-      # enabled: true
-      # in_cluster_url: http://jaeger-query-internal.istio-system.svc.cluster.local
-      # namespace: istio-system
-      # service: ''
-      # url: {{ .Values.kiali.jaeger.url }}
-      # use_grpc: false
+      namespace_selector: true
+      tempo_config:
+        datasource_uid: 1610b0c3-c509-4592-a256-a1871353dbfa
+        org_id: '1'
+      auth:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+        type: bearer
+        use_kiali_token: true
+      query_timeout: 15
+      external_url: 'https://tempo-tempo-gateway-tempo.apps.${CLUSTER_BASE_DOMAIN}/api/traces/v1/dev/search'
+      internal_url: 'https://tempo-tempo-gateway.openshift-tempo-instance.svc.cluster.local:8080/api/traces/v1/dev/tempo'
+      provider: tempo
+      use_grpc: false
   installation_tag: 'Kiali [istio-system]'
   istio_namespace: istio-system
   #version: v1.65
