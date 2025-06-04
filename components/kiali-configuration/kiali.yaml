@@ -45,17 +45,17 @@ spec:
       internal_url: 'http://grafana-instance-service.openshift-user-workload-grafana-instance.svc:3000'
       external_url: https://user-workload-grafana.apps.${CLUSTER_BASE_DOMAIN}
     istio:
-      config_map_name: istio-default-v1-24-5
-      istio_sidecar_injector_config_map_name: istio-sidecar-injector-default-v1-24-5
-      istiod_deployment_name: istiod-default-v1-24-5
-      url_service_version: 'http://istiod-default-v1-24-5.istio-system:15014/version'
+      config_map_name: istio
+      istio_sidecar_injector_config_map_name: istio-sidecar-injector
+      istiod_deployment_name: istiod
+      url_service_version: 'http://istiod.istio-system:15014/version'
     prometheus:
       auth:
         insecure_skip_verify: true
         type: bearer
         use_kiali_token: true
       query_scope:
-        mesh_id: istio-system/default-v1-24-5
+        mesh_id: istio-system/default
       url: 'https://thanos-querier.openshift-monitoring.svc.cluster.local:9091'
     tracing:
       enabled: true
