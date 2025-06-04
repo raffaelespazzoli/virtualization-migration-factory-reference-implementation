@@ -5,6 +5,7 @@ namespace: bookinfo
 resources: 
 - namespace.yaml
 - https://raw.githubusercontent.com/openshift-service-mesh/istio/release-1.24/samples/bookinfo/platform/kube/bookinfo.yaml
+- certificate.yaml
 
 helmGlobals:
   chartHome: ../../../../.helm-charts
