@@ -1,0 +1,17 @@
+kind: VirtualService
+metadata:
+  name: bookinfo
+spec:
+  hosts:
+  - bookinfo.mesh.vips.${CLUSTER_BASE_DOMAIN}
+  gateways:
+  - bookinfo/bookinfo
+  http:
+  - match:
+    - uri:
+        prefix: /reviews/
+    route:
+    - destination:
+        port:
+          number: 9080
+        host: reviews.bookinfo.svc.cluster.local
