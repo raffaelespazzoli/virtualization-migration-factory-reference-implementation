@@ -5,7 +5,7 @@ metadata:
 spec:
   namespace: istio-system
   updateStrategy:
-    type: RevisionBased
+    type: InPlace
   values:
     global:
       proxy:
