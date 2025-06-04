@@ -58,9 +58,10 @@ spec:
             privileged: false
             readOnlyRootFilesystem: true
             runAsNonRoot: true
-          {{ if .Values.env }}
+          {{- end }}  
+          {{ with .Values.env }}
           env:
-          {{- range $key, $val := .Values.env }}
+          {{- range $key, $val := . }}
           - name: {{ $key }}
             value: {{ $val | quote }}
           {{- end }}
