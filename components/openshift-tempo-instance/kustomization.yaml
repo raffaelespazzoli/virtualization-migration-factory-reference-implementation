@@ -19,12 +19,12 @@ helmCharts:
     releaseName: tempo
     namespace: openshift-tempo-instance
     valuesFile: values.yaml
-  - name: oauth-proxy
-    releaseName: oauth-proxy
-    namespace: openshift-tempo-instance
-    valuesInline:
-      tempo:
-        url: http://tempo-tempo-query-frontend.openshift-tempo-instance.svc.cluster.local:16686
-      ingress:
-        route:
-          host: tempo.apps.${CLUSTER_BASE_DOMAIN}            
+  # - name: oauth-proxy
+  #   releaseName: oauth-proxy
+  #   namespace: openshift-tempo-instance
+  #   valuesInline:
+  #     tempo:
+  #       url: http://tempo-tempo-query-frontend.openshift-tempo-instance.svc.cluster.local:16686
+  #     ingress:
+  #       route:
+  #         host: tempo.apps.${CLUSTER_BASE_DOMAIN}            
