@@ -51,6 +51,7 @@ spec:
           securityContext:
           {{- if .Values.containerSecurityContext }}
             {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          {{- else }}
             capabilities:
               drop:
               - ALL
@@ -59,7 +60,7 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
           {{- end }}  
-          {{ with .Values.env }}
+          {{- with .Values.env }}
           env:
           {{- range $key, $val := . }}
           - name: {{ $key }}

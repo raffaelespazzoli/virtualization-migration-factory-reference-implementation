@@ -2,11 +2,6 @@ securityContext:
   runAsNonRoot: true
   seccompProfile:
     type: RuntimeDefault
-containerSecurityContext: 
-  allowPrivilegeEscalation: false
-  capabilities:
-    drop:
-      - ALL
 
 service:
   # Type of service. Set to "None" to disable the service entirely
