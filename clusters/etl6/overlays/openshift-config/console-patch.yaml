@@ -15,3 +15,7 @@ spec:
   - tvk-console-plugin
   - logging-view-plugin
   - fusion-access-console
+  - ossmconsole
+  - troubleshooting-panel-console-plugin
+  - distributed-tracing-console-plugin
+  - monitoring-console-plugin  
