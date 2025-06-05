@@ -194,4 +194,13 @@ applications:
     destination:
       namespace: bookinfo
     source:
-      path: clusters/etl4/overlays/bookinfo         
+      path: clusters/etl4/overlays/bookinfo     
+
+  bookinfo-udn:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '25'
+    destination:
+      namespace: bookinfo-udn
+    source:
+      path: clusters/etl4/overlays/bookinfo-udn

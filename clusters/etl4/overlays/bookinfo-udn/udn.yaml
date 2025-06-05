@@ -1,0 +1,11 @@
+apiVersion: k8s.ovn.org/v1
+kind: UserDefinedNetwork
+metadata:
+  name: mesh-udn
+spec:
+  topology: Layer3
+  layer3: 
+    role: Primary 
+    subnets:
+      - cidr: 10.150.0.0/16
+        hostSubnet: 24
