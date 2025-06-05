@@ -9,3 +9,4 @@ resources:
   - ./pod-monitor.yaml
   - ./service-monitor.yaml
   - ./telemetry.yaml
+  - github.com/kubernetes-sigs/gateway-api/config/crd?ref=v1.0.0

@@ -224,4 +224,20 @@ applications:
     destination:
       namespace: istio-system
     source:
-      path: components/kiali-configuration                
+      path: components/kiali-configuration
+
+  openshift-connectivity-link-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'     
+    source:
+      path: components/openshift-connectivity-link-operator 
+
+  openshift-connectivity-link-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: kuadrant-system           
+    source:
+      path: components/openshift-connectivity-link-configuration                      
