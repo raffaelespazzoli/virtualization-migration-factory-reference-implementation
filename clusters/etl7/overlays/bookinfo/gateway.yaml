@@ -1,0 +1,17 @@
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: bookinfo
+spec:
+  selector:
+    istio: bookinfo-ingressgateway
+  servers:
+  - port:
+      number: 443
+      name: https-443
+      protocol: HTTPS
+    hosts:
+    - '*.mesh.vips.${CLUSTER_BASE_DOMAIN}'
+    tls:
+      mode: SIMPLE
+      credentialName: gateway-ingress-certs-tls

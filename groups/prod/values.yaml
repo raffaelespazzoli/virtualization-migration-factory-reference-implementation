@@ -75,44 +75,6 @@ applications:
     source:
       path: components/node-health-check-configuration   
 
-## Storage
-
-  # ibm-fusion-operator:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '5'
-  #   destination:
-  #     namespace: ibm-spectrum-fusion-ns      
-  #   source:
-  #     path: components/ibm-fusion-operator
-
-  # ibm-fusion-storage-system:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '25'
-  #   destination:
-  #     namespace: openshift-storage
-  #   source:
-  #     path: components/ibm-fusion-storage-system            
-
-## Backup and DR
-
-  # oadp-operator:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '5'
-  #   source:
-  #     path: components/oadp-operator
-
-  # oadp-configuration:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '15'
-  #   destination:
-  #     namespace: openshift-adp
-  #   source:
-  #     path: components/oadp-configuration
-
   trilio-operator:
     annotations:
       argocd.argoproj.io/sync-wave: '5'
@@ -156,4 +118,110 @@ applications:
     annotations:
       argocd.argoproj.io/sync-wave: '15'
     source:
-      path: components/power-monitoring-configuration           
+      path: components/power-monitoring-configuration 
+
+# observability
+
+  openshift-tempo-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: openshift-tempo-operator
+    source:
+      path: components/openshift-tempo-operator
+
+  openshift-tempo-instance:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: openshift-tempo-instance
+    source:
+      path: components/openshift-tempo-instance
+
+  cluster-observability-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: openshift-observability
+    source:
+      path: components/cluster-observability-configuration
+
+  otel-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: openshift-opentelemetry-operator
+    source:
+      path: components/otel-operator     
+
+  otel-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: otel-collector
+    source:
+      path: components/otel-configuration
+
+  user-workload-monitoring:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    source:
+      path: components/user-workload-monitoring
+
+  openshift-grafana-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: openshift-grafana-operator
+    source:
+      path: components/openshift-grafana-operator
+
+  user-workload-grafana-instance:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: openshift-user-workload-grafana-instance     
+    source:
+      path: components/user-workload-grafana-instance      
+
+# service mesh
+
+  servicemesh-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'     
+    source:
+      path: components/openshift-servicemesh-operator   
+
+  servicemesh-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'     
+    source:
+      path: components/openshift-servicemesh-configuration 
+
+  kiali-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: openshift-kiali-operator
+    source:
+      path: components/kiali-operator
+
+  kiali-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: istio-system
+    source:
+      path: components/kiali-configuration                

@@ -61,34 +61,7 @@ applications:
     destination:
       namespace: trident-protect
     source:
-      path: components/trident-protect-configuration      
-
-  # ibm-fusion-configuration:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '15'
-  #   destination:
-  #     namespace: ibm-spectrum-fusion-ns
-  #   source:
-  #     path: clusters/etl6/overlays/ibm-fusion-configuration
-  #   extraFields: |
-  #     ignoreDifferences:
-  #       - group: 'service.isf.ibm.com'
-  #         jsonPointers:
-  #           - /spec/doInstall
-  #         kind: FusionServiceInstance   
-
-  # infoscale-sds-operator:
-  #   annotations:
-  #     argocd.argoproj.io/sync-wave: '5'
-  #   source:
-  #     path: components/infoscale-sds-operator 
-
-  # infoscale-sds-configuration:
-  #   annotations:
-  #     argocd.argoproj.io/sync-wave: '15'
-  #   source:
-  #     path: clusters/etl6/overlays/infoscale-sds-configuration  
+      path: components/trident-protect-configuration        
 
   fusion-access-for-san-operator:
     annotations:
@@ -145,23 +118,18 @@ applications:
             - /spec/continuousRestoreConfig/continuousRestoreInstances/0/continuousRestorePolicy/uid                      
 
 
-  infinidat-appliance:
-    annotations:
-      argocd.argoproj.io/sync-wave: '25'     
-    source:
-      path: clusters/etl6/overlays/infinidat-appliance
-
   vlan-dhcp:
     annotations:
       argocd.argoproj.io/sync-wave: '24'     
     source:
-      path: clusters/etl6/overlays/vlan-dhcp      
+      path: clusters/etl6/overlays/vlan-dhcp        
 
-  # udn-test:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '25'
-  #   destination:
-  #     namespace: udn-test
-  #   source:
-  #     path: clusters/etl6/overlays/udn-test          
+
+  bookinfo:
+  annotations:
+    argocd.argoproj.io/compare-options: IgnoreExtraneous
+    argocd.argoproj.io/sync-wave: '25'
+  destination:
+    namespace: bookinfo
+  source:
+    path: clusters/etl6/overlays/bookinfo       

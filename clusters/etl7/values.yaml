@@ -35,39 +35,12 @@ applications:
     source:
       path: clusters/etl7/overlays/trident-configuration
 
-  # ibm-fusion-configuration:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '15'
-  #   destination:
-  #     namespace: ibm-spectrum-fusion-ns
-  #   source:
-  #     path: clusters/etl7/overlays/ibm-fusion-configuration
-  #   extraFields: |
-  #     ignoreDifferences:
-  #       - group: 'service.isf.ibm.com'
-  #         jsonPointers:
-  #           - /spec/doInstall
-  #         kind: FusionServiceInstance
 
-  fusion-access-for-san-operator:
+  bookinfo:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '5'
-    source:
-      path: components/fusion-access-for-san-operator
-
-  fusion-access-for-san-configuration:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '15'
+      argocd.argoproj.io/sync-wave: '25'
     destination:
-      namespace: openshift-fusion-access   
+      namespace: bookinfo
     source:
-      path: components/fusion-access-for-san-configuration   
-
-  infinidat-appliance:
-    annotations:
-      argocd.argoproj.io/sync-wave: '25'     
-    source:
-      path: clusters/etl7/overlays/infinidat-appliance                         
+      path: clusters/etl7/overlays/bookinfo                               
