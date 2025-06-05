@@ -126,10 +126,10 @@ applications:
 
 
   bookinfo:
-  annotations:
-    argocd.argoproj.io/compare-options: IgnoreExtraneous
-    argocd.argoproj.io/sync-wave: '25'
-  destination:
-    namespace: bookinfo
-  source:
-    path: clusters/etl6/overlays/bookinfo       
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '25'
+    destination:
+      namespace: bookinfo
+    source:
+      path: clusters/etl6/overlays/bookinfo       
