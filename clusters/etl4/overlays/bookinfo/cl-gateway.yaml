@@ -3,7 +3,7 @@ kind: Gateway
 metadata:
   name: bookinfo
   labels:
-    kuadrant.io/lb-attribute-geo-code: ${CLUSNER_NAME}
+    kuadrant.io/lb-attribute-geo-code: ${CLUSTER_NAME}
 spec:
   gatewayClassName: istio
   listeners:
