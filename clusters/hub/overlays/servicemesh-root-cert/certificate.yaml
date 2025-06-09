@@ -1,0 +1,18 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: sm-root-ca
+spec:
+  isCA: true
+  commonName: Root CA
+  secretName: root-ca
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: selfsigned-issuer
+    kind: Issuer
+    group: cert-manager.io
+  encodeUsagesInRequest: true
+  usages:
+  - any
