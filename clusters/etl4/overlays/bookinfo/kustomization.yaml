@@ -8,6 +8,7 @@ resources:
 - certificate.yaml
 - gateway.yaml
 - virtual-service.yaml
+- cl-gateway.yaml
 
 helmGlobals:
   chartHome: ../../../../.helm-charts
