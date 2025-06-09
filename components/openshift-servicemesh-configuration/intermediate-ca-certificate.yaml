@@ -1,0 +1,21 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: sm-intermediate-ca
+spec:
+  isCA: true
+  commonName: Intermediate CA
+  secretName: intermediate-ca
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: root-ca-issuer
+    kind: Issuer
+    group: cert-manager.io
+  encodeUsagesInRequest: true
+  usages:
+  - any
+  dnsNames:
+    - istiod.istio-system.svc
+    - istiod.istio-system.svc.cluster.local

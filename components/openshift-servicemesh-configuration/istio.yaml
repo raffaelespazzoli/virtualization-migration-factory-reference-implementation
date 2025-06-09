@@ -8,6 +8,10 @@ spec:
     type: InPlace
   values:
     global:
+      meshID: default
+      multiCluster:
+        clusterName: ${CLUSTER_NAME}
+      network: network-${CLUSTER_NAME}
       proxy:
         resources:
           limits:

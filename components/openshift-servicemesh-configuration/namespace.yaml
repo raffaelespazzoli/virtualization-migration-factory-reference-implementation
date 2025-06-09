@@ -4,4 +4,6 @@ metadata:
   labels:
     kubernetes.io/metadata.name: istio-system
     argocd.argoproj.io/managed-by: openshift-gitops
+    topology.istio.io/network: network-${CLUSNER_NAME}
+
   name: istio-system
