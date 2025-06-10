@@ -39,7 +39,7 @@ spec:
                   name: cacerts
                   namespace: 'istio-system'
                 type: Opaque
-                data:    
+                data:
                   ca-cert.pem: {{ (index (lookup "v1" "Secret" "istio-system" "intermediate-ca").data "tls.crt") }}
                   ca-key.pem: {{ (index (lookup "v1" "Secret" "istio-system" "intermediate-ca").data "tls.key") }}
                   root-cert.pem: {{ (index (lookup "v1" "Secret" "istio-system" "root-ca").data "tls.crt") }}
