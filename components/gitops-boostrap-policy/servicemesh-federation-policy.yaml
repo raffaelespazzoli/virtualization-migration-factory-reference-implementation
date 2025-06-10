@@ -44,6 +44,44 @@ spec:
                   ca-key.pem: {{ (index (lookup "v1" "Secret" "istio-system" "intermediate-ca").data "tls.key") }}
                   root-cert.pem: {{ (index (lookup "v1" "Secret" "istio-system" "root-ca").data "tls.crt") }}
                   cert-chain.pem: {{ (list ((index (lookup "v1" "Secret" "istio-system" "intermediate-ca").data "tls.crt") | base64dec) ((index (lookup "v1" "Secret" "istio-system" "root-ca").data "tls.crt") | base64dec)) | join "\n" | base64enc }}
+            {{ $clusterName := .ManagedClusterName }}
+            {{ for (lookup "cluster.open-cluster-management.io/v1" "ManagedCluster" "" "") }}
+            {{ if eq .metadata.labels.servicemesh-federation "enabled" }}
+            {{ if not eq .metadata.name $clusterName }}
+            - complianceType: mustonlyhave
+              objectDefinition:
+                apiVersion: v1
+                kind: Secret
+                metadata:
+                  name: istio-remote-secret-{{ .metadata.name }}
+                  namespace: 'istio-system'
+                  labels:
+                    "istio/multiCluster": "true"
+                  annotations:
+                    "networking.istio.io/cluster": env.ctx  
+                type: Opaque
+                data:
+                  {{ .metadata.name }}: |- 
+                    apiVersion: v1
+                    kind: Config
+                    clusters:
+                    - name: {{ .metadata.name }}
+                      cluster:
+                        insecure-skip-tls-verify: true
+                        server: {{ .spec.apiServerURL }}
+                    contexts:
+                    - name: istio-reader-service-account/{{.metadata.name}}
+                      context:
+                        cluster: {{ .metadata.name }}
+                        namespace: istio-system
+                        user: istio-reader-service-account
+                    users:
+                    - name: istio-reader-service-account
+                      user:
+                        token: ${token}
+                    current-context: istio-reader-service-account/{{.metadata.name}}                 
+            {{ end }}
+            {{ end }}
 ---
 apiVersion: cluster.open-cluster-management.io/v1beta1
 kind: Placement

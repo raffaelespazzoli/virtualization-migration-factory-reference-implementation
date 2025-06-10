@@ -10,6 +10,7 @@ spec:
   extraConfig:
     resource.compareoptions: |
       ignoreAggregatedRoles: true
+    resource.customizations.useOpenLibs.minio.min.io_Tenant: 'true'      
   server:
     autoscale:
       enabled: false
