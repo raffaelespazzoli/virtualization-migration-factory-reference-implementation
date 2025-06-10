@@ -79,7 +79,7 @@ spec:
                     - name: istio-reader-service-account
                       user:
                         token: ${token}
-                    current-context: istio-reader-service-account/{{.metadata.name}}                 
+                    current-context: istio-reader-service-account/{{.metadata.name}}
             {{ end }}
             {{ end }}
 ---
