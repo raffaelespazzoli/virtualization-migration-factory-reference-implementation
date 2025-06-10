@@ -82,6 +82,7 @@ spec:
                     current-context: istio-reader-service-account/{{.metadata.name}}
             {{ end }}
             {{ end }}
+            {{hub end hub}}
 ---
 apiVersion: cluster.open-cluster-management.io/v1beta1
 kind: Placement
