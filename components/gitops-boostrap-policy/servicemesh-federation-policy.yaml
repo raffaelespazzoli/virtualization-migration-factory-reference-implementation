@@ -60,7 +60,7 @@ spec:
                   annotations:
                     "networking.istio.io/cluster": env.ctx
                 type: Opaque
-                data:
+                stringData:
                   {{hub .metadata.name hub}}: |-
                     apiVersion: v1
                     kind: Config
