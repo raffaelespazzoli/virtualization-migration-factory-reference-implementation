@@ -78,7 +78,7 @@ spec:
                     users:
                     - name: istio-reader-service-account
                       user:
-                        token: ${token}
+                        token: {{ (lookup "v1" "Secret" .metadata.name "istio-reader-service-account").data.token | base64dec }}
                     current-context: istio-reader-service-account/{{.metadata.name}}
             {{ end }}
             {{ end }}
