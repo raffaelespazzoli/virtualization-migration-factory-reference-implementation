@@ -35,4 +35,10 @@ helmCharts:
 
   - name: cluster-registration
     releaseName: etl4
-    namespace: etl4 
+    namespace: etl4
+    valuesInline:
+      labels:
+        cloud: BareMetal
+        vendor: OpenShift
+        gitops: deploy
+        servicemesh-federation: enabled

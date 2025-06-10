@@ -37,3 +37,8 @@ helmCharts:
     namespace: etl6
     valuesInline:
       clusterSet: dr 
+      labels:
+        cloud: BareMetal
+        vendor: OpenShift
+        gitops: deploy
+        servicemesh-federation: enabled      

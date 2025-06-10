@@ -9,6 +9,7 @@ resources:
 - managedclustersetbinding.yaml
 - policy-service-account.yaml
 - propagate-secret-policy.yaml
+- servicemesh-federation-policy.yaml
 
 generators:
 - policy-generator-config.yaml
