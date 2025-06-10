@@ -55,7 +55,7 @@ spec:
     - requiredClusterSelector:
         labelSelector:
           matchLabels:
-            servicemesh-federaton: "enabled"
+            servicemesh-federation: "enabled"
 ---
 apiVersion: policy.open-cluster-management.io/v1
 kind: PlacementBinding
