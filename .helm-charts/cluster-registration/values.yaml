@@ -12,5 +12,8 @@ mtv_integration:
   enabled: true
 
 acm_virtualization_features:
-  enabled: true      
+  enabled: true
+
+servicemesh_federation:
+  enabled: true    
   
