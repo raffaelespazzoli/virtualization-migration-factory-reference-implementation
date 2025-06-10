@@ -58,7 +58,7 @@ spec:
                   labels:
                     "istio/multiCluster": "true"
                   annotations:
-                    "networking.istio.io/cluster": env.ctx  
+                    "networking.istio.io/cluster": env.ctx
                 type: Opaque
                 data:
                   {{ .metadata.name }}: |-
