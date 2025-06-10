@@ -67,8 +67,8 @@ spec:
                     clusters:
                     - name: {{hub .metadata.name hub}}
                       cluster:
-                        insecure-skip-tls-verify: true
-                        server: {{hub .spec.apiServerURL hub}}
+                        certificate-authority-data: {{hub (index .spec.managedClusterClientConfigs 0).caBundle hub}}
+                        server: {{hub (index .spec.managedClusterClientConfigs 0).url hub}}
                     contexts:
                     - name: istio-reader-service-account/{{hub .metadata.name hub}}
                       context:
