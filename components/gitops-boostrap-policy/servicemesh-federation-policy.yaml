@@ -46,7 +46,7 @@ spec:
                   cert-chain.pem: {{ (list ((index (lookup "v1" "Secret" "istio-system" "intermediate-ca").data "tls.crt") | base64dec) ((index (lookup "v1" "Secret" "istio-system" "root-ca").data "tls.crt") | base64dec)) | join "\n" | base64enc }}
             {{hub $clusterName := .ManagedClusterName hub}}
             {{hub range (lookup "cluster.open-cluster-management.io/v1" "ManagedCluster" "" "").items hub}}
-            {{hub if eq index (.metadata.labels "servicemesh-federation") "enabled" hub}}
+            {{hub if eq (index .metadata.labels "servicemesh-federation") "enabled" hub}}
             {{hub if not eq .metadata.name $clusterName hub}}
             - complianceType: mustonlyhave
               objectDefinition:
