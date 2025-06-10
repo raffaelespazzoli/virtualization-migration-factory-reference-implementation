@@ -61,7 +61,7 @@ spec:
                     "networking.istio.io/cluster": env.ctx  
                 type: Opaque
                 data:
-                  {{ .metadata.name }}: |- 
+                  {{ .metadata.name }}: |-
                     apiVersion: v1
                     kind: Config
                     clusters:
