@@ -15,7 +15,11 @@ spec:
     group: cert-manager.io
   encodeUsagesInRequest: true
   usages:
-  - any
+  - digital signature
+  - content commitment
+  - key encipherment
+  - cert sign
+  - signing
   dnsNames:
     - istiod.istio-system.svc
     - istiod.istio-system.svc.cluster.local
