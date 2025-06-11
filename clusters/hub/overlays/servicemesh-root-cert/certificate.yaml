@@ -14,9 +14,15 @@ spec:
     kind: Issuer
     group: cert-manager.io
   encodeUsagesInRequest: true
+  subject:
+    countries:
+      - US
+    organizationalUnits:
+      - Istio Mesh
+    organizations:
+      - ETL Lab  
   usages:
-  - digital signature
-  - content commitment
-  - key encipherment
-  - cert sign
-  - signing
+    - crl sign
+    - cert sign
+    - signing
+    - digital signature

@@ -15,11 +15,20 @@ spec:
     group: cert-manager.io
   encodeUsagesInRequest: true
   usages:
-  - digital signature
-  - content commitment
-  - key encipherment
-  - cert sign
-  - signing
+    - signing
+    - digital signature
+    - cert sign
+    - client auth
+    - server auth
+    - email protection
   dnsNames:
     - istiod.istio-system.svc
     - istiod.istio-system.svc.cluster.local
+  subject:
+    countries:
+      - US
+    organizationalUnits:
+      - Istio Mesh
+      - ${CLUSTER_NAME}
+    organizations:
+      - ETL Lab
