@@ -12,7 +12,7 @@ resources:
 - http-route.yaml
 
 helmGlobals:
-  chartHome: ../../../../.helm-charts
+  chartHome: ../.helm-charts
 
 helmCharts:
   - name: gateway
