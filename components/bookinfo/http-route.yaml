@@ -5,6 +5,8 @@ metadata:
 spec:
   parentRefs:
   - name: bookinfo
+    group: gateway.networking.k8s.io	
+    kind: Gateway
   hostnames:
   - "bookinfo.global.${PLATFORM_BASE_DOMAIN}"
   rules:
@@ -25,5 +27,12 @@ spec:
         type: PathPrefix
         value: /api/v1/products                                 
   - backendRefs:
-    - name: productpage
+    - group: ''	
+      kind: Service
+      name: productpage
       port: 9080
+      weight: 1	
+    matches:	
+    - path:	
+        type: PathPrefix	
+        value: /      
