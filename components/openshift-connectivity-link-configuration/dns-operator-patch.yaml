@@ -1,0 +1,16 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata: 
+  name: dns-operator-controller-manager
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true  
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        args:
+        - '--metrics-bind-address=:8080'
+        - '--leader-elect'
+        - "--provider=aws,google,azure,coredns"
+        image: quay.io/kuadrant/dns-operator:v0.14.0
