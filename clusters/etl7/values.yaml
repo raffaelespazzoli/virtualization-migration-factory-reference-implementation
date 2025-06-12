@@ -43,4 +43,4 @@ applications:
     destination:
       namespace: bookinfo
     source:
-      path: clusters/etl7/overlays/bookinfo                               
+      path: components/bookinfo                               

@@ -90,7 +90,7 @@ applications:
     destination:
       namespace: bookinfo
     source:
-      path: clusters/etl4/overlays/bookinfo     
+      path: components/bookinfo
 
   # bookinfo-udn:
   #   annotations:

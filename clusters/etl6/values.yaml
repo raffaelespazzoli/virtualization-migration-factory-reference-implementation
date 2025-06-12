@@ -132,4 +132,4 @@ applications:
     destination:
       namespace: bookinfo
     source:
-      path: clusters/etl6/overlays/bookinfo       
+      path: components/bookinfo
