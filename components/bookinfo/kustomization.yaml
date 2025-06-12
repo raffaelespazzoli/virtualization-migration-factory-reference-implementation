@@ -9,6 +9,7 @@ resources:
 - gateway.yaml
 - virtual-service.yaml
 - cl-gateway.yaml
+- http-route.yaml
 
 helmGlobals:
   chartHome: ../../../../.helm-charts

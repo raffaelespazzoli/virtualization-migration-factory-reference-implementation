@@ -33,14 +33,4 @@ applications:
     destination:
       namespace: netapp-trident
     source:
-      path: clusters/etl7/overlays/trident-configuration
-
-
-  bookinfo:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '25'
-    destination:
-      namespace: bookinfo
-    source:
-      path: components/bookinfo                               
+      path: clusters/etl7/overlays/trident-configuration                            

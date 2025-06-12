@@ -1,0 +1,73 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: kuadrant-coredns-policy
+  # Must be a recognized policy namespace on the hub
+  namespace: acm-policies
+spec:
+  remediationAction: enforce
+  disabled: false
+  hubTemplateOptions:
+    serviceAccountName: policy-admin
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: kuadrant-coredns-policy
+        spec:
+          remediationAction: enforce
+          severity: low
+          object-templates-raw: |-
+            - complianceType: mustonlyhave
+              objectDefinition:
+                apiVersion: v1
+                kind: Secret
+                metadata:
+                  name: core-dns
+                  namespace: kuadrant-coredns
+                type: kuadrant.io/coredns
+                stringData:
+            {{ $servers:= list }}}}
+            {{hub range (lookup "cluster.open-cluster-management.io/v1" "ManagedCluster" "" "").items hub}}
+            {{hub if eq (index .metadata.labels "servicemesh-federation") "enabled" hub}}
+            {{ $server := <somehow run this on current item (index (lookup "v1" "Service" "kuadrant-coredns" "coredns").status.loadBalancer.ingress 0).ip }}
+            {{ $servers = append $servers (printf "%s:53" $server) }}
+            {{hub end hub}}
+            {{hub end hub}}
+                  NAMESERVERS: {{ join $servers "," }}
+                  ZONES: *.global.${PLATFORM_BASE_DOMAIN}
+
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: kuadrant-coredns-placement
+  namespace: acm-policies
+spec:
+  predicates:
+    - requiredClusterSelector:
+        labelSelector:
+          matchLabels:
+            servicemesh-federation: "enabled"
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: kuadrant-coredns-binding
+  namespace: acm-policies
+subjects:
+  - kind: Policy
+    apiGroup: policy.open-cluster-management.io
+    name: kuadrant-coredns-policy
+placementRef:
+  kind: Placement
+  apiGroup: cluster.open-cluster-management.io
+  name: kuadrant-coredns-placement
+
+
+
+
+
+
+kubectl create secret generic core-dns --namespace=kuadrant-coredns-2 --type=kuadrant.io/coredns --from-literal=NAMESERVERS="${coredns2IP}:53,${coredns1IP}:53" --from-literal=ZONES="k.example.com"

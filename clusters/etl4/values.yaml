@@ -79,19 +79,6 @@ applications:
     source:
       path: clusters/etl4/overlays/test-udn    
 
-      
-      
-
-
-  bookinfo:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '25'
-    destination:
-      namespace: bookinfo
-    source:
-      path: components/bookinfo
-
   # bookinfo-udn:
   #   annotations:
   #     argocd.argoproj.io/compare-options: IgnoreExtraneous

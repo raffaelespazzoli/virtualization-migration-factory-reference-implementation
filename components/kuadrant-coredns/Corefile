@@ -1,0 +1,28 @@
+kdrnt {
+    debug
+    errors
+    health {
+        lameduck 5s
+    }
+    ready
+    log
+    transfer {
+        to *
+    }
+    kuadrant
+    prometheus 0.0.0.0:9153
+}
+.global.${PLATFORM_BASE_DOMAIN} {
+    debug
+    errors
+    log
+    geoip GeoLite2-City-demo.mmdb {
+        edns-subnet
+    }
+    metadata
+    transfer {
+        to *
+    }
+    kuadrant
+    prometheus 0.0.0.0:9153
+}
