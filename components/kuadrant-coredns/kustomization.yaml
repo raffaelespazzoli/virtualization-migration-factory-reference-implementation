@@ -26,7 +26,7 @@ helmCharts:
         tag: latest
         pullPolicy: Always
 patches:
-  - path: k8s_prometheus_patch.yaml
+  - path: k8s-prometheus-patch.yaml
   - target:
       kind: ClusterRole
       name: kuadrant-coredns
