@@ -12,7 +12,7 @@ kdrnt {
     kuadrant
     prometheus 0.0.0.0:9153
 }
-.global.${PLATFORM_BASE_DOMAIN} {
+global.${PLATFORM_BASE_DOMAIN} {
     debug
     errors
     log
