@@ -33,7 +33,7 @@ spec:
                   {{hub- $server := (index $mcv.status.result.status.loadBalancer.ingress 0).ip hub}}
                   {{hub- $servers = append $servers (printf "%s:53" $server) hub}}
                 {{hub- end hub}}
-                  NAMESERVERS: {{ join $servers "," }}
+                  NAMESERVERS: {{hub join $servers "," hub}}
                   ZONES: *.global.${PLATFORM_BASE_DOMAIN}
 ---
 apiVersion: cluster.open-cluster-management.io/v1beta1
