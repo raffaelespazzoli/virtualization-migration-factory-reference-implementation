@@ -1,0 +1,15 @@
+{{ if .Values.servicemesh_federation.enabled }}
+apiVersion: view.open-cluster-management.io/v1beta1
+kind: ManagedClusterView
+metadata:
+  labels:
+    coredns-service: ''
+  name: coredns-service
+spec:
+  scope:
+    apiGroup: ""
+    kind: Service
+    name: kuadrant-coredns
+    namespace: coredns
+    version: v1
+{{ end }}    
