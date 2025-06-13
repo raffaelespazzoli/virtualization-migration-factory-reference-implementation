@@ -12,7 +12,7 @@ spec:
   # At least one of a DNS Name, URI, or IP address is required.
   dnsNames:
     - '*.mesh.vips.${CLUSTER_BASE_DOMAIN}'
-    - '*.global.${PLATFORM_BASE_DOMAIN}'
+    - '*.mesh.global.${PLATFORM_BASE_DOMAIN}'
   issuerRef:
     name: letsencrypt-issuer
     # We can reference ClusterIssuers by changing the kind here.

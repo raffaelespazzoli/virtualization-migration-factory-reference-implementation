@@ -8,7 +8,7 @@ spec:
     group: gateway.networking.k8s.io	
     kind: Gateway
   hostnames:
-  - "bookinfo.global.${PLATFORM_BASE_DOMAIN}"
+  - "bookinfo.mesh.global.${PLATFORM_BASE_DOMAIN}"
   rules:
   - matches:
     - path:

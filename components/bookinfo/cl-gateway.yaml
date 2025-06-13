@@ -10,7 +10,7 @@ spec:
     - allowedRoutes:
         namespaces:
           from: All
-      hostname: '*.global.${PLATFORM_BASE_DOMAIN}'
+      hostname: '*.mesh.global.${PLATFORM_BASE_DOMAIN}'
       name: api
       port: 443
       protocol: HTTPS
