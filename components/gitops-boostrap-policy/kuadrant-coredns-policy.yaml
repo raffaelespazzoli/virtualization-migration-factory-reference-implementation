@@ -25,7 +25,7 @@ spec:
                 kind: Secret
                 metadata:
                   name: core-dns
-                  namespace: kuadrant-coredns
+                  namespace: bookinfo
                 type: kuadrant.io/coredns
                 stringData:
                 {{hub- $servers := list hub}}

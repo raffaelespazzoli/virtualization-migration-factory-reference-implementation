@@ -7,3 +7,5 @@ spec:
     group: gateway.networking.k8s.io
     kind: Gateway
     name: bookinfo
+  providerRefs:
+    - name: core-dns
