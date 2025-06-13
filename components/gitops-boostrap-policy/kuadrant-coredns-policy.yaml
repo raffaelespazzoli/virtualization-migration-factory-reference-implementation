@@ -28,7 +28,7 @@ spec:
                   namespace: kuadrant-coredns
                 type: kuadrant.io/coredns
                 stringData:
-                {{hub- $servers := list hub}}
+                {{hub- $servers := list "a" | slice 1 hub}}
                 {{hub- range $mcv := (lookup "view.open-cluster-management.io/v1beta1" "ManagedClusterView" "" "" "coredns-service").items hub}}
                   {{hub- $server := (index $mcv.status.result.status.loadBalancer.ingress 0).ip hub}}
                   {{hub- $servers = append $servers (printf "%s:53" $server) hub}}
