@@ -35,7 +35,6 @@ spec:
                 {{hub- end hub}}
                   NAMESERVERS: {{ join $servers "," }}
                   ZONES: *.global.${PLATFORM_BASE_DOMAIN}
-
 ---
 apiVersion: cluster.open-cluster-management.io/v1beta1
 kind: Placement
@@ -62,10 +61,3 @@ placementRef:
   kind: Placement
   apiGroup: cluster.open-cluster-management.io
   name: kuadrant-coredns-placement
-
-
-
-
-
-
-kubectl create secret generic core-dns --namespace=kuadrant-coredns-2 --type=kuadrant.io/coredns --from-literal=NAMESERVERS="${coredns2IP}:53,${coredns1IP}:53" --from-literal=ZONES="k.example.com"
