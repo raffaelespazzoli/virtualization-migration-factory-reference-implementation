@@ -10,6 +10,6 @@ spec:
     apiGroup: ""
     kind: Service
     name: kuadrant-coredns
-    namespace: coredns
+    namespace: kuadrant-coredns
     version: v1
 {{ end }}    
