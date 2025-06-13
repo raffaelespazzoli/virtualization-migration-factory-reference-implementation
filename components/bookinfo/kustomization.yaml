@@ -10,6 +10,7 @@ resources:
 - virtual-service.yaml
 - cl-gateway.yaml
 - http-route.yaml
+- dns-policy.yaml
 
 helmGlobals:
   chartHome: ../../.helm-charts

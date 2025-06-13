@@ -1,0 +1,9 @@
+apiVersion: kuadrant.io/v1
+kind: DNSPolicy
+metadata:
+  name: bookinfo
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: bookinfo
