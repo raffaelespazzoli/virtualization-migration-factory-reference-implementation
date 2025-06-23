@@ -30,8 +30,8 @@ spec:
                 data:
                   ca-cert.pem: {{hub (index (lookup "v1" "Secret" .metadata.name "intermediate-ca").data "tls.crt") hub}}
                   ca-key.pem: {{hub (index (lookup "v1" "Secret" .metadata.name "intermediate-ca").data "tls.key") hub}}
-                  root-cert.pem: {{hub (index (lookup "v1" "Secret" "istio-system" "root-ca").data "tls.crt") hub}}
-                  cert-chain.pem: {{hub (list ((index (lookup "v1" "Secret" .metadata.name "intermediate-ca").data "tls.crt") | base64dec) ((index (lookup "v1" "Secret" "istio-system" "root-ca").data "tls.crt") | base64dec)) | join "\n" | base64enc hub}}
+                  root-cert.pem: {{hub (index (lookup "v1" "Secret" "cert-manager" "root-ca").data "tls.crt") hub}}
+                  cert-chain.pem: {{hub (list ((index (lookup "v1" "Secret" .metadata.name "intermediate-ca").data "tls.crt") | base64dec) ((index (lookup "v1" "Secret" "cert-manager" "root-ca").data "tls.crt") | base64dec)) | join "\n" | base64enc hub}}
             {{hub $clusterName := .ManagedClusterName hub}}
             {{hub range (lookup "cluster.open-cluster-management.io/v1" "ManagedCluster" "" "").items hub}}
             {{hub if eq (index .metadata.labels "servicemesh-federation") "enabled" hub}}
