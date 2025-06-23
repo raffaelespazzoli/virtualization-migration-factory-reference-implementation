@@ -11,6 +11,4 @@ resources:
   - ./telemetry.yaml
   - github.com/kubernetes-sigs/gateway-api/config/crd?ref=v1.0.0
   - east-west-gateway.yaml
-  - intermediate-ca-certificate.yaml
-  - root-ca-issuer.yaml
   - federated-services-gateway.yaml

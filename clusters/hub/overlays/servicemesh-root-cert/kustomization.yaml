@@ -7,3 +7,4 @@ resources:
 - namespace.yaml
 - certificate.yaml
 - self-signed-issuer.yaml
+- root-ca-issuer.yaml

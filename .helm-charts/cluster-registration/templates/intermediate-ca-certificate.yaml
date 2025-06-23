@@ -1,3 +1,4 @@
+{{ if .Values.servicemesh_federation.enabled }}
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -11,7 +12,7 @@ spec:
     size: 256
   issuerRef:
     name: root-ca-issuer
-    kind: Issuer
+    kind: ClusterIssuer
     group: cert-manager.io
   encodeUsagesInRequest: true
   usages:
@@ -29,6 +30,7 @@ spec:
       - US
     organizationalUnits:
       - Istio Mesh
-      - ${CLUSTER_NAME}
+      - {{ .Release.Name }}
     organizations:
       - ETL Lab
+{{ end }}      
