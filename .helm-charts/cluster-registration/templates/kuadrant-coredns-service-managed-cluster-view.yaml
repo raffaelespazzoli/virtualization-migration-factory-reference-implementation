@@ -9,7 +9,7 @@ spec:
   scope:
     apiGroup: ""
     kind: Service
-    name: kuadrant-coredns
+    name: coredns-udp
     namespace: kuadrant-coredns
     version: v1
 {{ end }}    

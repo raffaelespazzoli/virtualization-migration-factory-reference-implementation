@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: kuadrant-coredns
 resources:
   - namespace.yaml
+  - service.yaml
 helmCharts:
   - name: coredns
     repo: https://coredns.github.io/helm
@@ -12,7 +13,7 @@ helmCharts:
         - name: WATCH_NAMESPACES
           value: kuadrant-coredns
       isClusterService: false
-      serviceType: LoadBalancer
+      serviceType: ClusterIP
       deployment:
         skipConfig: true
       prometheus:
