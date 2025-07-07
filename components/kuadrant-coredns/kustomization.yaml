@@ -13,9 +13,6 @@ helmCharts:
         - name: WATCH_NAMESPACES
           value: kuadrant-coredns
       isClusterService: false
-      serviceType: ClusterIP
-      service:
-        externalTrafficPolicy: Cluster
       deployment:
         skipConfig: true
       prometheus:
@@ -53,13 +50,6 @@ patches:
             value: ""
     target:
       kind: Deployment
-  - target:
-      kind: Service
-      name: kuadrant-coredns
-    patch: |
-      - op: add
-        path: /spec/externalTrafficPolicy
-        value: Local
 
 configMapGenerator:
   - name: kuadrant-coredns
