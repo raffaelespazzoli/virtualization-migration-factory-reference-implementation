@@ -15,7 +15,7 @@ helmCharts:
       isClusterService: false
       serviceType: ClusterIP
       service:
-        externalTrafficPolicy: ~
+        externalTrafficPolicy: Cluster
       deployment:
         skipConfig: true
       prometheus:
