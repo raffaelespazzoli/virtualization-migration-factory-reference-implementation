@@ -1,0 +1,21 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: kuadrant-coredns-2
+spec:
+  ports:
+    - name: udp-53
+      protocol: UDP
+      port: 53
+      targetPort: 53
+    - name: tcp-53
+      protocol: TCP
+      port: 53
+      targetPort: 53
+  externalTrafficPolicy: Local    
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/instance: kuadrant
+    app.kubernetes.io/name: coredns
+status:
+  loadBalancer: {}

@@ -4,6 +4,7 @@ namespace: kuadrant-coredns
 resources:
   - namespace.yaml
   - service.yaml
+  - service-test.yaml
 helmCharts:
   - name: coredns
     repo: https://coredns.github.io/helm
