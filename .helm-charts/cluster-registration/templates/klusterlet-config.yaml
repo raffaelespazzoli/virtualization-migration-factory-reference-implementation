@@ -6,11 +6,6 @@ metadata:
   labels:
     {{- include "cluster-registration.labels" . | nindent 4 }}  
 spec:
-  clusterName: {{ .Release.Name }}
-  clusterNamespace: {{ .Release.Name }}
-  clusterLabels:
-    cloud: {{ .Values.provider }}
-    vendor: OpenShift
   applicationManager:
     enabled: true
   policyController:
@@ -18,6 +13,4 @@ spec:
   searchCollector:
     enabled: true
   certPolicyController:
-    enabled: true
-  iamPolicyController:
     enabled: true

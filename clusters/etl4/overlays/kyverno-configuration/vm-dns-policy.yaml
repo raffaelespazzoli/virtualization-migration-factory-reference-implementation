@@ -1,0 +1,45 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: create-vm-dns-endpoints
+  annotations:
+    policies.kyverno.io/title: DNS Entries for VMs
+    policies.kyverno.io/category: external-dns, virtual-machines, dns
+    policies.kyverno.io/subject: DNSEndpoints, VirtualMachinesInstance
+    policies.kyverno.io/minversion: 1.6.0
+    policies.kyverno.io/description: >-
+      This policy create DNSEndpoints for external-dns to manage DNS entries for VMs.
+spec:
+  rules:
+  - name: generate-dns-endpoints
+    match:
+      any:
+      - resources:
+          kinds:
+          - kubevirt.io/v1/VirtualMachineInstance
+          selector:
+            matchLabels:
+              vm.redhat-cop.dns-name: "true"
+    generate:
+      generateExisting: true
+      synchronize: true
+      orphanDownstreamOnPolicyDelete: true
+      foreach:
+        - list: request.object.status.interfaces
+          preconditions:
+            any:
+            - key: '{{ request.object.metadata.annotations."vm.redhat-cop.dns-name/{{ element.interfaceName }}" || "" }}'
+              operator: NotEquals
+              value: ""
+          apiVersion: externaldns.k8s.io/v1alpha1
+          kind: DNSEndpoint
+          name: '{{request.object.metadata.name}}-{{element.interfaceName}}'
+          namespace: "{{request.object.metadata.namespace}}"                    
+          data:
+            spec:
+              endpoints:
+              - dnsName: '{{ request.object.metadata.annotations."vm.redhat-cop.dns-name/{{ element.interfaceName }}" }}'
+                recordTTL: 180
+                recordType: A
+                targets:
+                - '{{element.ipAddress}}'
