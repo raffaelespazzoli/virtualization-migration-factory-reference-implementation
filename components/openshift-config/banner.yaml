@@ -6,4 +6,4 @@ spec:
   backgroundColor: '#008000'
   color: '#fff'
   location: BannerTop
-  text: This cluster ${CLUSTER_NAME}.
+  text: This cluster is ${CLUSTER_NAME}.
