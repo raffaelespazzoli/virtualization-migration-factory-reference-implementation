@@ -3,6 +3,7 @@ kind: Route
 metadata:
   name: kubecost
 spec:
+  host: "kubecost.apps.${CLUSTER_BASE_DOMAIN}"  
   to:
     name: cluster-cost-analyzer
     weight: 100
