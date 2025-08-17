@@ -4,4 +4,5 @@ namespace: kubecost-operator
 
 resources:
   - ./cost-analyzer.yaml
-  - ../kubecost-operator/operator-policy.yaml
+  - ./link.yaml
+  - ./route.yaml
