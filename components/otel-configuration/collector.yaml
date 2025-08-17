@@ -4,6 +4,7 @@ metadata:
   name: otel
 spec:
   mode: deployment
+  replicas: 2
   serviceAccount: otel-collector
   config:
     extensions:
