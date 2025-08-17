@@ -63,12 +63,12 @@ applications:
     source:
       path: components/trident-protect-configuration        
 
-  fusion-access-for-san-operator:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '5'
-    source:
-      path: components/fusion-access-for-san-operator
+  # fusion-access-for-san-operator:
+  #   annotations:
+  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
+  #     argocd.argoproj.io/sync-wave: '5'
+  #   source:
+  #     path: components/fusion-access-for-san-operator
 
   # fusion-access-for-san-configuration:
   #   annotations:

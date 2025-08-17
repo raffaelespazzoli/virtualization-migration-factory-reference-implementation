@@ -62,4 +62,4 @@ spec:
         traces:
           receivers: [otlp,jaeger,zipkin,opencensus]
           processors: [memory_limiter, k8sattributes, resourcedetection, batch]
-          exporters: [oltp/dev]
+          exporters: [otlp/dev]
