@@ -23,7 +23,7 @@ spec:
     targetNamespaces:
         - openshift-logging
   subscription:
-    channel: stable-6.2
+    channel: stable-6.3
     name: cluster-logging
     namespace: openshift-logging
     source: redhat-operators
@@ -36,3 +36,5 @@ spec:
     - cluster-logging.v6.1.4
     - cluster-logging.v6.2.1
     - cluster-logging.v6.2.2
+    - cluster-logging.v6.2.3
+    - cluster-logging.v6.3.0

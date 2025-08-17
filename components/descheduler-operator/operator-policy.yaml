@@ -32,3 +32,5 @@ spec:
   versions: 
     - clusterkubedescheduleroperator.v5.1.1
     - clusterkubedescheduleroperator.v5.1.2
+    - clusterkubedescheduleroperator.v5.1.3
+    - clusterkubedescheduleroperator.v5.2.0

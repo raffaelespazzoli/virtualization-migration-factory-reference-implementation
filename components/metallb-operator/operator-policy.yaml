@@ -29,4 +29,5 @@ spec:
     startingCSV: metallb-operator.v4.19.0-202507291138
   versions: 
     - metallb-operator.v4.19.0-202507291138
+    - metallb-operator.v4.18.0-202504291304
 
