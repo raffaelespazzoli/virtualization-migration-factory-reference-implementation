@@ -8,4 +8,5 @@ metadata:
 spec:
   defaultCertificate:
     name: cluster-ingress-certs-tls
+  replicas: 3 
 
