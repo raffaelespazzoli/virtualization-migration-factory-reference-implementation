@@ -252,11 +252,11 @@ applications:
       path: components/kuadrant-coredns
 
 # mesh applications
-  bookinfo:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '25'
-    destination:
-      namespace: bookinfo
-    source:
-      path: components/bookinfo                     
+  # bookinfo:
+  #   annotations:
+  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
+  #     argocd.argoproj.io/sync-wave: '25'
+  #   destination:
+  #     namespace: bookinfo
+  #   source:
+  #     path: components/bookinfo                     

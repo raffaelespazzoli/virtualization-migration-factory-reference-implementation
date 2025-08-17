@@ -8,7 +8,7 @@ metadata:
     policies.kyverno.io/subject: DNSEndpoints, VirtualMachinesInstance
     policies.kyverno.io/minversion: 1.6.0
     policies.kyverno.io/description: >-
-      This policy create DNSEndpoints for external-dns to manage DNS entries for VMs.
+      This policy creates DNSEndpoints for external-dns to manage DNS entries for VMs.
 spec:
   rules:
   - name: generate-dns-endpoints
