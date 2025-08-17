@@ -70,14 +70,14 @@ applications:
     source:
       path: components/fusion-access-for-san-operator
 
-  fusion-access-for-san-configuration:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '15'
-    destination:
-      namespace: ibm-spectrum-scale
-    source:
-      path: components/fusion-access-for-san-configuration      
+  # fusion-access-for-san-configuration:
+  #   annotations:
+  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
+  #     argocd.argoproj.io/sync-wave: '15'
+  #   destination:
+  #     namespace: ibm-spectrum-scale
+  #   source:
+  #     path: components/fusion-access-for-san-configuration      
 
 # VMs 
 
