@@ -3,6 +3,6 @@ kind: Kustomization
 
 resources:
   - ./namespace.yaml
-  - ./operator-policy.yaml
-  #- ./cluster-extension.yaml
-  #- ./rbac.yaml
+  #- ./operator-policy.yaml
+  - ./cluster-extension.yaml
+  - ./rbac.yaml
