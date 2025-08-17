@@ -20,6 +20,8 @@ spec:
   operatorGroup: # optional
     name: kubecost-operator
     namespace: kubecost-operator
+    targetNamespaces:
+        - kubecost-operator     
   subscription:
     channel: alpha
     name: kubecost-operator
