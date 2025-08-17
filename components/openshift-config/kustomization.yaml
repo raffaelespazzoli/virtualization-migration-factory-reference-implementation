@@ -12,3 +12,4 @@ resources:
   - ./cluster-ingress-certificate.yaml
   - ./api-cert-patch.yaml
   - ./cluster-api-certificate.yaml
+  - ./admin-acks-configmap.yaml

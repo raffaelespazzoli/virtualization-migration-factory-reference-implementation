@@ -1,0 +1,9 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: admin-acks
+  namespace: openshift-config
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true
+data:
+  "ack-4.18-kube-1.32-api-removals-in-4.19": "true"      
