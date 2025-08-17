@@ -92,7 +92,13 @@ applications:
     annotations:
       argocd.argoproj.io/sync-wave: '5'            
     source:
-      path: components/kubecost-operator            
+      path: components/kubecost-operator
+
+  kubecost-configuration:
+    annotations:
+      argocd.argoproj.io/sync-wave: 15'            
+    source:
+      path: components/kubecost-configuration                  
 
 # Networking
 
