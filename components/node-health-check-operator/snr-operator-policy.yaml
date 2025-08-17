@@ -26,3 +26,4 @@ spec:
     startingCSV: self-node-remediation.v0.10.0
   versions:
   - self-node-remediation.v0.10.0
+  - self-node-remediation.v0.10.2

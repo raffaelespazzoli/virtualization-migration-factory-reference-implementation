@@ -26,3 +26,4 @@ spec:
     startingCSV: fence-agents-remediation.v0.5.0
   versions: 
     - fence-agents-remediation.v0.5.0
+    - fence-agents-remediation.v0.5.1

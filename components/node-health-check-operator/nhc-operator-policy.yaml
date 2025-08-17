@@ -26,3 +26,4 @@ spec:
     startingCSV: node-healthcheck-operator.v0.9.0
   versions: 
     - node-healthcheck-operator.v0.9.0
+    - node-healthcheck-operator.v0.9.1
