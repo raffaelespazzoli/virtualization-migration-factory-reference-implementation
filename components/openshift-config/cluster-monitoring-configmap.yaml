@@ -8,17 +8,6 @@ metadata:
 data:
   config.yaml: |
     enableUserWorkload: true
-    nodeExporter:	
-      collectors:	
-        buddyinfo: {}	
-        cpufreq: {}	
-        ksmd: {}	
-        mountstats: {}	
-        netclass: {}	
-        netdev: {}	
-        processes: {}	
-        systemd: {}	
-        tcpstat: {}  
     alertmanagerMain:
       resources:
         limits:
@@ -97,6 +86,16 @@ data:
           cpu: 200m
           memory: 500Mi
     nodeExporter:
+      collectors:	
+        buddyinfo: {}	
+        cpufreq: {}	
+        ksmd: {}	
+        mountstats: {}	
+        netclass: {}	
+        netdev: {}	
+        processes: {}	
+        systemd: {}	
+        tcpstat: {}    
       resources:
         limits:
           memory: 150Mi
