@@ -1,7 +1,7 @@
 apiVersion: policy.open-cluster-management.io/v1beta1
 kind: OperatorPolicy
 metadata:
-  name: power-monitoring-operator
+  name: trident-operator
   namespace: open-cluster-management-policies
 spec:
   upgradeApproval: Automatic
@@ -18,13 +18,11 @@ spec:
     subscriptions: Delete
   severity: medium
   subscription:
-    channel: tech-preview
-    name: power-monitoring-operator
-    namespace: openshift-operators
-    source: redhat-operators
+    channel: stable
+    name: trident-operator
+    namespace: netapp-trident
+    source: redhat-certified
     sourceNamespace: openshift-marketplace
-    startingCSV: power-monitoring-operator.v0.4.0
+    startingCSV: trident-operator.v25.6.1
   versions: 
-    - power-monitoring-operator.v0.3.0
-    - power-monitoring-operator.v0.4.0
-    - power-monitoring-operator.v0.5.0
+    - trident-operator.v25.6.1
