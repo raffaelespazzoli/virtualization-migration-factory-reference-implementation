@@ -21,7 +21,7 @@ spec:
     channel: stable
     name: trident-operator
     namespace: netapp-trident
-    source: redhat-certified
+    source: certified-operators
     sourceNamespace: openshift-marketplace
     startingCSV: trident-operator.v25.6.1
   versions: 
