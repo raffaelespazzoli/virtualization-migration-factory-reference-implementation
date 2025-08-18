@@ -30,9 +30,7 @@ applications:
 
   trident-operator:
     annotations:
-      argocd.argoproj.io/sync-wave: '5'
-    destination:
-      namespace: netapp-trident      
+      argocd.argoproj.io/sync-wave: '5'      
     source:
       path: components/trident-operator
 
