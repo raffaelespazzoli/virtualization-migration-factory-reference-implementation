@@ -1,0 +1,30 @@
+apiVersion: policy.open-cluster-management.io/v1beta1
+kind: OperatorPolicy
+metadata:
+  name: power-monitoring-operator
+  namespace: open-cluster-management-policies
+spec:
+  upgradeApproval: Automatic
+  complianceConfig:
+    catalogSourceUnhealthy: Compliant
+    deploymentsUnavailable: NonCompliant
+    upgradesAvailable: Compliant
+  complianceType: musthave
+  remediationAction: enforce
+  removalBehavior:
+    clusterServiceVersions: Delete
+    customResourceDefinitions: Keep
+    operatorGroups: DeleteIfUnused
+    subscriptions: Delete
+  severity: medium
+  subscription:
+    channel: tech-preview
+    name: power-monitoring-operator
+    namespace: openshift-operators
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+    startingCSV: power-monitoring-operator.v0.4.0
+  versions: 
+    - power-monitoring-operator.v0.3.0
+    - power-monitoring-operator.v0.4.0
+    - power-monitoring-operator.v0.5.0
