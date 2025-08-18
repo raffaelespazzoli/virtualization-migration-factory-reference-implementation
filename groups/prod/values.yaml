@@ -120,8 +120,6 @@ applications:
     source:
       path: components/power-monitoring-configuration 
 
-# observability
-
   openshift-tempo-operator:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
@@ -166,13 +164,6 @@ applications:
       namespace: otel-collector
     source:
       path: components/otel-configuration
-
-  user-workload-monitoring:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '5'
-    source:
-      path: components/user-workload-monitoring
 
   openshift-grafana-operator:
     annotations:
