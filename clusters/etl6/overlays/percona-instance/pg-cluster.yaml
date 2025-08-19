@@ -1,0 +1,73 @@
+kind: PerconaPGCluster
+apiVersion: pgv2.percona.com/v2
+metadata:
+  name: demo
+spec:
+  crVersion: 2.7.0
+  image: 'registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:cc5ce02f2dab691bea078d1c755661dfc04d34824dc310857104694552c127da'
+  imagePullPolicy: Always
+  postgresVersion: 17
+  instances:
+    - name: instance1
+      replicas: 3
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    postgres-operator.crunchydata.com/data: postgres
+                topologyKey: kubernetes.io/hostname
+      dataVolumeClaimSpec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+  proxy:
+    pgBouncer:
+      replicas: 3
+      image: 'registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:2f74b1c4cf23d4fa95557b6b6ff40b2803095b8de2aa0dee2d33a5e5abcf02a0'
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    postgres-operator.crunchydata.com/role: pgbouncer
+                topologyKey: kubernetes.io/hostname
+  backups:
+    pgbackrest:
+      image: 'registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:56534ca111d142ce0a59d34aff9b95ea229e2ba69fc4795f78acf4ef474e635d'
+      repoHost:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+              - weight: 1
+                podAffinityTerm:
+                  labelSelector:
+                    matchLabels:
+                      postgres-operator.crunchydata.com/data: pgbackrest
+                  topologyKey: kubernetes.io/hostname
+      manual:
+        repoName: repo1
+        options:
+          - '--type=full'
+      repos:
+        - name: repo1
+          schedules:
+            full: 0 0 * * 6
+          volume:
+            volumeClaimSpec:
+              accessModes:
+                - ReadWriteOnce
+              resources:
+                requests:
+                  storage: 1Gi
+  pmm:
+    enabled: false
+    image: 'registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:66c0a3c24930ad0e25ec54440f5cfcb145a3b4e23ccec8fb2de678fe440093b2'
+    secret: cluster1-pmm-secret
+    serverHost: monitoring-service
