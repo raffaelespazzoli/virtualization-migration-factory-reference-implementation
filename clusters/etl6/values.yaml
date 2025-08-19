@@ -123,3 +123,11 @@ applications:
       argocd.argoproj.io/sync-wave: '24'     
     source:
       path: clusters/etl6/overlays/vlan-dhcp
+
+# percona demo
+
+  percona-operator:
+    annotations:
+      argocd.argoproj.io/sync-wave: '5'     
+    source:
+      path: clusters/etl6/overlays/percona-operator
