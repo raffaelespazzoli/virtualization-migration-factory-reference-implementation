@@ -12,7 +12,7 @@ You will have to customize the following before you can get started:
 Once you have performed the above customization you can run the following:
 
 ```sh
-export gitops_repo=https://github.com/raffaelespazzoli/virtualization-migration-factory-reference-implementation.git #<your newly created repo>>
+export gitops_repo=https://github.com/raffaelespazzoli/virtualization-migration-factory-reference-implementation.git #<your newly created repo>
 export cluster_name=hub #<your hub cluster name, typically "hub">
 export cluster_base_domain=$(oc get ingress.config.openshift.io cluster --template={{.spec.domain}} | sed -e "s/^apps.//")
 export platform_base_domain=${cluster_base_domain#*.}
