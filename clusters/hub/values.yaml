@@ -69,7 +69,7 @@ applications:
 
   acm-instance:
     annotations:
-      argocd.argoproj.io/sync-wave: '15'
+      argocd.argoproj.io/sync-wave: '5'
     source:
       path: components/acm-instance
 
