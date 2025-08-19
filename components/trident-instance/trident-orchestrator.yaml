@@ -1,0 +1,12 @@
+kind: TridentOrchestrator
+apiVersion: trident.netapp.io/v1
+metadata:
+  name: trident
+spec:
+  IPv6: false
+  debug: true
+  nodePrep: []
+  imagePullSecrets: []
+  imageRegistry: ''
+  namespace: netapp-trident
+  silenceAutosupport: false

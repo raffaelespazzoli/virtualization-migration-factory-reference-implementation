@@ -34,6 +34,12 @@ applications:
     source:
       path: components/trident-operator
 
+  trident-instance:
+    annotations:
+      argocd.argoproj.io/sync-wave: '6'      
+    source:
+      path: components/trident-instance
+
   minio-operator:
     annotations:
       argocd.argoproj.io/sync-wave: '5' 
