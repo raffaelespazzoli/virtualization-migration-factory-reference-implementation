@@ -17,6 +17,11 @@ spec:
     operatorGroups: DeleteIfUnused
     subscriptions: Delete
   severity: medium
+  operatorGroup: # optional
+    name: percona-postgresql-operator-certified
+    namespace: percona-operator
+    targetNamespaces:
+        - percona-operator
   subscription:
     channel: stable
     name: percona-postgresql-operator-certified
