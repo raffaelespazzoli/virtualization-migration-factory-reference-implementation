@@ -4,7 +4,4 @@ namespace: netapp-trident
 
 resources:
   - trident-orchestrator.yaml
-  - ontap-nas.yaml
-  - snapshot-class.yaml
-  - multipath-worker-machine-config.yaml
-  - multipath-master-machine-config.yaml  
+  
