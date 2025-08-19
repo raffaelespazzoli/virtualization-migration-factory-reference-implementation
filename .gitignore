@@ -23,3 +23,5 @@ clusters/hub/overlays/cluster-virtual-cop-1/pull-secret.yaml
 clusters/hub/overlays/cluster-virtual-ocp-1/pull-secret.yaml
 clusters/etl4/overlays/cluster-virtual-ocp-1/pull-secret.yaml
 components/fusion-access-for-san-operator/pull-secret.json
+clusters/hub/kubeadmin
+clusters/hub/kubeconfig
