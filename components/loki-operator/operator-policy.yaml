@@ -26,7 +26,7 @@ spec:
     namespace: openshift-loki-operator
     source: redhat-operators
     sourceNamespace: openshift-marketplace
-    startingCSV: loki-operator.v6.1.1
+    startingCSV: loki-operator.v6.3.0
   versions: 
     - loki-operator.v6.1.1
     - loki-operator.v6.1.2
