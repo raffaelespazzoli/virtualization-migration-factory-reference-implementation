@@ -12,6 +12,7 @@ spec:
       ignoreAggregatedRoles: true
     resource.customizations.useOpenLibs.minio.min.io_Tenant: 'true'      
   server:
+    replicas: 2
     autoscale:
       enabled: false
     grpc:
@@ -19,7 +20,6 @@ spec:
         enabled: false
     resources:
       limits:
-        cpu: 500m
         memory: 256Mi
       requests:
         cpu: 125m
@@ -446,7 +446,6 @@ spec:
       enabled: false
     resources:
       limits:
-        cpu: 500m
         memory: 256Mi
       requests:
         cpu: 250m
@@ -465,7 +464,6 @@ spec:
     #  - --enable-progressive-syncs
     resources:
       limits:
-        cpu: "2"
         memory: 1Gi
       requests:
         cpu: 250m
@@ -479,6 +477,7 @@ spec:
       g, admin, role:admin
     scopes: "[groups]"
   repo:
+    replicas: 2
     env:
     - name: KUSTOMIZE_PLUGIN_HOME
       value: /etc/kustomize/plugin
@@ -528,7 +527,6 @@ spec:
         name: policy-generator        
     resources:
       limits:
-        cpu: "1"
         memory: 1Gi
       requests:
         cpu: 250m
@@ -551,7 +549,6 @@ spec:
     dex:
       resources:
         limits:
-          cpu: 500m
           memory: 256Mi
         requests:
           cpu: 250m
@@ -559,10 +556,9 @@ spec:
       openShiftOAuth: true
     provider: dex
   ha:
-    enabled: false
+    enabled: true
     resources:
       limits:
-        cpu: 500m
         memory: 256Mi
       requests:
         cpu: 250m
@@ -572,7 +568,6 @@ spec:
   redis:
     resources:
       limits:
-        cpu: 500m
         memory: 256Mi
       requests:
         cpu: 250m
@@ -581,11 +576,10 @@ spec:
     processors: {}
     resources:
       limits:
-        cpu: "4"
-        memory: 4Gi
+        memory: 8Gi
       requests:
         cpu: 250m
         memory: 1Gi
     sharding:
-      enabled: true
-      replicas: 3
+      enabled: false
+      replicas: 1
