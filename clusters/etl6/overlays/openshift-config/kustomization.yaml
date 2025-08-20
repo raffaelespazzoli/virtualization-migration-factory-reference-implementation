@@ -6,4 +6,4 @@ resources:
   - ./console-patch.yaml
   - ./oauth.yaml
   - ./cluster-version.yaml
-  - ./cluster-monitoing-configmap.yaml
+  - ./cluster-monitoring-configmap.yaml
