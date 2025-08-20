@@ -9,17 +9,17 @@ applications:
     source:
       path: clusters/etl6/overlays/openshift-config
 
-  nfd-operator:
-    annotations:
-      argocd.argoproj.io/sync-wave: '5'
-    source:
-      path: components/nfd-operator
+  # nfd-operator:
+  #   annotations:
+  #     argocd.argoproj.io/sync-wave: '5'
+  #   source:
+  #     path: components/nfd-operator
 
-  nfd-configuration:
-    annotations:
-      argocd.argoproj.io/sync-wave: '15'
-    source:
-      path: components/nfd-configuration
+  # nfd-configuration:
+  #   annotations:
+  #     argocd.argoproj.io/sync-wave: '15'
+  #   source:
+  #     path: components/nfd-configuration
 
 # Networking
 
@@ -47,21 +47,21 @@ applications:
     source:
       path: clusters/etl6/overlays/trident-configuration
 
-  trident-protect-operator:
-    annotations:
-      argocd.argoproj.io/sync-wave: '5'
-    destination:
-      namespace: trident-protect
-    source:
-      path: components/trident-protect-operator
+  # trident-protect-operator:
+  #   annotations:
+  #     argocd.argoproj.io/sync-wave: '5'
+  #   destination:
+  #     namespace: trident-protect
+  #   source:
+  #     path: components/trident-protect-operator
 
-  trident-protect-configuration:
-    annotations:
-      argocd.argoproj.io/sync-wave: '15'
-    destination:
-      namespace: trident-protect
-    source:
-      path: components/trident-protect-configuration        
+  # trident-protect-configuration:
+  #   annotations:
+  #     argocd.argoproj.io/sync-wave: '15'
+  #   destination:
+  #     namespace: trident-protect
+  #   source:
+  #     path: components/trident-protect-configuration        
 
   # fusion-access-for-san-operator:
   #   annotations:
@@ -89,33 +89,33 @@ applications:
     source:
       path: clusters/etl6/overlays/vm-tests
 
-  trilio-vm-tests:
-    annotations:
-      argocd.argoproj.io/sync-wave: '15'
-    destination:
-      namespace: trilio-vm-tests
-    source:
-      path: clusters/etl6/overlays/trilio-vm-tests
-    extraFields: |
-      ignoreDifferences:
-        - group: 'triliovault.trilio.io'
-          jsonPointers:
-            - /spec/objectStoreCredentials/credentialSecret/resourceVersion
-            - /spec/objectStoreCredentials/credentialSecret/uid
-          kind: Target
-        - group: 'triliovault.trilio.io'
-          kind: BackupPlan
-          jsonPointers:
-            - /spec/backupConfig/retentionPolicy/resourceVersion
-            - /spec/backupConfig/retentionPolicy/uid
-            - /spec/backupConfig/schedulePolicy/fullBackupPolicy/resourceVersion
-            - /spec/backupConfig/schedulePolicy/fullBackupPolicy/uid
-            - /spec/backupConfig/schedulePolicy/incrementalBackupPolicy/resourceVersion
-            - /spec/backupConfig/schedulePolicy/incrementalBackupPolicy/uid
-            - /spec/backupConfig/target/resourceVersion
-            - /spec/backupConfig/target/uid
-            - /spec/continuousRestoreConfig/continuousRestoreInstances/0/continuousRestorePolicy/resourceVersion
-            - /spec/continuousRestoreConfig/continuousRestoreInstances/0/continuousRestorePolicy/uid                      
+  # trilio-vm-tests:
+  #   annotations:
+  #     argocd.argoproj.io/sync-wave: '15'
+  #   destination:
+  #     namespace: trilio-vm-tests
+  #   source:
+  #     path: clusters/etl6/overlays/trilio-vm-tests
+  #   extraFields: |
+  #     ignoreDifferences:
+  #       - group: 'triliovault.trilio.io'
+  #         jsonPointers:
+  #           - /spec/objectStoreCredentials/credentialSecret/resourceVersion
+  #           - /spec/objectStoreCredentials/credentialSecret/uid
+  #         kind: Target
+  #       - group: 'triliovault.trilio.io'
+  #         kind: BackupPlan
+  #         jsonPointers:
+  #           - /spec/backupConfig/retentionPolicy/resourceVersion
+  #           - /spec/backupConfig/retentionPolicy/uid
+  #           - /spec/backupConfig/schedulePolicy/fullBackupPolicy/resourceVersion
+  #           - /spec/backupConfig/schedulePolicy/fullBackupPolicy/uid
+  #           - /spec/backupConfig/schedulePolicy/incrementalBackupPolicy/resourceVersion
+  #           - /spec/backupConfig/schedulePolicy/incrementalBackupPolicy/uid
+  #           - /spec/backupConfig/target/resourceVersion
+  #           - /spec/backupConfig/target/uid
+  #           - /spec/continuousRestoreConfig/continuousRestoreInstances/0/continuousRestorePolicy/resourceVersion
+  #           - /spec/continuousRestoreConfig/continuousRestoreInstances/0/continuousRestorePolicy/uid                      
 
 
   vlan-dhcp:

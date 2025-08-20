@@ -52,25 +52,25 @@ applications:
             - /spec/volumeClaimTemplates
           kind: StatefulSet      
 
-  guacamole:
-    annotations:
-      argocd.argoproj.io/sync-wave: '15'
-    destination:
-      namespace: guacamole      
-    source:
-      path: clusters/etl4/overlays/guacamole
+  # guacamole:
+  #   annotations:
+  #     argocd.argoproj.io/sync-wave: '15'
+  #   destination:
+  #     namespace: guacamole      
+  #   source:
+  #     path: clusters/etl4/overlays/guacamole
 
-  rhsso-operator:
-    annotations:
-      argocd.argoproj.io/sync-wave: '5'     
-    source:
-      path: clusters/etl4/overlays/rhsso-operator  
+  # rhsso-operator:
+  #   annotations:
+  #     argocd.argoproj.io/sync-wave: '5'     
+  #   source:
+  #     path: clusters/etl4/overlays/rhsso-operator  
 
-  rhsso-configuration:
-    annotations:
-      argocd.argoproj.io/sync-wave: '15'     
-    source:
-      path: clusters/etl4/overlays/rhsso-configuration                       
+  # rhsso-configuration:
+  #   annotations:
+  #     argocd.argoproj.io/sync-wave: '15'     
+  #   source:
+  #     path: clusters/etl4/overlays/rhsso-configuration                       
 
   test-udn:
     annotations:

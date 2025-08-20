@@ -1,9 +1,6 @@
 applications:     
 
 # Basic
-
-
-
   kyverno-operator:
     annotations:
       argocd.argoproj.io/sync-wave: '5'
@@ -75,36 +72,36 @@ applications:
     source:
       path: components/node-health-check-configuration   
 
-  trilio-operator:
-    annotations:
-      argocd.argoproj.io/sync-wave: '5'
-    source:
-      path: components/trilio-operator
+  # trilio-operator:
+  #   annotations:
+  #     argocd.argoproj.io/sync-wave: '5'
+  #   source:
+  #     path: components/trilio-operator
 
-  trilio-instance:
-    annotations:
-      argocd.argoproj.io/sync-wave: '15'
-    destination:
-      namespace: trilio-system
-    source:
-      path: components/trilio-instance
+  # trilio-instance:
+  #   annotations:
+  #     argocd.argoproj.io/sync-wave: '15'
+  #   destination:
+  #     namespace: trilio-system
+  #   source:
+  #     path: components/trilio-instance
 
 
-  trilio-configuration:
-    enableAutoSync: false
-    annotations:
-      argocd.argoproj.io/sync-wave: '25'
-    destination:
-      namespace: trilio-system
-    source:
-      path: components/trilio-configuration
-    extraFields: |
-      ignoreDifferences:
-        - group: 'triliovault.trilio.io'
-          jsonPointers:
-            - /spec/objectStoreCredentials/credentialSecret/resourceVersion
-            - /spec/objectStoreCredentials/credentialSecret/uid
-          kind: Target             
+  # trilio-configuration:
+  #   enableAutoSync: false
+  #   annotations:
+  #     argocd.argoproj.io/sync-wave: '25'
+  #   destination:
+  #     namespace: trilio-system
+  #   source:
+  #     path: components/trilio-configuration
+  #   extraFields: |
+  #     ignoreDifferences:
+  #       - group: 'triliovault.trilio.io'
+  #         jsonPointers:
+  #           - /spec/objectStoreCredentials/credentialSecret/resourceVersion
+  #           - /spec/objectStoreCredentials/credentialSecret/uid
+  #         kind: Target             
 
 # Observability
 
