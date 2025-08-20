@@ -4,7 +4,7 @@ metadata:
   name: cluster-monitoring-config
   namespace: openshift-monitoring
   annotations:
-    argocd.argoproj.io/sync-options: ServerSideApply=true  
+    argocd.argoproj.io/sync-options: ServerSideApply=true
 data:
   config.yaml: |
     enableUserWorkload: true
@@ -16,27 +16,27 @@ data:
           cpu: 200m
           memory: 500Mi
     prometheusK8s:
-      additionalAlertmanagerConfigs:	
-      - apiVersion: v2	
-        bearerToken:	
-          key: token	
-          name: observability-alertmanager-accessor	
-        scheme: https	
-        staticConfigs:	
-        - alertmanager-open-cluster-management-observability.apps.hub2.ocp.rht-labs.com	
-        tlsConfig:	
-          ca:	
-            key: service-ca.crt	
-            name: hub-alertmanager-router-ca	
-          insecureSkipVerify: false	
-      externalLabels:	
-        managed_cluster: 234ce2bd-1b5c-4ea5-a29d-26e1bb4c1bac    
+      additionalAlertmanagerConfigs:
+      - apiVersion: v2
+        bearerToken:
+          key: token
+          name: observability-alertmanager-accessor
+        scheme: https
+        staticConfigs:
+        - alertmanager-open-cluster-management-observability.apps.hub2.ocp.rht-labs.com
+        tlsConfig:
+          ca:
+            key: service-ca.crt
+            name: hub-alertmanager-router-ca
+          insecureSkipVerify: false
+      externalLabels:
+        managed_cluster: 234ce2bd-1b5c-4ea5-a29d-26e1bb4c1bac
       volumeClaimTemplate:
         spec:
           storageClassName: ontap-nas
           resources:
             requests:
-              storage: 100Gi    
+              storage: 100Gi
       resources:
         limits:
           memory: 32Gi
@@ -60,7 +60,7 @@ data:
     metricsServer:
       resources:
         limits:
-          memory: 500Mi      
+          memory: 500Mi
         requests:
           cpu: 10m
           memory: 50Mi
@@ -86,16 +86,16 @@ data:
           cpu: 200m
           memory: 500Mi
     nodeExporter:
-      collectors:	
-        buddyinfo: {}	
-        cpufreq: {}	
-        ksmd: {}	
-        mountstats: {}	
-        netclass: {}	
-        netdev: {}	
-        processes: {}	
-        systemd: {}	
-        tcpstat: {}    
+      collectors:
+        buddyinfo: {}
+        cpufreq: {}
+        ksmd: {}
+        mountstats: {}
+        netclass: {}
+        netdev: {}
+        processes: {}
+        systemd: {}
+        tcpstat: {}
       resources:
         limits:
           memory: 150Mi
