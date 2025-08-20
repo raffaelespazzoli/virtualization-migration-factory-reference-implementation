@@ -3,4 +3,3 @@ kind: ServiceExport
 metadata:
   name: demo-primary
   namespace: percona-operator
-spec: {}
