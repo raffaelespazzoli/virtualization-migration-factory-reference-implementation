@@ -12,7 +12,6 @@ spec:
   - nmstate-console-plugin
   - node-remediation-console-plugin
   - networking-console-plugin
-  - tvk-console-plugin
   - logging-view-plugin
   - ossmconsole
   - troubleshooting-panel-console-plugin
