@@ -41,4 +41,5 @@ helmCharts:
         cloud: BareMetal
         vendor: OpenShift
         gitops: deploy
-        servicemesh-federation: enabled           
+        servicemesh-federation: enabled  
+        percona-demo: enabled         
