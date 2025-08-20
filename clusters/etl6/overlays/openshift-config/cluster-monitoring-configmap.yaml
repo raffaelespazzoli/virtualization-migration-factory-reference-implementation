@@ -1,0 +1,122 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-monitoring-config
+  namespace: openshift-monitoring
+  annotations:
+    argocd.argoproj.io/sync-options: ServerSideApply=true
+data:
+  config.yaml: |
+    alertmanagerMain:
+      resources:
+        limits:
+          memory: 1Gi
+        requests:
+          cpu: 200m
+          memory: 500Mi
+    enableUserWorkload: true
+    kubeStateMetrics:
+      resources:
+        limits:
+          memory: 1Gi
+        requests:
+          cpu: 200m
+          memory: 500Mi
+    metricsServer:
+      resources:
+        limits:
+          memory: 500Mi
+        requests:
+          cpu: 10m
+          memory: 50Mi
+    monitoringPlugin:
+      resources:
+        limits:
+          memory: 1Gi
+        requests:
+          cpu: 200m
+          memory: 500Mi
+    nodeExporter:
+      collectors:
+        buddyinfo: {}
+        cpufreq: {}
+        ksmd: {}
+        mountstats: {}
+        netclass: {}
+        netdev: {}
+        processes: {}
+        systemd: {}
+        tcpstat: {}
+      resources:
+        limits:
+          memory: 150Mi
+        requests:
+          cpu: 20m
+          memory: 50Mi
+    openshiftStateMetrics:
+      resources:
+        limits:
+          memory: 1Gi
+        requests:
+          cpu: 200m
+          memory: 500Mi
+    prometheusK8s:
+      additionalAlertmanagerConfigs:
+      - apiVersion: v2
+        bearerToken:
+          key: token
+          name: observability-alertmanager-accessor
+        scheme: https
+        staticConfigs:
+        - alertmanager-open-cluster-management-observability.apps.hub2.ocp.rht-labs.com
+        tlsConfig:
+          ca:
+            key: service-ca.crt
+            name: hub-alertmanager-router-ca
+          insecureSkipVerify: false
+      externalLabels:
+        managed_cluster: 7596ad4f-6531-4740-aeea-56ac1de750ff
+      resources:
+        limits:
+          memory: 32Gi
+        requests:
+          cpu: 200m
+          memory: 8Gi
+      volumeClaimTemplate:
+        metadata: {}
+        spec:
+          resources:
+            requests:
+              storage: 100Gi
+          storageClassName: ontap-nas
+        status: {}
+    prometheusOperator:
+      resources:
+        limits:
+          memory: 1Gi
+        requests:
+          cpu: 200m
+          memory: 500Mi
+    prometheusOperatorAdmissionWebhook:
+      resources:
+        limits:
+          memory: 100Mi
+        requests:
+          cpu: 20m
+          memory: 50Mi
+    telemeterClient:
+      nodeSelector: null
+      resources:
+        limits:
+          memory: 1Gi
+        requests:
+          cpu: 200m
+          memory: 500Mi
+      tolerations: null
+    thanosQuerier:
+      resources:
+        limits:
+          memory: 1Gi
+        requests:
+          cpu: 200m
+          memory: 500Mi

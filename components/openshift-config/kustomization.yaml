@@ -14,4 +14,3 @@ resources:
   - ./cluster-api-certificate.yaml
   - ./admin-acks-configmap.yaml
   - ./banner.yaml
-  - ./cluster-monitoring-configmap.yaml
