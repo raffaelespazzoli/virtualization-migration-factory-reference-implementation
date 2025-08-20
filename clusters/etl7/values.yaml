@@ -49,4 +49,4 @@ applications:
     annotations:
       argocd.argoproj.io/sync-wave: '10'     
     source:
-      path: clusters/etl6/overlays/percona-instance                                 
+      path: clusters/etl7/overlays/percona-instance                                 
