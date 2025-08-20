@@ -1,0 +1,58 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: percona-root-ca-policy
+  # Must be a recognized policy namespace on the hub
+  namespace: acm-policies
+spec:
+  remediationAction: enforce
+  disabled: false
+  hubTemplateOptions:
+    serviceAccountName: policy-admin
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: percona-root-ca-policy
+        spec:
+          remediationAction: enforce
+          severity: low
+          object-templates-raw: |-
+            - complianceType: mustonlyhave
+              objectDefinition:
+                apiVersion: v1
+                kind: Secret
+                metadata:
+                  name: root-ca
+                  namespace: 'percona-operator'
+                type: Opaque
+                data:
+                  tls.crt: {{hub (index (lookup "v1" "Secret" "percona-demo" "root-ca").data "tls.crt") hub}}
+                  tls.key: {{hub (index (lookup "v1" "Secret" "percona-demo" "root-ca").data "tls.key") hub}}
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: percona-root-ca-placement
+  namespace: acm-policies
+spec:
+  predicates:
+    - requiredClusterSelector:
+        labelSelector:
+          matchLabels:
+            percona-demo: "enabled"
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: percona-root-ca-binding
+  namespace: acm-policies
+subjects:
+  - kind: Policy
+    apiGroup: policy.open-cluster-management.io
+    name: percona-root-ca-policy
+placementRef:
+  kind: Placement
+  apiGroup: cluster.open-cluster-management.io
+  name: percona-root-ca-placement

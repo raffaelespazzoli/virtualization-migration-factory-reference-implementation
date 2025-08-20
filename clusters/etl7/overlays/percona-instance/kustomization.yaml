@@ -5,4 +5,3 @@ namespace: percona-operator
 
 resources:
   - ./pg-cluster.yaml
-  - ./service-export.yaml

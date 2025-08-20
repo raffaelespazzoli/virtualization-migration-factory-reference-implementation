@@ -11,6 +11,7 @@ resources:
 - propagate-secret-policy.yaml
 - servicemesh-federation-policy.yaml
 - kuadrant-coredns-policy.yaml
+- percona-root-ca-policy.yaml
 
 generators:
 - policy-generator-config.yaml

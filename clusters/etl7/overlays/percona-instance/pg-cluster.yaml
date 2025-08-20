@@ -7,6 +7,9 @@ spec:
   image: 'registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:cc5ce02f2dab691bea078d1c755661dfc04d34824dc310857104694552c127da'
   imagePullPolicy: Always
   postgresVersion: 17
+  standby:
+    enabled: true
+    host: demo-primary.percona-operator.svc.clusterset.local  
   secrets:
     customRootCATLSSecret:
       name: root-ca

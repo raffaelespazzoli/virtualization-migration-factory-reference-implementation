@@ -34,4 +34,19 @@ applications:
     destination:
       namespace: netapp-trident
     source:
-      path: clusters/etl7/overlays/trident-configuration                            
+      path: clusters/etl7/overlays/trident-configuration   
+
+
+# percona demo
+
+  percona-operator:
+    annotations:
+      argocd.argoproj.io/sync-wave: '5'     
+    source:
+      path: clusters/etl6/overlays/percona-operator
+
+  percona-instance:
+    annotations:
+      argocd.argoproj.io/sync-wave: '10'     
+    source:
+      path: clusters/etl6/overlays/percona-instance                                 
