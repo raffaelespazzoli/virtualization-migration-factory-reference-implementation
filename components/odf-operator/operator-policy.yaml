@@ -1,7 +1,7 @@
 apiVersion: policy.open-cluster-management.io/v1beta1
 kind: OperatorPolicy
 metadata:
-  name: odf-multicluster-orchestrator
+  name: odf-operator
   namespace: open-cluster-management-policies
 spec:
   upgradeApproval: Automatic
@@ -17,12 +17,17 @@ spec:
     operatorGroups: DeleteIfUnused
     subscriptions: Delete
   severity: medium
+  operatorGroup: # optional
+    name: redhat-oadp-operator
+    namespace: odf-operator
+    targetNamespaces:
+        - openshift-storage
   subscription:
     channel: stable-4.19
-    name: odf-multicluster-orchestrator
-    namespace: openshift-operators
+    name: odf-operator
+    namespace: openshift-storage
     source: redhat-operators
     sourceNamespace: openshift-marketplace
-    startingCSV: odf-multicluster-orchestrator.v4.19.2-rhodf
+    startingCSV: odf-operator.v4.19.2-rhodf
   versions: 
-    - odf-multicluster-orchestrator.v4.19.2-rhodf
+    - odf-operator.v4.19.2-rhodf

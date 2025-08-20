@@ -95,12 +95,12 @@ applications:
 
 # DR
 
-  # odf-multicluster-operator:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '5'
-  #   source:
-  #     path: components/odf-multicluster-operator
+  odf-multicluster-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    source:
+      path: components/odf-multicluster-operator
 
   acm-fusion-dr:
     annotations:

@@ -77,7 +77,23 @@ applications:
   #   destination:
   #     namespace: ibm-spectrum-scale
   #   source:
-  #     path: components/fusion-access-for-san-configuration      
+  #     path: components/fusion-access-for-san-configuration 
+
+  odf-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    source:
+      path: components/odf-operator
+
+  odf-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: openshift-storage
+    source:
+      path: components/odf-configuration       
 
 # VMs 
 
