@@ -86,14 +86,14 @@ applications:
     source:
       path: components/odf-operator
 
-  # odf-configuration:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '15'
-  #   destination:
-  #     namespace: openshift-storage
-  #   source:
-  #     path: components/odf-configuration       
+  odf-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: openshift-storage
+    source:
+      path: components/odf-configuration       
 
 # VMs 
 
