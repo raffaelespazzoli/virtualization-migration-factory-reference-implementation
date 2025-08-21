@@ -18,8 +18,8 @@ spec:
     subscriptions: Delete
   severity: medium
   operatorGroup: # optional
-    name: redhat-oadp-operator
-    namespace: odf-operator
+    name: odf-operator
+    namespace: openshift-storage
     targetNamespaces:
         - openshift-storage
   subscription:
