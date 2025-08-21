@@ -13,7 +13,6 @@ spec:
   - node-remediation-console-plugin
   - networking-console-plugin
   - logging-view-plugin
-  - fusion-access-console
   - ossmconsole
   - troubleshooting-panel-console-plugin
   - distributed-tracing-console-plugin
