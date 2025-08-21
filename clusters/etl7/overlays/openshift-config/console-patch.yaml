@@ -16,4 +16,5 @@ spec:
   - ossmconsole
   - troubleshooting-panel-console-plugin
   - distributed-tracing-console-plugin
-  - kuadrant-console-plugin  
+  - kuadrant-console-plugin
+  - odf-console
