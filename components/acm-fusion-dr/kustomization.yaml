@@ -10,3 +10,5 @@ resources:
   - ./dr-managed-clusterset-binding.yaml
   - ./gitops-clusters.yaml
   - ./placement.yaml
+  - ./monitoring-configmap.yaml
+  - ./openshift-operators-namespace-patch.yaml
