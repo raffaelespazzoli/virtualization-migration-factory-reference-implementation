@@ -5,6 +5,7 @@ namespace: openshift-workload-availability
 
 resources:
 - node-health-check.yaml
+- rbac.yaml
 
 helmCharts:
   - name: node-problem-detector
