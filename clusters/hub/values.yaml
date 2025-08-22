@@ -108,14 +108,14 @@ applications:
     source:
       path: components/acm-fusion-dr
 
-  # vm-dr-test:
-  #   annotations:
-  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
-  #     argocd.argoproj.io/sync-wave: '35'
-  #   destination:
-  #     namespace: openshift-gitops
-  #   source:
-  #     path: clusters/hub/overlays/vm-dr-test  
+  vm-dr-test:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '35'
+    destination:
+      namespace: openshift-gitops
+    source:
+      path: clusters/hub/overlays/vm-dr-test  
 
   trilio-object-store:
     annotations:
