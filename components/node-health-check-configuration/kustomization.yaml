@@ -5,3 +5,10 @@ namespace: openshift-workload-availability
 
 resources:
 - node-health-check.yaml
+
+helmCharts:
+  - name: node-problem-detector
+    namespace: openshift-workload-availability
+    releaseName: node-problem-detector
+    repo: https://charts.deliveryhero.io/
+    valuesFile: values.yaml

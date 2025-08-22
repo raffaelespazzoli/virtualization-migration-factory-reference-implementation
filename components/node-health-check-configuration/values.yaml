@@ -1,0 +1,3 @@
+settings:
+  log_monitors:
+    - /config/kernel-monitor.json
