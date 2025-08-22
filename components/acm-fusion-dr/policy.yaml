@@ -6,7 +6,9 @@ spec:
   drClusters:
     - etl6
     - etl7
-  replicationClassSelector: {}
+  replicationClassSelector: 
+    matchLabels:
+      replication.storage.openshift.io/flatten-mode: force
   schedulingInterval: 5m
   volumeGroupSnapshotClassSelector: {}
   volumeSnapshotClassSelector: {}
