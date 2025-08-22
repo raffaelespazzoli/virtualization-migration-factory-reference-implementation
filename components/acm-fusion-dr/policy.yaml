@@ -4,6 +4,9 @@ metadata:
   name: 'etl6-to-etl7'
 spec:
   drClusters:
-  - 'etl6'
-  - 'etl7'
-  schedulingInterval: '5m'
+    - etl6
+    - etl7
+  replicationClassSelector: {}
+  schedulingInterval: 5m
+  volumeGroupSnapshotClassSelector: {}
+  volumeSnapshotClassSelector: {}
