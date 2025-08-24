@@ -12,6 +12,7 @@ resources:
 - servicemesh-federation-policy.yaml
 - kuadrant-coredns-policy.yaml
 - percona-root-ca-policy.yaml
+- vm-dnsrecord-policy.yaml
 
 generators:
 - policy-generator-config.yaml
