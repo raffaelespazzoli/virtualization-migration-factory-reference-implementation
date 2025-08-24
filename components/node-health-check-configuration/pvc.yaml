@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ontap-san-test
+  labels:
+    app.kubernetes.io/instance: node-problem-detector
+    app.kubernetes.io/name: node-problem-detector  
+spec:
+  accessModes:
+  - ReadWriteMany
+  volumeMode: Block
+  resources:
+    requests:
+      storage: 1Gi # Requests 10 GiB of storage
+  storageClassName: ontap-san

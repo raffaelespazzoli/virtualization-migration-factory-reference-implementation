@@ -1,12 +1,77 @@
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: RoleBinding
-    metadata:
-      name: node-problem-detector-privileged
-    roleRef:
-      apiGroup: rbac.authorization.k8s.io
-      kind: ClusterRole
-      name: system:openshift:scc:privileged
-    subjects:
-      - kind: ServiceAccount
-        name: node-problem-detector
-        namespace: openshift-workload-availability
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: node-problem-detector-privileged
+  labels:
+    app.kubernetes.io/instance: node-problem-detector
+    app.kubernetes.io/name: node-problem-detector  
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:openshift:scc:privileged
+subjects:
+  - kind: ServiceAccount
+    name: node-problem-detector
+    namespace: openshift-workload-availability
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/instance: node-problem-detector
+    app.kubernetes.io/name: node-problem-detector
+  name: node-problem-detector
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - nodes/status
+  verbs:
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: node-problem-detector-privileged
+  namespace: openshift-workload-availability
+  labels:
+    app.kubernetes.io/instance: node-problem-detector
+    app.kubernetes.io/name: node-problem-detector  
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:openshift:scc:privileged
+subjects:
+- kind: ServiceAccount
+  name: node-problem-detector
+  namespace: openshift-workload-availability
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/instance: node-problem-detector
+    app.kubernetes.io/name: node-problem-detector
+  name: node-problem-detector
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: node-problem-detector
+subjects:
+- kind: ServiceAccount
+  name: node-problem-detector
+  namespace: openshift-workload-availability    

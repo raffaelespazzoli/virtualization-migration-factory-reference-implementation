@@ -6,10 +6,14 @@ namespace: openshift-workload-availability
 resources:
 - node-health-check.yaml
 - rbac.yaml
+- custom-config-map.yaml
+- service-account.yaml
+- daemonset.yaml
+- pvc.yaml
 
-helmCharts:
-  - name: node-problem-detector
-    namespace: openshift-workload-availability
-    releaseName: node-problem-detector
-    repo: https://charts.deliveryhero.io/
-    valuesFile: values.yaml
+# helmCharts:
+#   - name: node-problem-detector
+#     namespace: openshift-workload-availability
+#     releaseName: node-problem-detector
+#     repo: https://charts.deliveryhero.io/
+#     valuesFile: values.yaml

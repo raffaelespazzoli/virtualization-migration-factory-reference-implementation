@@ -1,3 +1,11 @@
 settings:
   log_monitors:
     - /config/kernel-monitor.json
+
+extraVolumes:
+  - name: ontap-san-test
+    persistentVolumeClaim:
+      claimName: ontap-san-test
+extraVolumeDevice:
+  - name: ontap-san-test
+    devicePath: /dev/ontap-san-test  

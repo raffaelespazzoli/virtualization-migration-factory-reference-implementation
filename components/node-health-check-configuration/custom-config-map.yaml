@@ -1,0 +1,38 @@
+apiVersion: v1
+data: 
+  ontap-san-test.json: |
+    {
+      "plugin": "custom",
+      "pluginConfig": {
+        "invoke_interval": "30s",
+        "timeout": "5s",
+        "max_output_length": 80,
+        "concurrency": 3,
+        "enable_message_change_based_condition_update": true
+      },
+      "source": "ontap-san-custom-plugin-monitor",
+      "metricsReporting": true,
+      "conditions": [
+        {
+          "type": "Ontap-san-problem",
+          "reason": "OntapSANIsUp",
+          "message": "Ontap-san connection service is up"
+        }
+      ],
+      "rules": [
+        {
+          "type": "permanent",
+          "condition": "OntapSANProblem",
+          "reason": "OntapSANIsDown",
+          "path": "dd if=/dev/ontap-san-test bs=4096 count=1 of=/dev/null",
+          "timeout": "3s"
+        }
+      ]
+    }  
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: node-problem-detector
+    app.kubernetes.io/name: node-problem-detector
+  name: node-problem-detector-custom-config
+  namespace: openshift-workload-availability
