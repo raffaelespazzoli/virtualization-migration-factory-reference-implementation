@@ -40,7 +40,7 @@ data:
     readonly UNKNOWN=2
 
     # Return success if we can read data from the block device
-    if dd if=/dev/ontap-san-test bs=4096 count=1 of=/dev/null; then
+    if dd iflag=direct if=/dev/ontap-san-test bs=4096 count=1 of=/dev/null; then
       echo "ontap-san-test is accessible"
       exit $OK
     else
