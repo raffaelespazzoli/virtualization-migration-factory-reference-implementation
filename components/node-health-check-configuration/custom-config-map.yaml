@@ -14,7 +14,7 @@ data:
       "metricsReporting": true,
       "conditions": [
         {
-          "type": "Ontap-san-problem",
+          "type": "OntapSANProblem",
           "reason": "OntapSANIsUp",
           "message": "Ontap-san connection service is up"
         }
