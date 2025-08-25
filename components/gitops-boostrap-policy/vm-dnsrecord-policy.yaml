@@ -19,7 +19,7 @@ spec:
           remediationAction: enforce
           severity: low
           object-templates-raw: |-
-            {{ range (lookup "kubevirt.io/v1" "VirtualMachineInstace" "" "" "vm.redhat-cop.dns-name=true").items }}
+            {{ range (lookup "kubevirt.io/v1" "VirtualMachineInstance" "" "" "vm.redhat-cop.dns-name=true").items }}
             {{ $vm := . }}
             - complianceType: mustonlyhave
               objectDefinition:
