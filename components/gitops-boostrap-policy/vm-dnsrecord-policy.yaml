@@ -32,8 +32,9 @@ spec:
                   {{ if $vm.status.interfaces }}
                     endpoints:
                     {{ range $vm.status.interfaces }}
-                    {{ if $vm.annotations."vm.redhat-cop.dns-name/{{ .interfaceName }}" }}
-                    - dnsName: '{{ $vm.annotations."vm.redhat-cop.dns-name/{{ .interfaceName }}" }}'
+                    {{ $annotationsName := "vm.redhat-cop.dns-name/"{{ .interfaceName }}  }}
+                    {{ if $vm.annotations.vm.$annotationName }}
+                    - dnsName: '{{ $vm.annotations.$annotationName }}'
                       recordTTL: 180
                       recordType: A
                       targets:
