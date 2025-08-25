@@ -27,11 +27,13 @@ spec:
         vm.kubevirt.io/flavor: small
         vm.kubevirt.io/os: fedora
         vm.kubevirt.io/workload: server
+        vm.redhat-cop.dns-name/nic-sapphire-roadrunner-92: fedora-vm1.lab.example.com
       creationTimestamp: null
       labels:
         kubevirt.io/domain: fedora-vm1
         kubevirt.io/size: small
         network.kubevirt.io/headlessService: headless
+        vm.redhat-cop.dns-name: "true"
     spec:
       architecture: amd64
       domain:
