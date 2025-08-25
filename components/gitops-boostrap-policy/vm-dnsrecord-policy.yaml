@@ -32,7 +32,7 @@ spec:
                   {{ if $vm.status.interfaces }}
                     endpoints:
                     {{ range $vm.status.interfaces }}
-                    {{ $annotationsName := "vm.redhat-cop.dns-name/"{{ .interfaceName }}  }}
+                    {{ $annotationsName := printf "%v%v" "vm.redhat-cop.dns-name/" .interfaceName  }}
                     {{ if $vm.annotations.vm.$annotationName }}
                     - dnsName: '{{ $vm.annotations.$annotationName }}'
                       recordTTL: 180
