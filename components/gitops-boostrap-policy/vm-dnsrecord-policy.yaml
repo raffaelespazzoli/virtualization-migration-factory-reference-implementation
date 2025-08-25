@@ -25,7 +25,7 @@ spec:
               objectDefinition:
                 apiVersion: externaldns.k8s.io/v1alpha1
                 kind: DNSEndpoint
-                name: "{{ .metadata.name }}""
+                name: "{{ .metadata.name }}"
                 namespace: "{{ .metadata.namespace }}"
                 data:
                   spec:
@@ -34,7 +34,7 @@ spec:
                     {{ range $vm.status.interfaces }}
                     {{ $annotationName := printf "%v%v" "vm.redhat-cop.dns-name/" .interfaceName  }}
                     {{ if get $vm.annotations $annotationName }}
-                    - dnsName: "{{ get $vm.annotations $annotationName }}""
+                    - dnsName: "{{ get $vm.annotations $annotationName }}"
                       recordTTL: 180
                       recordType: A
                       targets:
