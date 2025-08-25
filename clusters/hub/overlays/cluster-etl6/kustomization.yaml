@@ -42,4 +42,5 @@ helmCharts:
         vendor: OpenShift
         gitops: deploy
         servicemesh-federation: enabled
-        percona-demo: enabled      
+        percona-demo: enabled
+        vm-dnsrecord: enabled      
