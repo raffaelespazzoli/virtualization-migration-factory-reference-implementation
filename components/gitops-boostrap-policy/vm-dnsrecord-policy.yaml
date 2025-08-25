@@ -20,7 +20,7 @@ spec:
           severity: low
           object-templates-raw: |-
             {{ range (lookup "kubevirt.io/v1" "VirtualMachineInstance" "" "" "vm.redhat-cop.dns-name=true").items }}
-            {{ $vm := . }}
+            {{ $vm := . -}}
             - complianceType: mustonlyhave
               objectDefinition:
                 apiVersion: externaldns.k8s.io/v1alpha1
@@ -33,8 +33,8 @@ spec:
                   endpoints:
                   {{ range $vm.status.interfaces }}
                   {{ $annotationName := printf "%v%v" "vm.redhat-cop.dns-name/" .interfaceName  }}
-                  {{ if get $vm.annotations $annotationName }}
-                  - dnsName: "{{ get $vm.annotations $annotationName }}"
+                  {{ if get $vm.metadata.annotations $annotationName }}
+                  - dnsName: "{{ get $vm.metadata.annotations $annotationName }}"
                     recordTTL: 180
                     recordType: A
                     targets:
