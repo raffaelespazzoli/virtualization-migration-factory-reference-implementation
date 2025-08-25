@@ -26,7 +26,7 @@ spec:
                 apiVersion: externaldns.k8s.io/v1alpha1
                 kind: DNSEndpoint
                 name: '{{.metadata.name}}'
-                namespace: "{{.metadata.namespace}}"                    
+                namespace: "{{.metadata.namespace}}"
                 data:
                   spec:
                   {{ if $vm.status.interfaces }}
@@ -38,11 +38,11 @@ spec:
                       recordType: A
                       targets:
                       - '{{.ipAddress}}'
-                    {{ end }}  
                     {{ end }}
-                  {{ else }}  
+                    {{ end }}
+                  {{ else }}
                     endpoints: []
-                  {{ end }}    
+                  {{ end }}
             {{ end }}
 ---
 apiVersion: cluster.open-cluster-management.io/v1beta1
