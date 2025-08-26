@@ -7,13 +7,24 @@ spec:
     apiVersion: ramendr.openshift.io/v1alpha1
     kind: DRPolicy
     name: etl6-to-etl7
+  kubeObjectProtection:
+    captureInterval: 5m0s
+    kubeObjectSelector:
+      matchExpressions:
+        - key: app
+          operator: In
+          values:
+            - fedora-vm1
+            - fedora-vm2      
   placementRef:
     apiVersion: cluster.open-cluster-management.io/v1beta1
     kind: Placement
     name: vm-dr-test
     namespace: openshift-gitops
   preferredCluster: etl6
+  protected-namespaces:
+    - vm-dr-test
   pvcSelector:
     matchLabels:
-      app.kubernetes.io/component: storage
+      app: containerized-data-importer
 

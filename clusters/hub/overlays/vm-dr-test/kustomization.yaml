@@ -4,5 +4,5 @@ namespace: openshift-gitops
 
 resources:
   - vm-dr-test-appset.yaml
-  - placement-control.yaml
+  - dr-placement-control.yaml
   - placement.yaml
