@@ -11,6 +11,7 @@ spec:
     operator: Exists
   - key: cluster.open-cluster-management.io/unavailable
     operator: Exists
+  numberOfClusters: 1  
   predicates:
   - requiredClusterSelector:
       claimSelector: {}

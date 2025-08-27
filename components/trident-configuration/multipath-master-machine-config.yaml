@@ -22,6 +22,7 @@ spec:
           # queue_without_daemon no
           # dev_loss_tmo infinity
           # fast_io_fail_tmo 5
+          # find_multipaths no
           # }
           # # All data in the following section must be specific to your system.
           # blacklist {
@@ -46,7 +47,7 @@ spec:
           # rr_min_io 128
           # }
           # }
-            source: 'data:text/plain;charset=utf-8;base64,ZGVmYXVsdHMgewp1c2VyX2ZyaWVuZGx5X25hbWVzIG5vCm1heF9mZHMgbWF4CmZsdXNoX29uX2xhc3RfZGVsIHllcwpxdWV1ZV93aXRob3V0X2RhZW1vbiBubwpkZXZfbG9zc190bW8gaW5maW5pdHkKZmFzdF9pb19mYWlsX3RtbyA1Cn0KIyBBbGwgZGF0YSBpbiB0aGUgZm9sbG93aW5nIHNlY3Rpb24gbXVzdCBiZSBzcGVjaWZpYyB0byB5b3VyIHN5c3RlbS4KYmxhY2tsaXN0IHsKd3dpZCAiU0FkYXB0ZWMqIgpkZXZub2RlICJeaGRbYS16XSIKZGV2bm9kZSAiXihyYW18cmF3fGxvb3B8ZmR8bWR8ZG0tfHNyfHNjZHxzdClbMC05XSoiCmRldm5vZGUgIl5jY2lzcy4qIgp9CmRldmljZXMgewpkZXZpY2Ugewp2ZW5kb3IgIk5FVEFQUCIKcHJvZHVjdCAiTFVOIgpwYXRoX2dyb3VwaW5nX3BvbGljeSBncm91cF9ieV9wcmlvCmZlYXR1cmVzICIyIHBnX2luaXRfcmV0cmllcyA1MCIKbm9fcGF0aF9yZXRyeSBxdWV1ZQpwcmlvICJhbHVhIgpwYXRoX2NoZWNrZXIgdHVyCmZhaWxiYWNrIGltbWVkaWF0ZQpwYXRoX3NlbGVjdG9yICJyb3VuZC1yb2JpbiAwIgpoYXJkd2FyZV9oYW5kbGVyICIxIGFsdWEiCnJyX3dlaWdodCB1bmlmb3JtCnJyX21pbl9pbyAxMjgKfQp9Cgo='
+            source: 'data:text/plain;charset=utf-8;base64,ICAgICAgICAgIGRlZmF1bHRzIHsKICAgICAgICAgIHVzZXJfZnJpZW5kbHlfbmFtZXMgbm8KICAgICAgICAgIG1heF9mZHMgbWF4CiAgICAgICAgICBmbHVzaF9vbl9sYXN0X2RlbCB5ZXMKICAgICAgICAgIHF1ZXVlX3dpdGhvdXRfZGFlbW9uIG5vCiAgICAgICAgICBkZXZfbG9zc190bW8gaW5maW5pdHkKICAgICAgICAgIGZhc3RfaW9fZmFpbF90bW8gNQogICAgICAgICAgZmluZF9tdWx0aXBhdGhzIG5vCiAgICAgICAgICB9CiAgICAgICAgICAjIEFsbCBkYXRhIGluIHRoZSBmb2xsb3dpbmcgc2VjdGlvbiBtdXN0IGJlIHNwZWNpZmljIHRvIHlvdXIgc3lzdGVtLgogICAgICAgICAgYmxhY2tsaXN0IHsKICAgICAgICAgIHd3aWQgIlNBZGFwdGVjKiIKICAgICAgICAgIGRldm5vZGUgIl5oZFthLXpdIgogICAgICAgICAgZGV2bm9kZSAiXihyYW18cmF3fGxvb3B8ZmR8bWR8ZG0tfHNyfHNjZHxzdClbMC05XSoiCiAgICAgICAgICBkZXZub2RlICJeY2Npc3MuKiIKICAgICAgICAgIH0KICAgICAgICAgIGRldmljZXMgewogICAgICAgICAgZGV2aWNlIHsKICAgICAgICAgIHZlbmRvciAiTkVUQVBQIgogICAgICAgICAgcHJvZHVjdCAiTFVOIgogICAgICAgICAgcGF0aF9ncm91cGluZ19wb2xpY3kgZ3JvdXBfYnlfcHJpbwogICAgICAgICAgZmVhdHVyZXMgIjIgcGdfaW5pdF9yZXRyaWVzIDUwIgogICAgICAgICAgbm9fcGF0aF9yZXRyeSBxdWV1ZQogICAgICAgICAgcHJpbyAiYWx1YSIKICAgICAgICAgIHBhdGhfY2hlY2tlciB0dXIKICAgICAgICAgIGZhaWxiYWNrIGltbWVkaWF0ZQogICAgICAgICAgcGF0aF9zZWxlY3RvciAicm91bmQtcm9iaW4gMCIKICAgICAgICAgIGhhcmR3YXJlX2hhbmRsZXIgIjEgYWx1YSIKICAgICAgICAgIHJyX3dlaWdodCB1bmlmb3JtCiAgICAgICAgICBycl9taW5faW8gMTI4CiAgICAgICAgICB9CiAgICAgICAgICB9'
           mode: 420
           overwrite: true
           path: /etc/multipath.conf

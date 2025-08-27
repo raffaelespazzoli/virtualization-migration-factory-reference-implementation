@@ -16,6 +16,11 @@ spec:
       name: vm-dr-{{name}}
       labels:
         velero.io/exclude-from-backup: "true"
+        apps.open-cluster-management.io/pull-to-ocm-managed-cluster: "true"
+      annotations:  
+        apps.open-cluster-management.io/ocm-managed-cluster: "{{name}}"
+        apps.open-cluster-management.io/ocm-managed-cluster-app-namespace: openshift-gitops
+        argocd.argoproj.io/skip-reconcile: "true"        
     spec:
       destination:
         namespace: vm-dr-test
