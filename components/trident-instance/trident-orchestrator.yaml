@@ -5,8 +5,8 @@ metadata:
 spec:
   IPv6: false
   debug: false
-  nodePrep:
-  - iscsi
+  nodePrep: {}
+#  - iscsi
   imagePullSecrets: []
   imageRegistry: ''
   k8sTimeout: 30
