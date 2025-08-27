@@ -2,7 +2,6 @@ apiVersion: ramendr.openshift.io/v1alpha1
 kind: DRPlacementControl
 metadata:
   name: vm-dr-test
-  namespace: vm-dr-test
 spec:
   drPolicyRef:
     apiVersion: ramendr.openshift.io/v1alpha1
