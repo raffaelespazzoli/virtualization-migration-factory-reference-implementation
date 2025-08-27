@@ -22,7 +22,7 @@ spec:
     name: vm-dr-test
     namespace: openshift-gitops
   preferredCluster: etl6
-  protected-namespaces:
+  protectedNamespaces:
     - vm-dr-test
   pvcSelector:
     matchLabels:
