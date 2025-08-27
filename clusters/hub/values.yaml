@@ -112,8 +112,6 @@ applications:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '35'
-    destination:
-      namespace: openshift-gitops
     source:
       path: clusters/hub/overlays/vm-dr-test  
 

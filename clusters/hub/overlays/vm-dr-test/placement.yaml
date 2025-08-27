@@ -4,6 +4,7 @@ metadata:
   annotations:
     cluster.open-cluster-management.io/experimental-scheduling-disable: 'true'
   name: vm-dr-test
+  namespace: openshift-gitops
 spec:
   tolerations:
   - key: cluster.open-cluster-management.io/unreachable
