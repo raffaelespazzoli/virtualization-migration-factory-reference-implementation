@@ -3,10 +3,12 @@ kind: KubeDescheduler
 metadata:
   name: cluster
 spec:
-  deschedulingIntervalSeconds: 3600
-  profiles:
-  - DevPreviewLongLifecycle
-  mode: Predictive
   managementState: Managed
+  deschedulingIntervalSeconds: 30
+  mode: "Automatic"
+  profiles:
+    - DevKubeVirtRelieveAndMigrate
   profileCustomizations:
-    devEnableEvictionsInBackground: true  
+    devEnableSoftTainter: true
+    devDeviationThresholds: AsymmetricLow
+    devActualUtilizationProfile: PrometheusCPUCombined 

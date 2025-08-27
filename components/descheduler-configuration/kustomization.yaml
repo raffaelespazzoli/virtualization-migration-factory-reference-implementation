@@ -5,3 +5,4 @@ namespace: openshift-kube-descheduler-operator
 
 resources:
   - ./kube-descheduler.yaml
+  - ./machine-config.yaml
