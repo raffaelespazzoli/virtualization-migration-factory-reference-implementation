@@ -4,9 +4,11 @@ metadata:
   name: trident
 spec:
   IPv6: false
-  debug: true
-  nodePrep: []
+  debug: false
+  nodePrep:
+  - iscsi
   imagePullSecrets: []
   imageRegistry: ''
+  k8sTimeout: 30
   namespace: netapp-trident
-  silenceAutosupport: false
+  silenceAutosupport: false 
