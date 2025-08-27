@@ -5,7 +5,7 @@ metadata:
 spec:
   IPv6: false
   debug: false
-  nodePrep: {}
+  nodePrep: []
 #  - iscsi
   imagePullSecrets: []
   imageRegistry: ''
