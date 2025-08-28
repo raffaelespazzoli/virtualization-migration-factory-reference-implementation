@@ -17,4 +17,5 @@ spec:
   - troubleshooting-panel-console-plugin
   - distributed-tracing-console-plugin
   - kuadrant-console-plugin
-  - odf-console  
+  - odf-console
+  - odf-client-console
