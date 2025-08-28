@@ -7,6 +7,7 @@ spec:
   collector:
     resources:
       limits:
+        cpu : 2000m
         memory: 16Gi
       requests:
         cpu: 100m
