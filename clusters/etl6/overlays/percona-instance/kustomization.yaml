@@ -7,3 +7,4 @@ resources:
   - ./pg-cluster.yaml
   - ./service-export.yaml
   - ./pg-dummy-deployment.yaml
+  - ./rbac.yaml

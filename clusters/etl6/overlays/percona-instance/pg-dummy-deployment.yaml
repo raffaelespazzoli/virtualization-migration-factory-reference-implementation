@@ -14,6 +14,7 @@ spec:
       labels:
         app: pg-dummy-writer
     spec:
+      serviceAccountName: pg-dummy-writer
       containers:
       - name: writer
         image: docker.io/egegunes/pg-dummy-writer:1753096660
