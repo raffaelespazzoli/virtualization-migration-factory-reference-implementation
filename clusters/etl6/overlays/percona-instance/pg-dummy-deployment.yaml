@@ -46,9 +46,9 @@ spec:
         - -p
         - $(PGPASS)
         - -d
-        - testdb1
+        - demo
         - -t
-        - testtbl1
+        - demotbl1
         - -w
         - '2'
         - -r
