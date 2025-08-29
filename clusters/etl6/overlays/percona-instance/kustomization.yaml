@@ -8,3 +8,4 @@ resources:
   - ./service-export.yaml
   - ./pg-dummy-deployment.yaml
   - ./rbac.yaml
+  - ./init-configmap.yaml
