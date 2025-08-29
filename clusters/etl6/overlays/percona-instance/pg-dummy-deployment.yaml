@@ -5,7 +5,7 @@ metadata:
   labels:
     app: pg-dummy-writer
 spec:
-  replicas: 1
+  replicas: 0
   selector:
     matchLabels:
       app: pg-dummy-writer
