@@ -9,3 +9,4 @@ resources:
   - ./pg-dummy-deployment.yaml
   - ./rbac.yaml
   - ./init-configmap.yaml
+  #- ./network-policy.yaml
