@@ -43,6 +43,7 @@ data:
     # if timeout -k 2s -s 9 1s dd iflag=direct if=/dev/ontap-san-test bs=4096 count=1 of=/dev/null; then
     # if dd iflag=direct,nonblock if=/dev/ontap-san-test bs=4096 count=1 of=/dev/null; then
     # if sg_read if=/dev/ontap-san-test bs=4096 count=1 time=2 blk_sgio=1; then
+      if chroot /node-root timeout multipath -C; then
       echo "ontap-san-test is accessible"
       exit $OK
     else
