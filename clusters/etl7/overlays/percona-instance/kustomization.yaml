@@ -5,3 +5,4 @@ namespace: percona-operator
 
 resources:
   - ./pg-cluster.yaml
+  - ./dns-endpoint.yaml
