@@ -37,6 +37,8 @@ spec:
     pgBouncer:
       replicas: 3
       image: 'registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:2f74b1c4cf23d4fa95557b6b6ff40b2803095b8de2aa0dee2d33a5e5abcf02a0'
+      expose:
+        type: LoadBalancer      
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
