@@ -50,6 +50,8 @@ spec:
         - mountPath: /custom-config
           name: custom-config
           readOnly: true
+        - mountPath: /node-root
+          name: node-root          
         volumeDevices:
         - name: ontap-san-test
           devicePath: /dev/ontap-san-test
@@ -65,6 +67,9 @@ spec:
       - hostPath:
           path: /var/log/
         name: log
+      - hostPath:
+          path: /
+        name: node-root        
       - hostPath:
           path: /etc/localtime
           type: FileOrCreate
