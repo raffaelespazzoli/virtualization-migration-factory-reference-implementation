@@ -1,0 +1,23 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: taint-node-on-ontap-san-condition
+spec:
+  rules:
+  - name: add-taint-on-ontap-san-condition
+    match:
+      resources:
+        kinds:
+        - Node
+    preconditions:
+      all:
+      - key: "{{ request.object.spec.status.conditions[?(@.type=='OntapSANProblem')].status || 'False' }}"
+        operator: Equals
+        value: "True"
+    mutate:
+      overlay:
+        spec:
+          taints:
+            - key: "ontap-san-problem"
+              value: "true"
+              effect: "NoExecute"

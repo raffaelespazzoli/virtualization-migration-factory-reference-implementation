@@ -1,0 +1,61 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: volume-group-replication-class-policy
+  # Must be a recognized policy namespace on the hub
+  namespace: acm-policies
+spec:
+  remediationAction: enforce
+  disabled: false
+  hubTemplateOptions:
+    serviceAccountName: policy-admin
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: volume-group-replication-class-policy
+        spec:
+          remediationAction: enforce
+          severity: low
+          object-templates-raw: |-
+            apiVersion: replication.storage.openshift.io/v1alpha1
+            kind: VolumeGroupReplicationClass
+            metadata:
+              name: vgrc-rbd
+              labels:
+                ramendr.openshift.io/maintenancemodes: Failover
+                ramendr.openshift.io/storageid: {{ index (index ((lookup "replication.storage.openshift.io/v1alpha1" "volumereplicationclass" "" "").items) 0).metadata.labels "ramendr.openshift.io/storageid")}}
+                ramendr.openshift.io/replicationid: {{ index (index ((lookup "replication.storage.openshift.io/v1alpha1" "volumereplicationclass" "" "").items) 0).metadata.labels "ramendr.openshift.io/replicationid" }}
+            spec:
+              provisioner: openshift-storage.rbd.csi.ceph.com
+              parameters:
+                clusterID: openshift-storage
+                mirroringMode: snapshot
+                pool: ocs-storagecluster-cephblockpool
+                replication.storage.openshift.io/group-replication-secret-name: {{ index (index ((lookup "replication.storage.openshift.io/v1alpha1" "volumereplicationclass" "" "").items) 0).spec.parameters "replication.storage.openshift.io/replication-secret-name" }}
+                replication.storage.openshift.io/group-replication-secret-namespace: openshift-storage
+                schedulingInterval: 5m
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: volume-group-replication-class-placement
+  namespace: acm-policies
+spec:
+  clusterSets:
+    - dr
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: volume-group-replication-class-binding
+  namespace: acm-policies
+subjects:
+  - kind: Policy
+    apiGroup: policy.open-cluster-management.io
+    name: volume-group-replication-class-policy
+placementRef:
+  kind: Placement
+  apiGroup: cluster.open-cluster-management.io
+  name: volume-group-replication-class-placement
