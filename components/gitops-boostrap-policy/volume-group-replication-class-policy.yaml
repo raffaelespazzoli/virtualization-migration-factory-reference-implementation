@@ -59,3 +59,11 @@ placementRef:
   kind: Placement
   apiGroup: cluster.open-cluster-management.io
   name: volume-group-replication-class-placement
+---
+apiVersion: cluster.open-cluster-management.io/v1beta2
+kind: ManagedClusterSetBinding
+metadata:
+  name: dr
+  namespace: acm-policies
+spec:
+  clusterSet: dr  
