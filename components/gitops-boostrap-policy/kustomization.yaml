@@ -13,7 +13,7 @@ resources:
 - kuadrant-coredns-policy.yaml
 - percona-root-ca-policy.yaml
 - vm-dnsrecord-policy.yaml
-- volumme-group-replication-class-policy.yaml
+- volume-group-replication-class-policy.yaml
 
 generators:
 - policy-generator-config.yaml
