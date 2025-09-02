@@ -19,23 +19,25 @@ spec:
           remediationAction: enforce
           severity: low
           object-templates-raw: |-
-            apiVersion: replication.storage.openshift.io/v1alpha1
-            kind: VolumeGroupReplicationClass
-            metadata:
-              name: vgrc-rbd
-              labels:
-                ramendr.openshift.io/maintenancemodes: Failover
-                ramendr.openshift.io/storageid: {{ (index (index (lookup "replication.storage.openshift.io/v1alpha1" "VolumeReplicationClass" "" "").items 0).metadata.labels "ramendr.openshift.io/storageid") }}
-                ramendr.openshift.io/replicationid: {{ (index (index (lookup "replication.storage.openshift.io/v1alpha1" "VolumeReplicationClass" "" "").items 0).metadata.labels "ramendr.openshift.io/replicationid") }}
-            spec:
-              provisioner: openshift-storage.rbd.csi.ceph.com
-              parameters:
-                clusterID: openshift-storage
-                mirroringMode: snapshot
-                pool: ocs-storagecluster-cephblockpool
-                replication.storage.openshift.io/group-replication-secret-name: {{ (index (index (lookup "replication.storage.openshift.io/v1alpha1" "VolumeReplicationClass" "" "").items 0).spec.parameters "replication.storage.openshift.io/replication-secret-name") }}
-                replication.storage.openshift.io/group-replication-secret-namespace: openshift-storage
-                schedulingInterval: 5m
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: replication.storage.openshift.io/v1alpha1
+                kind: VolumeGroupReplicationClass
+                metadata:
+                  name: vgrc-rbd
+                  labels:
+                    ramendr.openshift.io/maintenancemodes: Failover
+                    ramendr.openshift.io/storageid: {{ (index (index (lookup "replication.storage.openshift.io/v1alpha1" "VolumeReplicationClass" "" "").items 0).metadata.labels "ramendr.openshift.io/storageid") }}
+                    ramendr.openshift.io/replicationid: {{ (index (index (lookup "replication.storage.openshift.io/v1alpha1" "VolumeReplicationClass" "" "").items 0).metadata.labels "ramendr.openshift.io/replicationid") }}
+                spec:
+                  provisioner: openshift-storage.rbd.csi.ceph.com
+                  parameters:
+                    clusterID: openshift-storage
+                    mirroringMode: snapshot
+                    pool: ocs-storagecluster-cephblockpool
+                    replication.storage.openshift.io/group-replication-secret-name: {{ (index (index (lookup "replication.storage.openshift.io/v1alpha1" "VolumeReplicationClass" "" "").items 0).spec.parameters "replication.storage.openshift.io/replication-secret-name") }}
+                    replication.storage.openshift.io/group-replication-secret-namespace: openshift-storage
+                    schedulingInterval: 5m
 ---
 apiVersion: cluster.open-cluster-management.io/v1beta1
 kind: Placement
