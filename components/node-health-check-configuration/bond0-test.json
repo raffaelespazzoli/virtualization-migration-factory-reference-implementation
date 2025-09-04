@@ -1,0 +1,28 @@
+{
+    "plugin": "custom",
+    "pluginConfig": {
+    "invoke_interval": "10s",
+    "timeout": "3s",
+    "max_output_length": 80,
+    "concurrency": 3,
+    "enable_message_change_based_condition_update": true
+    },
+    "source": "bond0-custom-plugin-monitor",
+    "metricsReporting": true,
+    "conditions": [
+    {
+        "type": "Bond0Problem",
+        "reason": "Bond0IsUp",
+        "message": "Bond0 connection is up"
+    }
+    ],
+    "rules": [
+    {
+        "type": "permanent",
+        "condition": "Bond0Problem",
+        "reason": "Bond0IsDown",
+        "path": "./custom-config/bond0-check.sh",
+        "timeout": "3s"
+    }
+    ]
+}

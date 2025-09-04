@@ -1,0 +1,28 @@
+{
+    "plugin": "custom",
+    "pluginConfig": {
+    "invoke_interval": "15s",
+    "timeout": "3s",
+    "max_output_length": 80,
+    "concurrency": 3,
+    "enable_message_change_based_condition_update": true
+    },
+    "source": "ontap-san-custom-plugin-monitor",
+    "metricsReporting": true,
+    "conditions": [
+    {
+        "type": "OntapSANProblem",
+        "reason": "OntapSANIsUp",
+        "message": "Ontap-san connection service is up"
+    }
+    ],
+    "rules": [
+    {
+        "type": "permanent",
+        "condition": "OntapSANProblem",
+        "reason": "OntapSANIsDown",
+        "path": "./custom-config/ontap-check.sh",
+        "timeout": "3s"
+    }
+    ]
+}

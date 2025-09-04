@@ -6,10 +6,22 @@ namespace: openshift-workload-availability
 resources:
 - node-health-check.yaml
 - rbac.yaml
-- custom-config-map.yaml
+#- custom-config-map.yaml
 - service-account.yaml
 - daemonset.yaml
 - pvc.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+- name: node-problem-detector-custom-config
+  namespace: openshift-workload-availability
+  files:
+  - bond0-check.sh
+  - bond0-test.json
+  - ontap-san-check.sh
+  - ontap-san-test.json
 
 # helmCharts:
 #   - name: node-problem-detector

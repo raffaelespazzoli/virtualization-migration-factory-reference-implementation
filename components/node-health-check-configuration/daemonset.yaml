@@ -23,7 +23,7 @@ spec:
       - command:
         - /bin/sh
         - -c
-        - 'exec /node-problem-detector --logtostderr --config.system-log-monitor=/config/kernel-monitor.json  --config.custom-plugin-monitor=/custom-config/ontap-san-test.json --prometheus-address=0.0.0.0
+        - 'exec /node-problem-detector --logtostderr --config.system-log-monitor=/config/kernel-monitor.json  --config.custom-plugin-monitor=/custom-config/ontap-san-test.json --config.custom-plugin-monitor=/custom-config/bond0-test.json --prometheus-address=0.0.0.0
           --prometheus-port=20257 --k8s-exporter-heartbeat-period=5m0s --v=3'
         env:
         - name: NODE_NAME
@@ -55,7 +55,7 @@ spec:
         volumeDevices:
         - name: ontap-san-test
           devicePath: /dev/ontap-san-test
-      hostNetwork: false
+      hostNetwork: true
       hostPID: false
       priorityClassName: system-node-critical
       serviceAccountName: node-problem-detector
