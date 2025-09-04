@@ -21,7 +21,7 @@
         "type": "permanent",
         "condition": "OntapSANProblem",
         "reason": "OntapSANIsDown",
-        "path": "./custom-config/ontap-check.sh",
+        "path": "./custom-config/ontap-san-check.sh",
         "timeout": "3s"
     }
     ]
