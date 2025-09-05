@@ -56,12 +56,12 @@ spec:
         - name: POSTGRES_USER
           valueFrom:
             secretKeyRef:
-              name: user
-              key: demo-pguser-demo
+              name: demo-pguser-demo
+              key: user
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: password
+              name: demo-pguser-demo
               key: password
         - name: POSTGRES_URL
           valueFrom:
