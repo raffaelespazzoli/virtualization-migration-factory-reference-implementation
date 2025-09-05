@@ -8,9 +8,6 @@ readonly NONOK=1
 readonly UNKNOWN=2
 
 # Return success if we can read data from the block device
-# if timeout -k 2s -s 9 1s dd iflag=direct if=/dev/ontap-san-test bs=4096 count=1 of=/dev/null; then
-# if dd iflag=direct,nonblock if=/dev/ontap-san-test bs=4096 count=1 of=/dev/null; then
-# if sg_read if=/dev/ontap-san-test bs=4096 count=1 time=2 blk_sgio=1; then
 export device=$(chroot /node-root multipath -ll | grep "NETAPP,LUN" | awk '{print $2}' | shuf | head -n 1)
 if chroot /node-root multipath -C $device; then
     echo "ontap-san-test is accessible"

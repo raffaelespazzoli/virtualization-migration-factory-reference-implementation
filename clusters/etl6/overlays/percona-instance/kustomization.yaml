@@ -8,5 +8,6 @@ resources:
   - ./service-export.yaml
   - ./pg-dummy-deployment.yaml
   - ./rbac.yaml
-  - ./init-configmap.yaml
+  - ./init-configmap.yaml\
+  - ./pet-clinic.yaml
   #- ./network-policy.yaml
