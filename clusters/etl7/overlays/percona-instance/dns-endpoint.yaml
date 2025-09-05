@@ -12,3 +12,11 @@ spec:
     - 10.9.52.144
     #etl7
     #- 10.9.53.39
+  - dnsName: petclinic.glb.${PLATFORM_BASE_DOMAIN}
+    recordTTL: 180
+    recordType: A
+    targets:
+    #etl6
+    - 10.9.52.152
+    #etl7
+    #- 10.9.53.39    
