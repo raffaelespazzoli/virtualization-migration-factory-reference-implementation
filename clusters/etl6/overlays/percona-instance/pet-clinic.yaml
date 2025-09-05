@@ -67,7 +67,22 @@ spec:
           valueFrom:
             secretKeyRef:
               name: demo-pguser-demo
-              key: pgbouncer-jdbc-uri                       
+              key: pgbouncer-jdbc-uri   
+        - name:  QUARKUS_DATASOURCE_JDBC_URL
+          valueFrom:
+            secretKeyRef:
+              name: demo-pguser-demo
+              key: pgbouncer-jdbc-uri
+        - name: QUARKUS_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: demo-pguser-demo
+              key: user
+        - name: QUARKUS_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: demo-pguser-demo
+              key: password                                                
         image: quay.io/rhdevelopers/quarkus-petclinic:1.0.0
         imagePullPolicy: Always
         name: quarkus-petclinic
