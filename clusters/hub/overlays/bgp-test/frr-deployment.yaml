@@ -30,6 +30,8 @@ spec:
           - name: frr-config
             mountPath: /etc/frr/frr.conf
             subPath: frr.conf
+          securityContext:
+            privileged: true  
       volumes:
       - name: frr-config
         configMap:
