@@ -5,3 +5,4 @@ namespace: bgp-test
 
 resources:
 - ./frr-deployment.yaml
+- ./namespace.yaml
