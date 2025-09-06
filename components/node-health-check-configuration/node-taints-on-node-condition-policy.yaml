@@ -14,6 +14,7 @@ spec:
       - key: "{{ request.object.spec.status.conditions[?(@.type=='OntapSANProblem')].status || 'False' }}"
         operator: Equals
         value: "True"
+    skipBackgroundRequests: true    
     mutate:
       patchStrategicMerge:
         spec:
@@ -38,6 +39,7 @@ spec:
       - key: "{{ request.object.spec.status.conditions[?(@.type=='Bond0Problem')].status || 'False' }}"
         operator: Equals
         value: "True"
+    skipBackgroundRequests: true    
     mutate:
       patchStrategicMerge:
         spec:
