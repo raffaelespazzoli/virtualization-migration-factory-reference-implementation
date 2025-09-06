@@ -14,9 +14,11 @@ spec:
       labels:
         app: frr
     spec:
+      serviceAccountName: frr
       containers:
         - name: frr
-          image: quay.io/raffaelespazzoli/frr:ubi8-minimal-f90ba1b9f5
+          #image: quay.io/raffaelespazzoli/frr:ubi8-minimal-f90ba1b9f5
+          image: registry.redhat.io/openshift4/frr-rhel9:latest
           ports:
             - containerPort: 179
           resources:
@@ -67,3 +69,21 @@ data:
       network 10.0.0.0/24
     !
     line vty
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: frr
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: frr-anyuid
+subjects:
+- kind: ServiceAccount
+  name: frr
+  namespace: bgp-test
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:openshift:scc:anyuid    
