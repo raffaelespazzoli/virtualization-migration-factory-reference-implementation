@@ -21,3 +21,31 @@ spec:
             - key: "ontap-san-problem"
               value: "true"
               effect: "NoExecute"
+---
+apiVersion: policies.kyverno.io/v1alpha1
+kind: MutatingPolicy
+metadata:
+  name: foreach
+spec:
+  matchConstraints:
+    resourceRules:
+    - apiGroups: [ "" ]
+      apiVersions: [ "v1" ]
+      operations: [ "CREATE" ]
+      resources: [ "pods" ]
+  evaluation:
+    admission:
+      enabled: true
+  matchConditions:
+    - name: does-not-have-volumes-with-ontap-san-storage-class
+      expression: "object.spec.volumes.filter(volume, has(volume.persistentVolumeClaim)).map(volume, resource.Get('v1', 'persistentvolumeclaims', object.metadata.namespace, volume.persistentVolumeClaim.claimName)).filter(pvc, pvc.spec.storageClassName == 'ontap-san').length == 0"
+  mutations:    
+  - patchType: ApplyConfiguration
+    applyConfiguration:
+      expression: |
+        object.spec.tolerations = object.spec.tolerations ? object.spec.tolerations : []
+        object.spec.tolerations.push({
+          key: "ontap-san-problem",
+          value: "true",
+          effect: "NoExecute"
+        })    
