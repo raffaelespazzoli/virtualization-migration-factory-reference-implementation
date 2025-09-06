@@ -15,7 +15,7 @@ spec:
         operator: Equals
         value: "True"
     mutate:
-      patchStrategicMerge::
+      patchStrategicMerge:
         spec:
           taints:
             - key: "OntapSANProblem"
@@ -39,7 +39,7 @@ spec:
         operator: Equals
         value: "True"
     mutate:
-      patchStrategicMerge::
+      patchStrategicMerge:
         spec:
           taints:
             - key: "Bond0Problem"
