@@ -10,6 +10,7 @@ resources:
 - service-account.yaml
 - daemonset.yaml
 - pvc.yaml
+- kyverno-node-taint-on-condition-policy.yaml
 
 generatorOptions:
   disableNameSuffixHash: true

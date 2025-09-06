@@ -18,21 +18,47 @@ spec:
       overlay:
         spec:
           taints:
-            - key: "ontap-san-problem"
+            - key: "OntapSANProblem"
               value: "true"
               effect: "NoExecute"
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: taint-node-on-bond0-condition
+spec:
+  rules:
+  - name: add-taint-on-bond0-condition
+    match:
+      resources:
+        kinds:
+        - Node
+    preconditions:
+      all:
+      - key: "{{ request.object.spec.status.conditions[?(@.type=='Bond0Problem')].status || 'False' }}"
+        operator: Equals
+        value: "True"
+    mutate:
+      overlay:
+        spec:
+          taints:
+            - key: "Bond0Problem"
+              value: "true"
+              effect: "NoExecute"              
 ---
 apiVersion: policies.kyverno.io/v1alpha1
 kind: MutatingPolicy
 metadata:
-  name: foreach
+  name: tolerate-ontap-san-problem-if-not-using-ontap-san-storage-class
 spec:
   matchConstraints:
     resourceRules:
     - apiGroups: [ "" ]
       apiVersions: [ "v1" ]
-      operations: [ "CREATE" ]
+      operations: ["CREATE", "UPDATE"]
       resources: [ "pods" ]
+  failurePolicy: Fail
+  reinvocationPolicy: Ignore      
   evaluation:
     admission:
       enabled: true
@@ -45,7 +71,37 @@ spec:
       expression: |
         object.spec.tolerations = object.spec.tolerations ? object.spec.tolerations : []
         object.spec.tolerations.push({
-          key: "ontap-san-problem",
+          key: "OntapSANProblem",
           value: "true",
           effect: "NoExecute"
-        })    
+        })
+---
+apiVersion: policies.kyverno.io/v1alpha1
+kind: MutatingPolicy
+metadata:
+  name: tolerate-bond0-problem-if-not-using-nads-starting-with-vlan
+spec:
+  matchConstraints:
+    resourceRules:
+    - apiGroups: [ "" ]
+      apiVersions: [ "v1" ]
+      operations: ["CREATE", "UPDATE"]
+      resources: [ "pods" ]
+  failurePolicy: Fail
+  reinvocationPolicy: Ignore      
+  evaluation:
+    admission:
+      enabled: true
+  matchConditions:
+    - name: does-not-have-networks-whose-name-starts-with-vlan
+      expression: "object.metadata.annotations['k8s.v1.cni.cncf.io/networks'].filter(net, net.name.startsWith('vlan-')).length == 0"
+  mutations:    
+  - patchType: ApplyConfiguration
+    applyConfiguration:
+      expression: |
+        object.spec.tolerations = object.spec.tolerations ? object.spec.tolerations : []
+        object.spec.tolerations.push({
+          key: "Bond0Problem",
+          value: "true",
+          effect: "NoExecute"
+        })            
