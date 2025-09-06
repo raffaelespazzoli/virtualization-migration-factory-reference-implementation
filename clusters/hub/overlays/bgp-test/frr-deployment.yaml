@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: frr
-          image: registry.redhat.io/openshift4/frr-rhel9:latest
+          image: quay.io/raffaelespazzoli/frr:ubi8-minimal-f90ba1b9f5
           ports:
             - containerPort: 179
           resources:
