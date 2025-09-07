@@ -55,6 +55,11 @@ metadata:
   annotations:
     pod-policies.kyverno.io/autogen-controllers: none  
 spec:
+  autogen:
+   mutatingAdmissionPolicy:
+    enabled: false
+   podControllers:
+     controllers: []
   matchConstraints:
     resourceRules:
     - apiGroups: [ "" ]
@@ -104,6 +109,11 @@ metadata:
   annotations:
     pod-policies.kyverno.io/autogen-controllers: none
 spec:
+  autogen:
+   mutatingAdmissionPolicy:
+    enabled: false
+   podControllers:
+     controllers: []
   matchConstraints:
     resourceRules:
     - apiGroups: [ "" ]
