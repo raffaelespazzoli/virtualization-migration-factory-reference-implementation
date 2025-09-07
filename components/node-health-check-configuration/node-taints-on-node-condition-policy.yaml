@@ -66,17 +66,21 @@ spec:
       enabled: true
   matchConditions:
     - name: does-not-have-volumes-with-ontap-san-storage-class
-      expression: "object.spec.volumes.filter(volume, has(volume.persistentVolumeClaim)).map(volume, resource.Get('v1', 'persistentvolumeclaims', object.metadata.namespace, volume.persistentVolumeClaim.claimName)).filter(pvc, pvc.spec.storageClassName == 'ontap-san').length == 0"
+      expression: "!has(object.spec.volumes) || object.spec.volumes.filter(volume, has(volume.persistentVolumeClaim)).map(volume, resource.Get('v1', 'persistentvolumeclaims', object.metadata.namespace, volume.persistentVolumeClaim.claimName)).filter(pvc, pvc.spec.storageClassName == 'ontap-san').size() == 0"
   mutations:    
   - patchType: ApplyConfiguration
-    applyConfiguration:
-      expression: |
-        object.spec.tolerations = object.spec.tolerations ? object.spec.tolerations : []
-        object.spec.tolerations.push({
-          key: "OntapSANProblem",
-          value: "true",
-          effect: "NoExecute"
-        })
+    jsonPatch:
+      expression: >
+          [
+            JSONPatch{
+              op: "add", path: "/spec/tolerations/-",
+              value: Object.spec.tolerations{
+                key: "OntapSANProblem",
+                value: "true",
+                effect: "NoExecute"
+              }
+            }
+          ]
 ---
 apiVersion: policies.kyverno.io/v1alpha1
 kind: MutatingPolicy
@@ -96,14 +100,18 @@ spec:
       enabled: true
   matchConditions:
     - name: does-not-have-networks-whose-name-starts-with-vlan
-      expression: "object.metadata.annotations['k8s.v1.cni.cncf.io/networks'].filter(net, net.name.startsWith('vlan-')).length == 0"
+      expression: "!has(object.metadata.annotations) || object.metadata.annotations['k8s.v1.cni.cncf.io/networks'].filter(net, net.name.startsWith('vlan-')).size() == 0"
   mutations:    
   - patchType: ApplyConfiguration
-    applyConfiguration:
-      expression: |
-        object.spec.tolerations = object.spec.tolerations ? object.spec.tolerations : []
-        object.spec.tolerations.push({
-          key: "Bond0Problem",
-          value: "true",
-          effect: "NoExecute"
-        })            
+    jsonPatch:
+      expression: >
+          [
+            JSONPatch{
+              op: "add", path: "/spec/tolerations/-",
+              value: Object.spec.tolerations{
+                key: "Bond0Problem",
+                value: "true",
+                effect: "NoExecute
+              }
+            }
+          ]           
