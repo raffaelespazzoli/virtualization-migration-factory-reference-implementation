@@ -17,15 +17,31 @@ helmCharts:
       config:
         webhooks: {"namespaceSelector":{"matchExpressions":[{"key":"openshift.io/cluster-monitoring","operator":"NotIn","values":["true"]}]}}
       admissionController:
+        replicas: 3
         initContainer:
           securityContext: null
         container:
           securityContext: null
+          resources:
+            limits:
+              memory: "700Mi"
       backgroundController:
+        replicas: 2
+        resources:
+          limits:
+            memory: "256Mi"
         securityContext: null
       cleanupController:
+        replicas: 2
+        resources:
+          limits:
+            memory: "256Mi"
         securityContext: null
       reportsController:
+        replicas: 2
+        resources:
+          limits:
+            memory: "256Mi"
         securityContext: null
       webhooksCleanup:
         securityContext: null  
