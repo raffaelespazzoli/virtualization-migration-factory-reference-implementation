@@ -51,7 +51,7 @@ spec:
 apiVersion: policies.kyverno.io/v1alpha1
 kind: MutatingPolicy
 metadata:
-  name: tolerate-ontap-san-problem-if-not-using-ontap-san-storage-class
+  name: tolerate-ontap-san-problem
   annotations:
     pod-policies.kyverno.io/autogen-controllers: none  
 spec:
@@ -67,7 +67,7 @@ spec:
     admission:
       enabled: true
   matchConditions:
-    - name: does-not-have-volumes-with-ontap-san-storage-class
+    - name: no-volumes-with-ontap-san-storage-class
       expression: "!has(object.spec.volumes) || object.spec.volumes.filter(volume, has(volume.persistentVolumeClaim)).map(volume, resource.Get('v1', 'persistentvolumeclaims', object.metadata.namespace, volume.persistentVolumeClaim.claimName)).filter(pvc, pvc.spec.storageClassName == 'ontap-san').size() == 0"
   mutations:    
   - patchType: ApplyConfiguration
@@ -100,7 +100,7 @@ spec:
 apiVersion: policies.kyverno.io/v1alpha1
 kind: MutatingPolicy
 metadata:
-  name: tolerate-bond0-problem-if-not-using-nads-starting-with-vlan
+  name: tolerate-bond0-problem
   annotations:
     pod-policies.kyverno.io/autogen-controllers: none
 spec:
@@ -116,7 +116,7 @@ spec:
     admission:
       enabled: true
   matchConditions:
-    - name: does-not-have-networks-whose-name-starts-with-vlan
+    - name: no-networks-whose-name-starts-with-vlan
       expression: "!has(object.metadata.annotations) || object.metadata.annotations['k8s.v1.cni.cncf.io/networks'].filter(net, net.name.startsWith('vlan-')).size() == 0"
   mutations:    
   - patchType: ApplyConfiguration
