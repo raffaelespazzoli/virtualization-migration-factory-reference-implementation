@@ -52,6 +52,8 @@ apiVersion: policies.kyverno.io/v1alpha1
 kind: MutatingPolicy
 metadata:
   name: tolerate-ontap-san-problem-if-not-using-ontap-san-storage-class
+  annotations:
+    pod-policies.kyverno.io/autogen-controllers: none  
 spec:
   matchConstraints:
     resourceRules:
@@ -99,6 +101,8 @@ apiVersion: policies.kyverno.io/v1alpha1
 kind: MutatingPolicy
 metadata:
   name: tolerate-bond0-problem-if-not-using-nads-starting-with-vlan
+  annotations:
+    pod-policies.kyverno.io/autogen-controllers: none
 spec:
   matchConstraints:
     resourceRules:
