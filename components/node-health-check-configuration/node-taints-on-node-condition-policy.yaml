@@ -70,17 +70,30 @@ spec:
   mutations:    
   - patchType: ApplyConfiguration
     jsonPatch:
-      expression: >
-          [
-            JSONPatch{
-              op: "add", path: "/spec/tolerations/-",
-              value: Object.spec.tolerations{
-                key: "OntapSANProblem",
-                value: "true",
-                effect: "NoExecute"
-              }
+      expression: |
+        has(object.spec.tolerations) ?
+        [
+          JSONPatch{
+            op: "add",
+            path: "/spec/tolerations/-",
+            value: {
+              key: "OntapSANProblem",
+              value: "true",
+              effect: "NoExecute"
             }
-          ]
+          }
+        ] :
+        [
+          JSONPatch{
+            op: "add",
+            path: "/spec/tolerations",
+            value: [{
+              key: "OntapSANProblem",
+              value: "true",
+              effect: "NoExecute"
+            }]
+          }
+        ]
 ---
 apiVersion: policies.kyverno.io/v1alpha1
 kind: MutatingPolicy
@@ -104,14 +117,27 @@ spec:
   mutations:    
   - patchType: ApplyConfiguration
     jsonPatch:
-      expression: >
-          [
-            JSONPatch{
-              op: "add", path: "/spec/tolerations/-",
-              value: Object.spec.tolerations{
-                key: "Bond0Problem",
-                value: "true",
-                effect: "NoExecute
-              }
+      expression: |
+        has(object.spec.tolerations) ?
+        [
+          JSONPatch{
+            op: "add",
+            path: "/spec/tolerations/-",
+            value: {
+              "key": "Bond0Problem",
+              "value": "true",
+              "effect": "NoExecute"
             }
-          ]           
+          }
+        ] :
+        [
+          JSONPatch{
+            op: "add",
+            path: "/spec/tolerations",
+            value: [{
+              "key": "Bond0Problem",
+              "value": "true",
+              "effect": "NoExecute"
+            }]
+          }
+        ]           
