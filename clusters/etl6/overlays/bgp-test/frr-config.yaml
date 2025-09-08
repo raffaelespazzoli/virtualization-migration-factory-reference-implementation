@@ -1,0 +1,29 @@
+apiVersion: frrk8s.metallb.io/v1beta1
+kind: FRRConfiguration
+metadata:
+  labels:
+    use-for-advertisements: true
+  name: main-pairing
+  namespace: openshift-frr-k8s
+spec:
+  nodeSelector: {}
+  bgp:
+    routers:
+    - asn: 65001
+      neighbors:
+      - address: 10.9.49.81
+        asn: 65000
+        disableMP: true
+        toReceive:
+          allowed:
+            mode: filtered
+            prefixes:
+            - prefix: 2.0.0.0/24
+        toAdvertise:
+          allowed:
+            mode: filtered
+            prefixes:
+            #carve up udn networks and metallb space
+            - prefix: 192.168.0.0/16
+              ge: 16
+              le: 16                

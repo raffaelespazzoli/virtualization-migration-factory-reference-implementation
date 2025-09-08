@@ -152,4 +152,14 @@ applications:
     annotations:
       argocd.argoproj.io/sync-wave: '10'     
     source:
-      path: clusters/etl6/overlays/percona-instance      
+      path: clusters/etl6/overlays/percona-instance    
+
+# bgp test
+
+  bgp-test:
+    annotations:
+      argocd.argoproj.io/sync-wave: '7'     
+    destination:
+      namespace: openshift-frr-k8s
+    source:
+      path: clusters/etl6/overlays/bgp-test  
