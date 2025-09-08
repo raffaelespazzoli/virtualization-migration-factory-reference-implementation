@@ -1,0 +1,10 @@
+kind: BGPAdvertisement
+apiVersion: metallb.io/v1beta1
+metadata:
+  name: bgp-adv
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - ip-addresspool-bgp
+  peers:
+    - bgp-peer

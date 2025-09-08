@@ -3,4 +3,7 @@ kind: Kustomization
 
 resources:
 - ./frr-config.yaml
+- ./bgp-peer.yaml
+- ./address-pool.yaml
+- ./bgp-advertisement.yaml
 
