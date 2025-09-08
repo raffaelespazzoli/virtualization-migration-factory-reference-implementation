@@ -7,3 +7,4 @@ spec:
   myASN: 65001
   peerASN: 65000
   peerAddress: 10.9.49.81
+  ebgpMultihop: true
