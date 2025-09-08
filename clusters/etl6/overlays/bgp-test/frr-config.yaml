@@ -24,6 +24,4 @@ spec:
             mode: filtered
             prefixes:
             #carve up udn networks and metallb space
-            - prefix: "192.168.0.0/16"
-              ge: "16"
-              le: "16"                
+            - "192.168.0.0/16"                
