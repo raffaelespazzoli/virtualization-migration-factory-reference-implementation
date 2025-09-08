@@ -22,8 +22,6 @@ spec:
     name: vm-dr-test
     namespace: openshift-gitops
   preferredCluster: etl6
-  protectedNamespaces:
-    - vm-dr-test
   pvcSelector:
     matchLabels:
       app: containerized-data-importer

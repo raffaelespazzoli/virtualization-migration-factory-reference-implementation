@@ -66,8 +66,8 @@ spec:
 #       apiVersions: [ "v1" ]
 #       operations: ["CREATE", "UPDATE"]
 #       resources: [ "pods" ]
-#   failurePolicy: Fail
-#   reinvocationPolicy: Ignore      
+#   failurePolicy: Ignore
+#   reinvocationPolicy: IfNeeded      
 #   evaluation:
 #     admission:
 #       enabled: true
@@ -102,56 +102,56 @@ spec:
 #           }
 #         ]
 ---
-# apiVersion: policies.kyverno.io/v1alpha1
-# kind: MutatingPolicy
-# metadata:
-#   name: tolerate-bond0-problem
-#   annotations:
-#     pod-policies.kyverno.io/autogen-controllers: none
-# spec:
-#   autogen:
-#    mutatingAdmissionPolicy:
-#     enabled: false
-#    podControllers:
-#      controllers: []
-#   matchConstraints:
-#     resourceRules:
-#     - apiGroups: [ "" ]
-#       apiVersions: [ "v1" ]
-#       operations: ["CREATE", "UPDATE"]
-#       resources: [ "pods" ]
-#   failurePolicy: Fail
-#   reinvocationPolicy: Ignore      
-#   evaluation:
-#     admission:
-#       enabled: true
-#   matchConditions:
-#     - name: no-networks-whose-name-starts-with-vlan
-#       expression: "!has(object.metadata.annotations) || object.metadata.annotations['k8s.v1.cni.cncf.io/networks'].filter(net, net.name.startsWith('vlan-')).size() == 0"
-#   mutations:    
-#   - patchType: ApplyConfiguration
-#     jsonPatch:
-#       expression: |
-#         has(object.spec.tolerations) ?
-#         [
-#           JSONPatch{
-#             op: "add",
-#             path: "/spec/tolerations/-",
-#             value: {
-#               "key": "Bond0Problem",
-#               "value": "true",
-#               "effect": "NoExecute"
-#             }
-#           }
-#         ] :
-#         [
-#           JSONPatch{
-#             op: "add",
-#             path: "/spec/tolerations",
-#             value: [{
-#               "key": "Bond0Problem",
-#               "value": "true",
-#               "effect": "NoExecute"
-#             }]
-#           }
-#         ]           
+apiVersion: policies.kyverno.io/v1alpha1
+kind: MutatingPolicy
+metadata:
+  name: tolerate-bond0-problem
+  annotations:
+    pod-policies.kyverno.io/autogen-controllers: none
+spec:
+  autogen:
+   mutatingAdmissionPolicy:
+    enabled: false
+   podControllers:
+     controllers: []
+  matchConstraints:
+    resourceRules:
+    - apiGroups: [ "" ]
+      apiVersions: [ "v1" ]
+      operations: ["CREATE", "UPDATE"]
+      resources: [ "pods" ]
+  failurePolicy: Ignore
+  reinvocationPolicy: IfNeeded      
+  evaluation:
+    admission:
+      enabled: true
+  matchConditions:
+    - name: no-networks-whose-name-starts-with-vlan
+      expression: "!has(object.metadata.annotations) || object.metadata.annotations['k8s.v1.cni.cncf.io/networks'].filter(net, net.name.startsWith('vlan-')).size() == 0"
+  mutations:    
+  - patchType: ApplyConfiguration
+    jsonPatch:
+      expression: |
+        has(object.spec.tolerations) ?
+        [
+          JSONPatch{
+            op: "add",
+            path: "/spec/tolerations/-",
+            value: {
+              "key": "Bond0Problem",
+              "value": "true",
+              "effect": "NoExecute"
+            }
+          }
+        ] :
+        [
+          JSONPatch{
+            op: "add",
+            path: "/spec/tolerations",
+            value: [{
+              "key": "Bond0Problem",
+              "value": "true",
+              "effect": "NoExecute"
+            }]
+          }
+        ]           
