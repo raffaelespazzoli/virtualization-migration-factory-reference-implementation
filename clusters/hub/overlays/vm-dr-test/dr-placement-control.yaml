@@ -3,6 +3,8 @@ kind: DRPlacementControl
 metadata:
   name: vm-dr-test
 spec:
+  action: Relocate
+  # action: Failover
   drPolicyRef:
     apiVersion: ramendr.openshift.io/v1alpha1
     kind: DRPolicy
