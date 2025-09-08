@@ -23,7 +23,10 @@ spec:
     kind: Placement
     name: vm-dr-test
     namespace: openshift-gitops
-  preferredCluster: etl6
+  #preferredCluster: etl6
+  #failoverCluster: etl7
+  preferredCluster: etl7
+  failoverCluster: etl6  
   pvcSelector:
     matchLabels:
       app: containerized-data-importer
