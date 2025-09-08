@@ -2,7 +2,7 @@ apiVersion: frrk8s.metallb.io/v1beta1
 kind: FRRConfiguration
 metadata:
   labels:
-    use-for-advertisements: true
+    use-for-advertisements: "true"
   name: main-pairing
   namespace: openshift-frr-k8s
 spec:
