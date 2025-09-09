@@ -11,10 +11,10 @@ metadata:
 spec:
   action: Relocate
   # action: Failover
-  preferredCluster: etl6
-  failoverCluster: etl7
-  # preferredCluster: etl7
-  # failoverCluster: etl6  
+  # preferredCluster: etl6
+  # failoverCluster: etl7
+  preferredCluster: etl7
+  failoverCluster: etl6  
   drPolicyRef:
     apiVersion: ramendr.openshift.io/v1alpha1
     kind: DRPolicy
