@@ -21,7 +21,7 @@ spec:
       enabled: true
   matchConditions:
     - name: taint-node-on-ontap-san-condition
-      expression: "object.status.conditions.filter(condition, condition.type=='OntapSANProblem' && condition.status=='True').size() = 1"
+      expression: "object.status.conditions.filter(condition, condition.type=='OntapSANProblem' && condition.status=='True').size() == 1"
   mutations:    
   - patchType: ApplyConfiguration
     jsonPatch:
@@ -73,7 +73,7 @@ spec:
       enabled: true
   matchConditions:
     - name: taint-node-on-bond0-condition
-      expression: "object.status.conditions.filter(condition, condition.type=='Bond0Problem' && condition.status=='True').size() = 1"
+      expression: "object.status.conditions.filter(condition, condition.type=='Bond0Problem' && condition.status=='True').size() == 1"
   mutations:    
   - patchType: ApplyConfiguration
     jsonPatch:
