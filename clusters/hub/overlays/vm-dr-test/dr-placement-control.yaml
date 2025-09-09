@@ -2,33 +2,32 @@ apiVersion: ramendr.openshift.io/v1alpha1
 kind: DRPlacementControl
 metadata:
   name: vm-dr-test
+  # annotations:
+    # drplacementcontrol.ramendr.openshift.io/is-cg-enabled: "true"
+    # drplacementcontrol.ramendr.openshift.io/auto-migration: "true"
+    # drplacementcontrol.ramendr.openshift.io/auto-migration: "false"
+    # drplacementcontrol.ramendr.openshift.io/suspend: "true"
+    # drplacementcontrol.ramendr.openshift.io/suspend: "false"
 spec:
-  action: Relocate
+  # action: Relocate
   # action: Failover
   preferredCluster: etl6
-  failoverCluster: etl7
+  # failoverCluster: etl7
   # preferredCluster: etl7
   # failoverCluster: etl6  
   drPolicyRef:
     apiVersion: ramendr.openshift.io/v1alpha1
     kind: DRPolicy
-    name: etl6-to-etl7
-  kubeObjectProtection:
-    captureInterval: 5m0s
-    kubeObjectSelector:
-      matchExpressions:
-        - key: app
-          operator: In
-          values:
-            - fedora-vm1
-            - fedora-vm2      
+    name: etl6-to-etl7     
   placementRef:
     apiVersion: cluster.open-cluster-management.io/v1beta1
     kind: Placement
     name: vm-dr-test
     namespace: openshift-gitops
-  
   pvcSelector:
-    matchLabels:
-      app: containerized-data-importer
+    matchExpressions:
+    - key: app
+      operator: In
+      values:
+      - containerized-data-importer
 
