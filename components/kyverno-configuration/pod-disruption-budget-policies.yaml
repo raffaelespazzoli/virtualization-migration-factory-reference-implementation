@@ -18,12 +18,14 @@ spec:
   background: false
   rules:
     - name: pdb-maxunavailable
+      skipBackgroundRequests: true
       match:
         any:
           - resources:
               kinds:
                 - PodDisruptionBudget
       validate:
+        allowExistingViolations: true
         message: "The value of maxUnavailable must be greater than zero."
         pattern:
           spec:
@@ -68,10 +70,13 @@ spec:
           value: 0
       context:
         - name: minavailable
+          method: GET
           apiCall:
             urlPath: "/apis/policy/v1/namespaces/{{request.namespace}}/poddisruptionbudgets"
             jmesPath: "items[?label_match(spec.selector.matchLabels, `{{request.object.spec.template.metadata.labels}}`)] | [0] | spec.minAvailable || `0`"
+      skipBackgroundRequests: true      
       validate:
+        allowExistingViolations: true
         message: >-
           The matching PodDisruptionBudget for this resource has its minAvailable value equal to the replica count
           which is not permitted.
