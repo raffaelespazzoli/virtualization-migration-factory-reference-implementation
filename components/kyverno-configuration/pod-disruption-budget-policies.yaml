@@ -69,9 +69,9 @@ spec:
           operator: GreaterThan
           value: 0
       context:
-        - name: minavailable
-          method: GET
+        - name: minavailable          
           apiCall:
+            method: GET
             urlPath: "/apis/policy/v1/namespaces/{{request.namespace}}/poddisruptionbudgets"
             jmesPath: "items[?label_match(spec.selector.matchLabels, `{{request.object.spec.template.metadata.labels}}`)] | [0] | spec.minAvailable || `0`"
       skipBackgroundRequests: true      
