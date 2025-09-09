@@ -9,10 +9,10 @@ metadata:
     # drplacementcontrol.ramendr.openshift.io/suspend: "true"
     # drplacementcontrol.ramendr.openshift.io/suspend: "false"
 spec:
-  # action: Relocate
+  action: Relocate
   # action: Failover
   preferredCluster: etl6
-  # failoverCluster: etl7
+  failoverCluster: etl7
   # preferredCluster: etl7
   # failoverCluster: etl6  
   drPolicyRef:
