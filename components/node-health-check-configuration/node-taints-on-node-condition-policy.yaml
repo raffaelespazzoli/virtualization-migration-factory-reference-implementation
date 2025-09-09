@@ -1,59 +1,111 @@
-apiVersion: kyverno.io/v1
-kind: ClusterPolicy
+apiVersion: policies.kyverno.io/v1alpha1
+kind: MutatingPolicy
 metadata:
   name: taint-node-on-ontap-san-condition
 spec:
-  rules:
-  - name: add-taint-on-ontap-san-condition
-    match:
-      resources:
-        kinds:
-        - Node
-    preconditions:
-      all:
-      - key: "{{ request.object.spec.status.conditions[?(@.type=='OntapSANProblem')].status || 'False' }}"
-        operator: Equals
-        value: "True"
-    skipBackgroundRequests: true    
-    mutate:
-      patchStrategicMerge:
-        spec:
-          taints:
-            - key: "OntapSANProblem"
-              value: "true"
-              effect: "NoExecute"
+  autogen:
+   mutatingAdmissionPolicy:
+    enabled: false
+   podControllers:
+     controllers: []
+  matchConstraints:
+    resourceRules:
+    - apiGroups: [ "" ]
+      apiVersions: [ "v1" ]
+      operations: ["CREATE", "UPDATE"]
+      resources: [ "nodes" ]
+  failurePolicy: Ignore
+  reinvocationPolicy: IfNeeded      
+  evaluation:
+    admission:
+      enabled: true
+  matchConditions:
+    - name: taint-node-on-ontap-san-condition
+      expression: "object.status.conditions.filter(condition, condition.type=='OntapSANProblem' && condition.status=='True').size() = 1"
+  mutations:    
+  - patchType: ApplyConfiguration
+    jsonPatch:
+      expression: |
+        has(object.spec.taints) ?
+        [
+          JSONPatch{
+            op: "add",
+            path: "/spec/taints/-",
+            value: {
+              "key": "OntapSANProblem",
+              "value": "true",
+              "effect": "NoExecute"
+            }
+          }
+        ] :
+        [
+          JSONPatch{
+            op: "add",
+            path: "/spec/taints",
+            value: [{
+              "key": "OntapSANProblem",
+              "value": "true",
+              "effect": "NoExecute"
+            }]
+          }
+        ]
 ---
-apiVersion: kyverno.io/v1
-kind: ClusterPolicy
+apiVersion: policies.kyverno.io/v1alpha1
+kind: MutatingPolicy
 metadata:
   name: taint-node-on-bond0-condition
 spec:
-  rules:
-  - name: add-taint-on-bond0-condition
-    match:
-      resources:
-        kinds:
-        - Node
-    preconditions:
-      all:
-      - key: "{{ request.object.spec.status.conditions[?(@.type=='Bond0Problem')].status || 'False' }}"
-        operator: Equals
-        value: "True"
-    skipBackgroundRequests: true    
-    mutate:
-      patchStrategicMerge:
-        spec:
-          taints:
-            - key: "Bond0Problem"
-              value: "true"
-              effect: "NoExecute"              
+  autogen:
+   mutatingAdmissionPolicy:
+    enabled: false
+   podControllers:
+     controllers: []
+  matchConstraints:
+    resourceRules:
+    - apiGroups: [ "" ]
+      apiVersions: [ "v1" ]
+      operations: ["CREATE", "UPDATE"]
+      resources: [ "nodes" ]
+  failurePolicy: Ignore
+  reinvocationPolicy: IfNeeded      
+  evaluation:
+    admission:
+      enabled: true
+  matchConditions:
+    - name: taint-node-on-bond0-condition
+      expression: "object.status.conditions.filter(condition, condition.type=='Bond0Problem' && condition.status=='True').size() = 1"
+  mutations:    
+  - patchType: ApplyConfiguration
+    jsonPatch:
+      expression: |
+        has(object.spec.taints) ?
+        [
+          JSONPatch{
+            op: "add",
+            path: "/spec/taints/-",
+            value: {
+              "key": "Bond0Problem",
+              "value": "true",
+              "effect": "NoExecute"
+            }
+          }
+        ] :
+        [
+          JSONPatch{
+            op: "add",
+            path: "/spec/taints",
+            value: [{
+              "key": "Bond0Problem",
+              "value": "true",
+              "effect": "NoExecute"
+            }]
+          }
+        ]            
 # ---
 # apiVersion: policies.kyverno.io/v1alpha1
 # kind: MutatingPolicy
 # metadata:
-#   name: tolerate-ontap-san-problem
-#   annotations:
-#     pod-policies.kyverno.io/autogen-controllers: none  
+#   name: tolerate-ontap-san-problem  
 # spec:
 #   autogen:
 #    mutatingAdmissionPolicy:
@@ -106,8 +158,6 @@ apiVersion: policies.kyverno.io/v1alpha1
 kind: MutatingPolicy
 metadata:
   name: tolerate-bond0-problem
-  annotations:
-    pod-policies.kyverno.io/autogen-controllers: none
 spec:
   autogen:
    mutatingAdmissionPolicy:
