@@ -107,7 +107,7 @@ spec:
             }]
           }
         ]            
-# ---
+---
 # apiVersion: policies.kyverno.io/v1alpha1
 # kind: MutatingPolicy
 # metadata:
@@ -132,13 +132,13 @@ spec:
 #   matchConditions:
 #     - name: no-volumes-with-ontap-san-storage-class
 #       expression: |-
-          # ! object.metadata.namespace.startsWith('kube-') ||
-          # ! object.metadata.namespace.startsWith('openshift-') ||
-          # ! object.metadata.namespace.endsWith('-system') ||  
-          # ! object.metadata.namespace == 'default' || 
-          # ! object.metadata.namespace == 'kyverno' ||
-          # ! has(object.spec.volumes) || 
-          # object.spec.volumes.map(volume, has(volume.persistentVolumeClaim), resource.Get('v1', 'persistentvolumeclaims', object.metadata.namespace, volume.persistentVolumeClaim.claimName)).filter(pvc, pvc.spec.storageClassName == 'ontap-san').size() == 0"
+#         (object.metadata.namespace.startsWith('kube-') &&
+#         object.metadata.namespace.startsWith('openshift-') &&
+#         object.metadata.namespace.endsWith('-system') &&  
+#         object.metadata.namespace == 'default' && 
+#         object.metadata.namespace == 'kyverno') && 
+#         (! has(object.spec.volumes) || 
+#         object.spec.volumes.map(volume, has(volume.persistentVolumeClaim), resource.Get('v1', 'persistentvolumeclaims', object.metadata.namespace, volume.persistentVolumeClaim.claimName)).filter(pvc, pvc.spec.storageClassName == 'ontap-san').size() == 0")
 #   mutations:    
 #   - patchType: JSONPatch
 #     jsonPatch:
@@ -191,15 +191,15 @@ spec:
   matchConditions:
     - name: no-networks-whose-name-starts-with-vlan
       expression: |- 
-        ! object.metadata.namespace.startsWith('kube-') ||
-        ! object.metadata.namespace.startsWith('openshift-') ||
-        ! object.metadata.namespace.endsWith('-system') ||  
-        ! object.metadata.namespace == 'default' || 
-        ! object.metadata.namespace == 'kyverno' || 
-        ! has(object.metadata.annotations) || 
+        (object.metadata.namespace.startsWith('kube-') &&
+        object.metadata.namespace.startsWith('openshift-') &&
+        object.metadata.namespace.endsWith('-system') &&  
+        object.metadata.namespace == 'default' && 
+        object.metadata.namespace == 'kyverno') && 
+        (! has(object.metadata.annotations) || 
         ! ('k8s.v1.cni.cncf.io/networks' in object.metadata.annotations) || 
         ! object.metadata.annotations['k8s.v1.cni.cncf.io/networks'].contains('\"name\":') ||
-        object.metadata.annotations['k8s.v1.cni.cncf.io/networks'].findAll('\"name\":\"([^\"]*)\"').map(s,s.split(':')[1].substring(1,s.split(':')[1].size()-1)).filter(name, name.startsWith('vlan-')).size() == 0
+        object.metadata.annotations['k8s.v1.cni.cncf.io/networks'].findAll('\"name\":\"([^\"]*)\"').map(s,s.split(':')[1].substring(1,s.split(':')[1].size()-1)).filter(name, name.startsWith('vlan-')).size() == 0)
   mutations:    
   - patchType: JSONPatch
     jsonPatch:
