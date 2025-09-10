@@ -101,58 +101,58 @@ spec:
             }]
           }
         ]            
----
-apiVersion: policies.kyverno.io/v1alpha1
-kind: MutatingPolicy
-metadata:
-  name: tolerate-ontap-san-problem  
-spec:
-  autogen:
-   mutatingAdmissionPolicy:
-    enabled: false
-   podControllers:
-     controllers: []
-  matchConstraints:
-    resourceRules:
-    - apiGroups: [ "" ]
-      apiVersions: [ "v1" ]
-      operations: ["CREATE", "UPDATE"]
-      resources: [ "pods" ]
-  failurePolicy: Ignore
-  reinvocationPolicy: IfNeeded      
-  evaluation:
-    admission:
-      enabled: true
-  matchConditions:
-    - name: no-volumes-with-ontap-san-storage-class
-      expression: "!has(object.spec.volumes) || object.spec.volumes.map(volume, has(volume.persistentVolumeClaim), resource.Get('v1', 'persistentvolumeclaims', object.metadata.namespace, volume.persistentVolumeClaim.claimName)).filter(pvc, pvc.spec.storageClassName == 'ontap-san').size() == 0"
-  mutations:    
-  - patchType: JSONPatch
-    jsonPatch:
-      expression: |
-        has(object.spec.tolerations) ?
-        [
-          JSONPatch{
-            op: "add",
-            path: "/spec/tolerations/-",
-            value: {
-              key: "OntapSANProblem",
-              operator: "Exists",
-              effect: "NoExecute"
-            }
-          }
-        ] :
-        [
-          JSONPatch{
-            op: "add",
-            path: "/spec/tolerations",
-            value: [{
-              key: "OntapSANProblem",
-              operator: "Exists",
-              effect: "NoExecute"
-            }]
-          }
-        ]
+# ---
+# apiVersion: policies.kyverno.io/v1alpha1
+# kind: MutatingPolicy
+# metadata:
+#   name: tolerate-ontap-san-problem  
+# spec:
+#   autogen:
+#    mutatingAdmissionPolicy:
+#     enabled: false
+#    podControllers:
+#      controllers: []
+#   matchConstraints:
+#     resourceRules:
+#     - apiGroups: [ "" ]
+#       apiVersions: [ "v1" ]
+#       operations: ["CREATE", "UPDATE"]
+#       resources: [ "pods" ]
+#   failurePolicy: Ignore
+#   reinvocationPolicy: IfNeeded      
+#   evaluation:
+#     admission:
+#       enabled: true
+#   matchConditions:
+#     - name: no-volumes-with-ontap-san-storage-class
+#       expression: "!has(object.spec.volumes) || object.spec.volumes.map(volume, has(volume.persistentVolumeClaim), resource.Get('v1', 'persistentvolumeclaims', object.metadata.namespace, volume.persistentVolumeClaim.claimName)).filter(pvc, pvc.spec.storageClassName == 'ontap-san').size() == 0"
+#   mutations:    
+#   - patchType: JSONPatch
+#     jsonPatch:
+#       expression: |
+#         has(object.spec.tolerations) ?
+#         [
+#           JSONPatch{
+#             op: "add",
+#             path: "/spec/tolerations/-",
+#             value: {
+#               key: "OntapSANProblem",
+#               operator: "Exists",
+#               effect: "NoExecute"
+#             }
+#           }
+#         ] :
+#         [
+#           JSONPatch{
+#             op: "add",
+#             path: "/spec/tolerations",
+#             value: [{
+#               key: "OntapSANProblem",
+#               operator: "Exists",
+#               effect: "NoExecute"
+#             }]
+#           }
+#         ]
 ---
 apiVersion: policies.kyverno.io/v1alpha1
 kind: MutatingPolicy
