@@ -22,3 +22,19 @@ subjects:
 - kind: ServiceAccount
   name: kyverno-migrate-resources
   namespace: kyverno
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kyverno:get-nodes
+  labels:
+    rbac.kyverno.io/aggregate-to-reports-controller: "true"  
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
