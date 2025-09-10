@@ -12,7 +12,7 @@ spec:
     resourceRules:
     - apiGroups: [ "" ]
       apiVersions: [ "v1" ]
-      operations: ["CREATE", "UPDATE"]
+      operations: ["UPDATE"]
       resources: [ "nodes" ]
   failurePolicy: Ignore
   reinvocationPolicy: IfNeeded      
@@ -21,9 +21,12 @@ spec:
       enabled: true
   matchConditions:
     - name: taint-node-on-ontap-san-condition
-      expression: "object.status.conditions.filter(condition, condition.type=='OntapSANProblem' && condition.status=='True').size() == 1"
+      expression: |-
+        has(object.status) && 
+        has(object.status.conditions) && 
+        object.status.conditions.filter(condition, condition.type=='OntapSANProblem' && condition.status=='True').size() == 1
   mutations:    
-  - patchType: ApplyConfiguration
+  - patchType: JSONPatch
     jsonPatch:
       expression: |
         has(object.spec.taints) ?
@@ -64,7 +67,7 @@ spec:
     resourceRules:
     - apiGroups: [ "" ]
       apiVersions: [ "v1" ]
-      operations: ["CREATE", "UPDATE"]
+      operations: ["UPDATE"]
       resources: [ "nodes" ]
   failurePolicy: Ignore
   reinvocationPolicy: IfNeeded      
@@ -73,9 +76,12 @@ spec:
       enabled: true
   matchConditions:
     - name: taint-node-on-bond0-condition
-      expression: "object.status.conditions.filter(condition, condition.type=='Bond0Problem' && condition.status=='True').size() == 1"
+      expression: |-
+        has(object.status) && 
+        has(object.status.conditions) && 
+        object.status.conditions.filter(condition, condition.type=='Bond0Problem' && condition.status=='True').size() == 1
   mutations:    
-  - patchType: ApplyConfiguration
+  - patchType: JSONPatch
     jsonPatch:
       expression: |
         has(object.spec.taints) ?
@@ -125,7 +131,14 @@ spec:
 #       enabled: true
 #   matchConditions:
 #     - name: no-volumes-with-ontap-san-storage-class
-#       expression: "!has(object.spec.volumes) || object.spec.volumes.map(volume, has(volume.persistentVolumeClaim), resource.Get('v1', 'persistentvolumeclaims', object.metadata.namespace, volume.persistentVolumeClaim.claimName)).filter(pvc, pvc.spec.storageClassName == 'ontap-san').size() == 0"
+#       expression: |-
+          # ! object.metadata.namespace.startsWith('kube-') ||
+          # ! object.metadata.namespace.startsWith('openshift-') ||
+          # ! object.metadata.namespace.endsWith('-system') ||  
+          # ! object.metadata.namespace == 'default' || 
+          # ! object.metadata.namespace == 'kyverno' ||
+          # ! has(object.spec.volumes) || 
+          # object.spec.volumes.map(volume, has(volume.persistentVolumeClaim), resource.Get('v1', 'persistentvolumeclaims', object.metadata.namespace, volume.persistentVolumeClaim.claimName)).filter(pvc, pvc.spec.storageClassName == 'ontap-san').size() == 0"
 #   mutations:    
 #   - patchType: JSONPatch
 #     jsonPatch:
@@ -153,59 +166,64 @@ spec:
 #             }]
 #           }
 #         ]
-# ---
-# apiVersion: policies.kyverno.io/v1alpha1
-# kind: MutatingPolicy
-# metadata:
-#   name: tolerate-bond0-problem
-# spec:
-#   autogen:
-#    mutatingAdmissionPolicy:
-#     enabled: false
-#    podControllers:
-#      controllers: []
-#   matchConstraints:
-#     resourceRules:
-#     - apiGroups: [ "" ]
-#       apiVersions: [ "v1" ]
-#       operations: ["CREATE", "UPDATE"]
-#       resources: [ "pods" ]
-#   failurePolicy: Ignore
-#   reinvocationPolicy: IfNeeded      
-#   evaluation:
-#     admission:
-#       enabled: true
-#   matchConditions:
-#     - name: no-networks-whose-name-starts-with-vlan
-#       expression: |- 
-#         ! has(object.metadata.annotations) || 
-#         ! ('k8s.v1.cni.cncf.io/networks' in object.metadata.annotations) || 
-#         ! object.metadata.annotations['k8s.v1.cni.cncf.io/networks'].contains('\"name\":') ||
-#         object.metadata.annotations['k8s.v1.cni.cncf.io/networks'].findAll('\"name\":\"([^\"]*)\"').map(s,s.split(':')[1].substring(1,s.split(':')[1].size()-1)).filter(name, name.startsWith('vlan-')).size() == 0
-#   mutations:    
-#   - patchType: JSONPatch
-#     jsonPatch:
-#       expression: |
-#         has(object.spec.tolerations) ?
-#         [
-#           JSONPatch{
-#             op: "add",
-#             path: "/spec/tolerations/-",
-#             value: {
-#               "key": "Bond0Problem",
-#               "operator": "Exists",
-#               "effect": "NoExecute"
-#             }
-#           }
-#         ] :
-#         [
-#           JSONPatch{
-#             op: "add",
-#             path: "/spec/tolerations",
-#             value: [{
-#               "key": "Bond0Problem",
-#               "operator": "Exists",
-#               "effect": "NoExecute"
-#             }]
-#           }
-#         ]           
+---
+apiVersion: policies.kyverno.io/v1alpha1
+kind: MutatingPolicy
+metadata:
+  name: tolerate-bond0-problem
+spec:
+  autogen:
+   mutatingAdmissionPolicy:
+    enabled: false
+   podControllers:
+     controllers: []
+  matchConstraints:
+    resourceRules:
+    - apiGroups: [ "" ]
+      apiVersions: [ "v1" ]
+      operations: ["CREATE", "UPDATE"]
+      resources: [ "pods" ]
+  failurePolicy: Ignore
+  reinvocationPolicy: IfNeeded      
+  evaluation:
+    admission:
+      enabled: true
+  matchConditions:
+    - name: no-networks-whose-name-starts-with-vlan
+      expression: |- 
+        ! object.metadata.namespace.startsWith('kube-') ||
+        ! object.metadata.namespace.startsWith('openshift-') ||
+        ! object.metadata.namespace.endsWith('-system') ||  
+        ! object.metadata.namespace == 'default' || 
+        ! object.metadata.namespace == 'kyverno' || 
+        ! has(object.metadata.annotations) || 
+        ! ('k8s.v1.cni.cncf.io/networks' in object.metadata.annotations) || 
+        ! object.metadata.annotations['k8s.v1.cni.cncf.io/networks'].contains('\"name\":') ||
+        object.metadata.annotations['k8s.v1.cni.cncf.io/networks'].findAll('\"name\":\"([^\"]*)\"').map(s,s.split(':')[1].substring(1,s.split(':')[1].size()-1)).filter(name, name.startsWith('vlan-')).size() == 0
+  mutations:    
+  - patchType: JSONPatch
+    jsonPatch:
+      expression: |
+        has(object.spec.tolerations) ?
+        [
+          JSONPatch{
+            op: "add",
+            path: "/spec/tolerations/-",
+            value: {
+              "key": "Bond0Problem",
+              "operator": "Exists",
+              "effect": "NoExecute"
+            }
+          }
+        ] :
+        [
+          JSONPatch{
+            op: "add",
+            path: "/spec/tolerations",
+            value: [{
+              "key": "Bond0Problem",
+              "operator": "Exists",
+              "effect": "NoExecute"
+            }]
+          }
+        ]           
