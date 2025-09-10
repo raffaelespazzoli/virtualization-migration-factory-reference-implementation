@@ -191,11 +191,11 @@ spec:
   matchConditions:
     - name: no-networks-whose-name-starts-with-vlan
       expression: |- 
-        (object.metadata.namespace.startsWith('kube-') &&
-        object.metadata.namespace.startsWith('openshift-') &&
-        object.metadata.namespace.endsWith('-system') &&  
-        object.metadata.namespace == 'default' && 
-        object.metadata.namespace == 'kyverno') && 
+        !( object.metadata.namespace.startsWith('kube-') ||
+         object.metadata.namespace.startsWith('openshift-') ||
+         object.metadata.namespace.endsWith('-system') ||  
+         object.metadata.namespace == 'default' || 
+         object.metadata.namespace == 'kyverno') && 
         (! has(object.metadata.annotations) || 
         ! ('k8s.v1.cni.cncf.io/networks' in object.metadata.annotations) || 
         ! object.metadata.annotations['k8s.v1.cni.cncf.io/networks'].contains('\"name\":') ||
