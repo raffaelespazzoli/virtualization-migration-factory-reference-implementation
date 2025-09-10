@@ -153,59 +153,59 @@ spec:
 #             }]
 #           }
 #         ]
----
-apiVersion: policies.kyverno.io/v1alpha1
-kind: MutatingPolicy
-metadata:
-  name: tolerate-bond0-problem
-spec:
-  autogen:
-   mutatingAdmissionPolicy:
-    enabled: false
-   podControllers:
-     controllers: []
-  matchConstraints:
-    resourceRules:
-    - apiGroups: [ "" ]
-      apiVersions: [ "v1" ]
-      operations: ["CREATE", "UPDATE"]
-      resources: [ "pods" ]
-  failurePolicy: Ignore
-  reinvocationPolicy: IfNeeded      
-  evaluation:
-    admission:
-      enabled: true
-  matchConditions:
-    - name: no-networks-whose-name-starts-with-vlan
-      expression: |- 
-        ! has(object.metadata.annotations) || 
-        ! ('k8s.v1.cni.cncf.io/networks' in object.metadata.annotations) || 
-        ! object.metadata.annotations['k8s.v1.cni.cncf.io/networks'].contains('\"name\":') ||
-        object.metadata.annotations['k8s.v1.cni.cncf.io/networks'].findAll('\"name\":\"([^\"]*)\"').map(s,s.split(':')[1].substring(1,s.split(':')[1].size()-1)).filter(name, name.startsWith('vlan-')).size() == 0
-  mutations:    
-  - patchType: JSONPatch
-    jsonPatch:
-      expression: |
-        has(object.spec.tolerations) ?
-        [
-          JSONPatch{
-            op: "add",
-            path: "/spec/tolerations/-",
-            value: {
-              "key": "Bond0Problem",
-              "operator": "Exists",
-              "effect": "NoExecute"
-            }
-          }
-        ] :
-        [
-          JSONPatch{
-            op: "add",
-            path: "/spec/tolerations",
-            value: [{
-              "key": "Bond0Problem",
-              "operator": "Exists",
-              "effect": "NoExecute"
-            }]
-          }
-        ]           
+# ---
+# apiVersion: policies.kyverno.io/v1alpha1
+# kind: MutatingPolicy
+# metadata:
+#   name: tolerate-bond0-problem
+# spec:
+#   autogen:
+#    mutatingAdmissionPolicy:
+#     enabled: false
+#    podControllers:
+#      controllers: []
+#   matchConstraints:
+#     resourceRules:
+#     - apiGroups: [ "" ]
+#       apiVersions: [ "v1" ]
+#       operations: ["CREATE", "UPDATE"]
+#       resources: [ "pods" ]
+#   failurePolicy: Ignore
+#   reinvocationPolicy: IfNeeded      
+#   evaluation:
+#     admission:
+#       enabled: true
+#   matchConditions:
+#     - name: no-networks-whose-name-starts-with-vlan
+#       expression: |- 
+#         ! has(object.metadata.annotations) || 
+#         ! ('k8s.v1.cni.cncf.io/networks' in object.metadata.annotations) || 
+#         ! object.metadata.annotations['k8s.v1.cni.cncf.io/networks'].contains('\"name\":') ||
+#         object.metadata.annotations['k8s.v1.cni.cncf.io/networks'].findAll('\"name\":\"([^\"]*)\"').map(s,s.split(':')[1].substring(1,s.split(':')[1].size()-1)).filter(name, name.startsWith('vlan-')).size() == 0
+#   mutations:    
+#   - patchType: JSONPatch
+#     jsonPatch:
+#       expression: |
+#         has(object.spec.tolerations) ?
+#         [
+#           JSONPatch{
+#             op: "add",
+#             path: "/spec/tolerations/-",
+#             value: {
+#               "key": "Bond0Problem",
+#               "operator": "Exists",
+#               "effect": "NoExecute"
+#             }
+#           }
+#         ] :
+#         [
+#           JSONPatch{
+#             op: "add",
+#             path: "/spec/tolerations",
+#             value: [{
+#               "key": "Bond0Problem",
+#               "operator": "Exists",
+#               "effect": "NoExecute"
+#             }]
+#           }
+#         ]           
