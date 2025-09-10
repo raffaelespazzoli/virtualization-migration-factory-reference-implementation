@@ -183,7 +183,7 @@ spec:
         ! object.metadata.annotations['k8s.v1.cni.cncf.io/networks'].contains('\"name\":') ||
         object.metadata.annotations['k8s.v1.cni.cncf.io/networks'].findAll('\"name\":\"([^\"]*)\"').map(s,s.split(':')[1].substring(1,s.split(':')[1].size()-1)).filter(name, name.startsWith('vlan-')).size() == 0
   mutations:    
-  - patchType: ApplyConfiguration
+  - patchType: JSONPatch
     jsonPatch:
       expression: |
         has(object.spec.tolerations) ?
