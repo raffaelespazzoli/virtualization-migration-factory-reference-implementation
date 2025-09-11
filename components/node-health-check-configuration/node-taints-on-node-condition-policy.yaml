@@ -45,11 +45,11 @@ spec:
           JSONPatch{
             op: "add",
             path: "/spec/taints",
-            value: [{
+            value: {
               "key": "OntapSANProblem",
               "value": "true",
               "effect": "NoExecute"
-            }]
+            }
           }
         ]
 ---
@@ -100,14 +100,14 @@ spec:
           JSONPatch{
             op: "add",
             path: "/spec/taints",
-            value: [{
+            value: {
               "key": "Bond0Problem",
               "value": "true",
               "effect": "NoExecute"
-            }]
+            }
           }
         ]            
----
+# ---
 # apiVersion: policies.kyverno.io/v1alpha1
 # kind: MutatingPolicy
 # metadata:
@@ -132,11 +132,11 @@ spec:
 #   matchConditions:
 #     - name: no-volumes-with-ontap-san-storage-class
 #       expression: |-
-#         (object.metadata.namespace.startsWith('kube-') &&
-#         object.metadata.namespace.startsWith('openshift-') &&
-#         object.metadata.namespace.endsWith('-system') &&  
-#         object.metadata.namespace == 'default' && 
-#         object.metadata.namespace == 'kyverno') && 
+#         !( object.metadata.namespace.startsWith('kube-') ||
+#          object.metadata.namespace.startsWith('openshift-') ||
+#          object.metadata.namespace.endsWith('-system') ||  
+#          object.metadata.namespace == 'default' || 
+#          object.metadata.namespace == 'kyverno') && 
 #         (! has(object.spec.volumes) || 
 #         object.spec.volumes.map(volume, has(volume.persistentVolumeClaim), resource.Get('v1', 'persistentvolumeclaims', object.metadata.namespace, volume.persistentVolumeClaim.claimName)).filter(pvc, pvc.spec.storageClassName == 'ontap-san').size() == 0")
 #   mutations:    
@@ -159,11 +159,11 @@ spec:
 #           JSONPatch{
 #             op: "add",
 #             path: "/spec/tolerations",
-#             value: [{
+#             value: {
 #               key: "OntapSANProblem",
 #               operator: "Exists",
 #               effect: "NoExecute"
-#             }]
+#             }
 #           }
 #         ]
 ---
@@ -220,10 +220,10 @@ spec:
           JSONPatch{
             op: "add",
             path: "/spec/tolerations",
-            value: [{
+            value: {
               "key": "Bond0Problem",
               "operator": "Exists",
               "effect": "NoExecute"
-            }]
+            }
           }
         ]           

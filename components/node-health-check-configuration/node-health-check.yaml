@@ -42,12 +42,12 @@ spec:
     - duration: 300s
       status: Unknown
       type: Ready
-    - duration: 120s
-      status: 'True'
-      type: OntapSANProblem
-    - duration: 120s
-      status: 'True'
-      type: Bond0Problem      
+    # - duration: 120s
+    #   status: 'True'
+    #   type: OntapSANProblem
+    # - duration: 120s
+    #   status: 'True'
+    #   type: Bond0Problem      
   minHealthy: 51%
   selector:
     matchExpressions:
