@@ -163,3 +163,13 @@ applications:
       namespace: openshift-frr-k8s
     source:
       path: clusters/etl6/overlays/bgp-test  
+
+# persistent reservation test      
+
+  persistent-reservations:
+    annotations:
+      argocd.argoproj.io/sync-wave: '25'     
+    destination:
+      namespace: persistent-reservations
+    source:
+      path: clusters/etl4/overlays/persistent-reservations
