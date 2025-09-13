@@ -53,7 +53,7 @@ spec:
                 bus: scsi
               shareable: true                
           interfaces:
-            - macAddress: '02:a5:cf:00:00:08'
+            - macAddress: '02:a5:cf:00:00:11'
               masquerade: {}
               model: virtio
               name: default
@@ -151,7 +151,7 @@ spec:
                 bus: scsi
               shareable: true                
           interfaces:
-            - macAddress: '02:a5:cf:00:00:09'
+            - macAddress: '02:a5:cf:00:00:10'
               masquerade: {}
               model: virtio
               name: default
