@@ -36,3 +36,7 @@ and book an appointment
 5. isolate primary
 
 change kustomize in etl6
+
+6. failover
+
+change records in dns and shange acrive in etl7
