@@ -1,36 +1,3 @@
-apiVersion: kyverno.io/v1
-kind: ClusterPolicy
-metadata:
-  name: taint-node-on-ontap-san-condition
-  annotations:
-    policies.kyverno.io/title: Tain node on OntapSANProblem Condition
-    policies.kyverno.io/description: >-
-      Tain a node with a NoExecute taint when the OntapSANProblem condition is True.
-spec:
-  rules:
-    - name: taint-node-on-ontap-san-condition
-      match:
-        any:
-        - resources:
-            kinds:
-            - Node
-            operations:
-            - UPDATE
-      
-      mutate:
-        targets:
-        - apiVersion: v1
-          kind: Node
-          name: "{{request.object.metadata.name}}"
-        patchStrategicMerge:
-          spec:
-            unschedulable: true
-            taints:
-            - effect: NoExecute
-              key: kyverno-evicted
-              timeAdded: "{{ time_now_utc() }}" 
-
-
 apiVersion: policies.kyverno.io/v1alpha1
 kind: MutatingPolicy
 metadata:
