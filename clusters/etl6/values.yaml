@@ -152,7 +152,14 @@ applications:
     annotations:
       argocd.argoproj.io/sync-wave: '10'     
     source:
-      path: clusters/etl6/overlays/percona-instance    
+      path: clusters/etl6/overlays/percona-instance
+    extraFields: |
+      ignoreDifferences:
+      - group: apps
+        kind: Deployment
+        name: quarkus-petclinic
+        jsonPointers:
+          - /spec/replicas          
 
 # bgp test
 

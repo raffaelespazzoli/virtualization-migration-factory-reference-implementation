@@ -40,3 +40,13 @@ change kustomize in etl6
 6. failover
 
 change records in dns and shange acrive in etl7
+
+7. verify failover
+
+flush the dns caches
+
+```sh
+sudo resolvectl flush-caches
+```
+
+reload borwser
