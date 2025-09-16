@@ -3,7 +3,7 @@ kind: FRRConfiguration
 metadata:
   labels:
     use-for-advertisements: "true"
-  name: main-pairing
+  name: receive-filtered
   namespace: openshift-frr-k8s
 spec:
   nodeSelector: {}
@@ -18,10 +18,4 @@ spec:
           allowed:
             mode: filtered
             prefixes:
-            - prefix: 2.0.0.0/24
-        toAdvertise:
-          allowed:
-            mode: filtered
-            prefixes:
-            #carve up udn networks and metallb space
-            - "192.168.0.0/16"                
+            - prefix: 0.0.0.0/0
