@@ -35,116 +35,116 @@ spec:
       - localnet: vlan-2911 
         bridge: ovs-br1 
         state: present                        
----
-apiVersion: nmstate.io/v1
-kind: NodeNetworkConfigurationPolicy
-metadata:
-  name: infinidat-iscsi-dl380g9-5
-spec:
-  nodeSelector:
-    kubernetes.io/hostname: dl380g9-5.etl6.ocp.rht-labs.com 
-  desiredState:
-    interfaces:
-    - ipv4:
-        dhcp: false
-        enabled: false
-      name: bond0.2911
-      state: absent
-      type: vlan
-      vlan:
-        base-iface: bond0
-        id: 2911
-    - name: linux-br-iscsi
-      description: |-
-        A dedicated bridge for the infinidat iscsi traffic
-      type: linux-bridge
-      state: absent
-      ipv4:
-        enabled: true
-        address:
-          - ip: 192.168.91.5
-            prefix-length: 24 
-      ipv6:
-        enabled: false      
-      bridge:
-        options:
-          stp: 
-            enabled: false
-        port:
-        - name: bond0.2911 
----
-apiVersion: nmstate.io/v1
-kind: NodeNetworkConfigurationPolicy
-metadata:
-  name: infinidat-iscsi-dl380g9-6
-spec:
-  nodeSelector:
-    kubernetes.io/hostname: dl380g9-6.etl6.ocp.rht-labs.com 
-  desiredState:
-    interfaces:
-    - ipv4:
-        dhcp: false
-        enabled: false
-      name: bond0.2911
-      state: absent
-      type: vlan
-      vlan:
-        base-iface: bond0
-        id: 2911
-    - name: linux-br-iscsi
-      description: |-
-        A dedicated bridge for the infinidat iscsi traffic
-      type: linux-bridge
-      state: absent
-      ipv4:
-        enabled: true
-        address:
-          - ip: 192.168.91.6
-            prefix-length: 24 
-      ipv6:
-        enabled: false      
-      bridge:
-        options:
-          stp: 
-            enabled: false
-        port:
-        - name: bond0.2911
----
-apiVersion: nmstate.io/v1
-kind: NodeNetworkConfigurationPolicy
-metadata:
-  name: infinidat-iscsi-dl380g9-7
-spec:
-  nodeSelector:
-    kubernetes.io/hostname: dl380g9-7.etl6.ocp.rht-labs.com 
-  desiredState:
-    interfaces:
-    - ipv4:
-        dhcp: false
-        enabled: false
-      name: bond0.2911
-      state: absent
-      type: vlan
-      vlan:
-        base-iface: bond0
-        id: 2911
-    - name: linux-br-iscsi
-      description: |-
-        A dedicated bridge for the infinidat iscsi traffic
-      type: linux-bridge
-      state: absent
-      ipv4:
-        enabled: true
-        address:
-          - ip: 192.168.91.7
-            prefix-length: 24 
-      ipv6:
-        enabled: false      
-      bridge:
-        options:
-          stp: 
-            enabled: false
-        port:
-        - name: bond0.2911                
+# ---
+# apiVersion: nmstate.io/v1
+# kind: NodeNetworkConfigurationPolicy
+# metadata:
+#   name: infinidat-iscsi-dl380g9-5
+# spec:
+#   nodeSelector:
+#     kubernetes.io/hostname: dl380g9-5.etl6.ocp.rht-labs.com 
+#   desiredState:
+#     interfaces:
+#     - ipv4:
+#         dhcp: false
+#         enabled: false
+#       name: bond0.2911
+#       state: absent
+#       type: vlan
+#       vlan:
+#         base-iface: bond0
+#         id: 2911
+#     - name: linux-br-iscsi
+#       description: |-
+#         A dedicated bridge for the infinidat iscsi traffic
+#       type: linux-bridge
+#       state: absent
+#       ipv4:
+#         enabled: true
+#         address:
+#           - ip: 192.168.91.5
+#             prefix-length: 24 
+#       ipv6:
+#         enabled: false      
+#       bridge:
+#         options:
+#           stp: 
+#             enabled: false
+#         port:
+#         - name: bond0.2911 
+# ---
+# apiVersion: nmstate.io/v1
+# kind: NodeNetworkConfigurationPolicy
+# metadata:
+#   name: infinidat-iscsi-dl380g9-6
+# spec:
+#   nodeSelector:
+#     kubernetes.io/hostname: dl380g9-6.etl6.ocp.rht-labs.com 
+#   desiredState:
+#     interfaces:
+#     - ipv4:
+#         dhcp: false
+#         enabled: false
+#       name: bond0.2911
+#       state: absent
+#       type: vlan
+#       vlan:
+#         base-iface: bond0
+#         id: 2911
+#     - name: linux-br-iscsi
+#       description: |-
+#         A dedicated bridge for the infinidat iscsi traffic
+#       type: linux-bridge
+#       state: absent
+#       ipv4:
+#         enabled: true
+#         address:
+#           - ip: 192.168.91.6
+#             prefix-length: 24 
+#       ipv6:
+#         enabled: false      
+#       bridge:
+#         options:
+#           stp: 
+#             enabled: false
+#         port:
+#         - name: bond0.2911
+# ---
+# apiVersion: nmstate.io/v1
+# kind: NodeNetworkConfigurationPolicy
+# metadata:
+#   name: infinidat-iscsi-dl380g9-7
+# spec:
+#   nodeSelector:
+#     kubernetes.io/hostname: dl380g9-7.etl6.ocp.rht-labs.com 
+#   desiredState:
+#     interfaces:
+#     - ipv4:
+#         dhcp: false
+#         enabled: false
+#       name: bond0.2911
+#       state: absent
+#       type: vlan
+#       vlan:
+#         base-iface: bond0
+#         id: 2911
+#     - name: linux-br-iscsi
+#       description: |-
+#         A dedicated bridge for the infinidat iscsi traffic
+#       type: linux-bridge
+#       state: absent
+#       ipv4:
+#         enabled: true
+#         address:
+#           - ip: 192.168.91.7
+#             prefix-length: 24 
+#       ipv6:
+#         enabled: false      
+#       bridge:
+#         options:
+#           stp: 
+#             enabled: false
+#         port:
+#         - name: bond0.2911                
 
 
