@@ -49,13 +49,16 @@ flush the dns caches
 sudo resolvectl flush-caches
 ```
 
-reload borwser
+reload browser
 
 
 
 
-troublkeshooting:
+troubleshooting:
 
 ```
 psql
 \l
+
+\c <database>
+\dt

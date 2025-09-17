@@ -49,6 +49,8 @@ spec:
       containers:
       
       - env:
+        - name: QUARKUS_LOG_LEVEL
+          value: DEBUG
         - name: KUBERNETES_NAMESPACE
           valueFrom:
             fieldRef:
