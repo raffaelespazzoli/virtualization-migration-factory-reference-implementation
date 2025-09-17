@@ -8,7 +8,7 @@ spec:
   imagePullPolicy: Always
   postgresVersion: 17
   standby:
-    enabled: false
+    enabled: true
     host: demo-primary.percona-operator.svc.clusterset.local  
   secrets:
     customRootCATLSSecret:
