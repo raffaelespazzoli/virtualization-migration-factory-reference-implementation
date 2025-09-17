@@ -50,3 +50,12 @@ sudo resolvectl flush-caches
 ```
 
 reload borwser
+
+
+
+
+troublkeshooting:
+
+```
+psql
+\l
