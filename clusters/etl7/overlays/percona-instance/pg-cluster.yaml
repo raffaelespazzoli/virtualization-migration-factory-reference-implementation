@@ -43,7 +43,7 @@ spec:
       expose:
         type: LoadBalancer
         annotations:
-]         metallb.io/loadBalancerIPs: 10.9.53.39 
+          metallb.io/loadBalancerIPs: 10.9.53.39 
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
