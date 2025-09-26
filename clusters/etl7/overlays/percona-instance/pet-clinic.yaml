@@ -50,6 +50,10 @@ spec:
       containers:
       
       - env:
+        - name: QUARKUS_HIBERNATE__ORM_DATABASE_GENERATION
+          value: update      
+        - name: QUARKUS_LOG_LEVEL
+          value: DEBUG          
         - name: KUBERNETES_NAMESPACE
           valueFrom:
             fieldRef:
