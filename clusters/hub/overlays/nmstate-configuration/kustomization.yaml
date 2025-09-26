@@ -3,3 +3,4 @@ kind: Kustomization
 
 resources:
   - nncp.yaml
+  - nad.yaml
