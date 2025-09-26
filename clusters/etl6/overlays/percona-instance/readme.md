@@ -58,6 +58,14 @@ flush the dns caches
 sudo resolvectl flush-caches
 ```
 
+clear cache in chrome:
+
+```
+chrome://net-internals/#dns
+```
+
+scale pet clinic to 1
+
 reload browser
 
 
