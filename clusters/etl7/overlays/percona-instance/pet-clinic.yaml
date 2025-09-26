@@ -5,6 +5,7 @@ metadata:
     app.quarkus.io/vcs-url: https://github.com/redhat-developer-demos/quarkus-petclinic.git
     app.quarkus.io/build-timestamp: 2021-02-05 - 10:47:20 +0000
     app.quarkus.io/commit-id: 08ca17721180e3e754b1f79f25ccd3c2de46237a
+    metallb.io/loadBalancerIPs: 10.9.53.40   
   labels:
     app.kubernetes.io/name: quarkus-petclinic
     app.kubernetes.io/version: 1.0.0
