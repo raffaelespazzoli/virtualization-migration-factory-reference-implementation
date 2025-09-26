@@ -51,9 +51,7 @@ spec:
       
       - env:
         - name: QUARKUS_HIBERNATE__ORM_DATABASE_GENERATION
-          value: update      
-        - name: QUARKUS_LOG_LEVEL
-          value: DEBUG          
+          value: update         
         - name: KUBERNETES_NAMESPACE
           valueFrom:
             fieldRef:
