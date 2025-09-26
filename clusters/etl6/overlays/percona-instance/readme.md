@@ -11,18 +11,27 @@ oc config rename-context openshift-gitops/api-etl7-ocp-rht-labs-com:6443/raffa e
 oc config rename-context openshift-gitops/api-hub2-ocp-rht-labs-com:6443/raffa hub2
 ```
 
+create pbench database
+
+```sh
+export DATABASE_URL='percona-demo.glb.ocp.rht-labs.com'
+export PGPASSWORD=$(oc --context etl6 get secret demo-pguser-demo -n percona-operator -o jsonpath='{.data.password}' | base64 -d)
+export USERNAME=$(oc --context etl6 get secret demo-pguser-demo -n percona-operator -o jsonpath='{.data.user}' | base64 -d)
+psql -h $DATABASE_URL -U $USERNAME
+```
+
 1. describe the steady state situation
 2. prepare pgbench
 
 ```sh
-export PGPASSWORD=$(oc --context etl6 get secret demo-pguser-demo -n percona-operator -o jsonpath='{.data.password}' | base64 -d)
-pgbench --initialize -h  percona-demo.glb.ocp.rht-labs.com  -U demo dbbench --scale=50
+
+pgbench --initialize -h  $DATABASE_URL  -U demo dbbench --scale=50
 ```
 
 3. run pgbench
 
 ```sh
-pgbench -h percona-demo.glb.ocp.rht-labs.com  -U postgres  postgres -T 10  -R 2 -v
+pgbench -h $DATABASE_URL  -U postgres  postgres -T 10  -R 2 -v
 ```
 
 4. navigate the pet clinic
