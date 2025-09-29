@@ -98,10 +98,10 @@ spec:
   desiredState:
     ovn:
       bridge-mappings:
-      - localnet: vlan-1901
+      - localnet: vlan-2901
         bridge: br-ex
         state: present
-      - localnet: vlan-1911
+      - localnet: vlan-2911
         bridge: br-ex
         state: present                                       
                
