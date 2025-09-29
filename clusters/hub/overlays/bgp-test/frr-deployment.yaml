@@ -13,6 +13,25 @@ spec:
     metadata:
       labels:
         app: frr
+      annotations:
+        k8s.v1.cni.cncf.io/networks: '[
+          {
+            "name": "vlan-2901",
+            "mac": "02:03:04:05:06:07",
+            "interface": "eth1", 
+            "ips": [
+              "192.168.100.2/24"
+              ]  
+          },
+          {
+            "name": "vlan-2911",
+            "mac": "02:03:04:05:06:07",
+            "interface": "eth2", 
+            "ips": [
+              "192.168.101.2/24"
+              ]  
+          }      
+        ]'
     spec:
       serviceAccountName: frr
       containers:

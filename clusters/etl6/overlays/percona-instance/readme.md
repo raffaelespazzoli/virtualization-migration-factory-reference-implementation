@@ -18,6 +18,9 @@ export DATABASE_URL='percona-demo.glb.ocp.rht-labs.com'
 export PGPASSWORD=$(oc --context etl6 get secret demo-pguser-demo -n percona-operator -o jsonpath='{.data.password}' | base64 -d)
 export USERNAME=$(oc --context etl6 get secret demo-pguser-demo -n percona-operator -o jsonpath='{.data.user}' | base64 -d)
 psql -h $DATABASE_URL -U $USERNAME
+
+psql -h $DATABASE_URL -U $USERNAME -C "CREATE DATABASE dbbench WITH ENCODING = 'UTF8' CONNECTION LIMIT = 100;"
+
 ```
 
 1. describe the steady state situation
