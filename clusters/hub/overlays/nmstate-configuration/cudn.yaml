@@ -5,7 +5,7 @@ metadata:
 spec:
   namespaceSelector:
     matchLabels:
-      udn: vlan-2901
+      cudn/vlan-2901: enabled
   network:
     topology: Localnet
     localnet:
@@ -27,7 +27,7 @@ metadata:
 spec:
   namespaceSelector:
     matchLabels:
-      udn: vlan-2911
+      cudn/vlan-2911: enabled
   network:
     topology: Localnet
     localnet:
