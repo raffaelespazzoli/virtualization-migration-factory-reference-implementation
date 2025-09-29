@@ -5,4 +5,6 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-options: Delete=false,ServerSideApply=true
   labels:
-    argocd.argoproj.io/managed-by: openshift-gitops 
+    argocd.argoproj.io/managed-by: openshift-gitops
+    udn: vlan-2901
+    udn: vlan-2911
