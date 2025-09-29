@@ -13,8 +13,8 @@ spec:
       role: Secondary
       ipam:
         mode: Disabled
-      subnets: 
-        - "192.168.100.0/24"
+      # subnets: 
+      #   - "192.168.100.0/24"
       vlan: 
         mode: Access
         access: 
@@ -35,8 +35,8 @@ spec:
       role: Secondary
       ipam:
         mode: Disabled
-      subnets: 
-        - "192.168.101.0/24"
+      # subnets: 
+      #   - "192.168.101.0/24"
       vlan: 
         mode: Access
         access: 

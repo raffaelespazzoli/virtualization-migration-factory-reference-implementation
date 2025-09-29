@@ -3,5 +3,5 @@ kind: Kustomization
 
 resources:
   - nncp.yaml
-  - nad.yaml
+  #- nad.yaml
   - cudn.yaml
