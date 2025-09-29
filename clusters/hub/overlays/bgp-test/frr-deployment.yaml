@@ -16,7 +16,7 @@ spec:
       annotations:
         k8s.v1.cni.cncf.io/networks: '[
           {
-            "name": "default/vlan-2901",
+            "name": "vlan-2901",
             "mac": "02:03:04:05:06:07",
             "interface": "eth1", 
             "ips": [
@@ -24,7 +24,7 @@ spec:
               ]  
           },
           {
-            "name": "default/vlan-2911",
+            "name": "vlan-2911",
             "mac": "02:03:04:05:06:07",
             "interface": "eth2", 
             "ips": [
