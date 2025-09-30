@@ -87,9 +87,9 @@ data:
     !
     router bgp 65000
       network 10.0.0.0/24
-      neighbor 10.9.52.135 remote-as 65001
-      neighbor 10.9.52.136 remote-as 65001
-      neighbor 10.9.52.137 remote-as 65001
+      neighbor 192.168.100.3 remote-as 65005
+      neighbor 192.168.100.4 remote-as 65005
+      neighbor 192.168.100.5 remote-as 65005
       address-family ipv4 unicast
         maximum-paths 4
     !

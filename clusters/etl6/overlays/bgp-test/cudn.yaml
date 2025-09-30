@@ -1,15 +1,14 @@
 apiVersion: k8s.ovn.org/v1
 kind: ClusterUserDefinedNetwork
 metadata:
-  name: l2udn
-  namespace: l2udn
+  name: bgp-test-l2udn
   labels:
     advertise: "true"
     use-for-advertisements: "true"
 spec:
   namespaceSelector:
     matchLabels:
-      network: l2udn
+      cudn/network: bgp-test-l2udn
   network:
     topology: Layer2
     layer2:

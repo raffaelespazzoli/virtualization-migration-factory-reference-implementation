@@ -1,16 +1,52 @@
+# apiVersion: nmstate.io/v1
+# kind: NodeNetworkConfigurationPolicy
+# metadata:
+#   name: ovs-br1-multiple-networks 
+# spec:
+#   nodeSelector:
+#     node-role.kubernetes.io/worker: '' 
+#   desiredState:
+#     interfaces:          
+#     - name: ovs-br1 
+#       description: |-
+#         A dedicated OVS bridge with bond0 as a port
+#         allowing VLAN 1522
+#       type: ovs-bridge
+#       state: up
+#       ipv4:
+#         enabled: false 
+#       ipv6:
+#         enabled: false      
+#       bridge:
+#         allow-extra-patch-ports: true
+#         options:
+#           stp: 
+#             enabled: false
+#         port:
+#         - name: bond0
+#     ovn:
+#       bridge-mappings:
+#       - localnet: vlan-1522 
+#         bridge: ovs-br1 
+#         state: present
+#       - localnet: vlan-2901 
+#         bridge: ovs-br1 
+#         state: present
+#       - localnet: vlan-2911 
+#         bridge: ovs-br1 
+#         state: present
 apiVersion: nmstate.io/v1
 kind: NodeNetworkConfigurationPolicy
 metadata:
-  name: ovs-br1-multiple-networks 
+  name: ovs-br1-dl380g9-5
 spec:
   nodeSelector:
-    node-role.kubernetes.io/worker: '' 
+    kubernetes.io/hostname: dl380g9-5.etl6.ocp.rht-labs.com 
   desiredState:
     interfaces:          
     - name: ovs-br1 
       description: |-
-        A dedicated OVS bridge with bond0 as a port
-        allowing VLAN 1522
+        A dedicated OVS bridge for the VMs based on bond0
       type: ovs-bridge
       state: up
       ipv4:
@@ -24,6 +60,71 @@ spec:
             enabled: false
         port:
         - name: bond0
+        - name: ovs-br1.2901
+          vlan:
+            mode: access
+            tag: 2901
+    - name: ovs-br1.2901
+      type: ovs-interface
+      state: up
+      ipv4:
+        enabled: true
+        address:
+          - ip: 192.168.100.3
+            prefix-length: 24 
+      ipv6:
+        enabled: false   
+    ovn:
+      bridge-mappings:
+      - localnet: vlan-1522 
+        bridge: ovs-br1 
+        state: present
+      - localnet: vlan-2901 
+        bridge: ovs-br1 
+        state: absent
+      - localnet: vlan-2911 
+        bridge: ovs-br1 
+        state: absent
+---        
+apiVersion: nmstate.io/v1
+kind: NodeNetworkConfigurationPolicy
+metadata:
+  name: ovs-br1-dl380g9-6
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: dl380g9-6.etl6.ocp.rht-labs.com
+  desiredState:
+    interfaces:          
+    - name: ovs-br1 
+      description: |-
+        A dedicated OVS bridge for the VMs based on bond0
+      type: ovs-bridge
+      state: up
+      ipv4:
+        enabled: false 
+      ipv6:
+        enabled: false      
+      bridge:
+        allow-extra-patch-ports: true
+        options:
+          stp: 
+            enabled: false
+        port:
+        - name: bond0
+        - name: ovs-br1.2901
+          vlan:
+            mode: access
+            tag: 2901
+    - name: ovs-br1.2901
+      type: ovs-interface
+      state: up
+      ipv4:
+        enabled: true
+        address:
+          - ip: 192.168.100.4
+            prefix-length: 24 
+      ipv6:
+        enabled: false                     
     ovn:
       bridge-mappings:
       - localnet: vlan-1522 
@@ -34,117 +135,57 @@ spec:
         state: present
       - localnet: vlan-2911 
         bridge: ovs-br1 
-        state: present                        
-# ---
-# apiVersion: nmstate.io/v1
-# kind: NodeNetworkConfigurationPolicy
-# metadata:
-#   name: infinidat-iscsi-dl380g9-5
-# spec:
-#   nodeSelector:
-#     kubernetes.io/hostname: dl380g9-5.etl6.ocp.rht-labs.com 
-#   desiredState:
-#     interfaces:
-#     - ipv4:
-#         dhcp: false
-#         enabled: false
-#       name: bond0.2911
-#       state: absent
-#       type: vlan
-#       vlan:
-#         base-iface: bond0
-#         id: 2911
-#     - name: linux-br-iscsi
-#       description: |-
-#         A dedicated bridge for the infinidat iscsi traffic
-#       type: linux-bridge
-#       state: absent
-#       ipv4:
-#         enabled: true
-#         address:
-#           - ip: 192.168.91.5
-#             prefix-length: 24 
-#       ipv6:
-#         enabled: false      
-#       bridge:
-#         options:
-#           stp: 
-#             enabled: false
-#         port:
-#         - name: bond0.2911 
-# ---
-# apiVersion: nmstate.io/v1
-# kind: NodeNetworkConfigurationPolicy
-# metadata:
-#   name: infinidat-iscsi-dl380g9-6
-# spec:
-#   nodeSelector:
-#     kubernetes.io/hostname: dl380g9-6.etl6.ocp.rht-labs.com 
-#   desiredState:
-#     interfaces:
-#     - ipv4:
-#         dhcp: false
-#         enabled: false
-#       name: bond0.2911
-#       state: absent
-#       type: vlan
-#       vlan:
-#         base-iface: bond0
-#         id: 2911
-#     - name: linux-br-iscsi
-#       description: |-
-#         A dedicated bridge for the infinidat iscsi traffic
-#       type: linux-bridge
-#       state: absent
-#       ipv4:
-#         enabled: true
-#         address:
-#           - ip: 192.168.91.6
-#             prefix-length: 24 
-#       ipv6:
-#         enabled: false      
-#       bridge:
-#         options:
-#           stp: 
-#             enabled: false
-#         port:
-#         - name: bond0.2911
-# ---
-# apiVersion: nmstate.io/v1
-# kind: NodeNetworkConfigurationPolicy
-# metadata:
-#   name: infinidat-iscsi-dl380g9-7
-# spec:
-#   nodeSelector:
-#     kubernetes.io/hostname: dl380g9-7.etl6.ocp.rht-labs.com 
-#   desiredState:
-#     interfaces:
-#     - ipv4:
-#         dhcp: false
-#         enabled: false
-#       name: bond0.2911
-#       state: absent
-#       type: vlan
-#       vlan:
-#         base-iface: bond0
-#         id: 2911
-#     - name: linux-br-iscsi
-#       description: |-
-#         A dedicated bridge for the infinidat iscsi traffic
-#       type: linux-bridge
-#       state: absent
-#       ipv4:
-#         enabled: true
-#         address:
-#           - ip: 192.168.91.7
-#             prefix-length: 24 
-#       ipv6:
-#         enabled: false      
-#       bridge:
-#         options:
-#           stp: 
-#             enabled: false
-#         port:
-#         - name: bond0.2911                
+        state: present
+---        
+apiVersion: nmstate.io/v1
+kind: NodeNetworkConfigurationPolicy
+metadata:
+  name: ovs-br1-dl380g9-7
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: dl380g9-7.etl6.ocp.rht-labs.com 
+  desiredState:
+    interfaces:          
+    - name: ovs-br1 
+      description: |-
+        A dedicated OVS bridge for the VMs based on bond0
+      type: ovs-bridge
+      state: up
+      ipv4:
+        enabled: false 
+      ipv6:
+        enabled: false      
+      bridge:
+        allow-extra-patch-ports: true
+        options:
+          stp: 
+            enabled: false
+        port:
+        - name: bond0
+        - name: ovs-br1.2901
+          vlan:
+            mode: access
+            tag: 2901
+    - name: ovs-br1.2901
+      type: ovs-interface
+      state: up
+      ipv4:
+        enabled: true
+        address:
+          - ip: 192.168.100.5
+            prefix-length: 24 
+      ipv6:
+        enabled: false                     
+    ovn:
+      bridge-mappings:
+      - localnet: vlan-1522 
+        bridge: ovs-br1 
+        state: present
+      - localnet: vlan-2901 
+        bridge: ovs-br1 
+        state: absent
+      - localnet: vlan-2911 
+        bridge: ovs-br1 
+        state: absent                                                
 
 

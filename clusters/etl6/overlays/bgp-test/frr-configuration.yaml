@@ -9,9 +9,9 @@ spec:
   nodeSelector: {}
   bgp:
     routers:
-    - asn: 65001
+    - asn: 65005
       neighbors:
-      - address: 10.9.49.81
+      - address: 192.168.100.2
         asn: 65000
         disableMP: true
         toReceive:
