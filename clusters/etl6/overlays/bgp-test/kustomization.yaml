@@ -4,4 +4,5 @@ kind: Kustomization
 resources:
 - ./route-advertisement.yaml
 - ./cudn.yaml
+- ./frr-configuration.yaml
 
