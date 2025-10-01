@@ -8,3 +8,4 @@ spec:
   channel: stable-4.19
   desiredUpdate:
     version: 4.19.13
+    image: quay.io/openshift-release-dev/ocp-release@sha256:b221339d28377e7654ecfa76debf7cd11eccc4e45516cca393df6a5ca4dbc736    
