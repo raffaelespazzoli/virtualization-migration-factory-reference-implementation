@@ -28,7 +28,7 @@ psql -h $DATABASE_URL -U $USERNAME -C "CREATE DATABASE dbbench WITH ENCODING = '
 
 ```sh
 
-pgbench --initialize -h  $DATABASE_URL  -U demo dbbench --scale=50
+pgbench --initialize -h  $DATABASE_URL  -U $USERNAME dbbench --scale=50
 ```
 
 3. run pgbench

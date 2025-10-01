@@ -7,3 +7,4 @@ resources:
   - ./oauth.yaml
   - ./cluster-version.yaml
   - ./cluster-monitoring-configmap.yaml
+  - ./network-patch.yaml
