@@ -1,6 +1,0 @@
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: demo-init-sql
-data:
-  init.sql: CREATE DATABSE testdb1;
