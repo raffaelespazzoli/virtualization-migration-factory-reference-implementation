@@ -3,6 +3,9 @@ apiVersion: pgv2.percona.com/v2
 metadata:
   name: demo
 spec:
+  databaseInitSQL:
+    key: init.sql
+    name: demo-init-sql
   crVersion: 2.7.0
   image: 'registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:cc5ce02f2dab691bea078d1c755661dfc04d34824dc310857104694552c127da'
   imagePullPolicy: Always
