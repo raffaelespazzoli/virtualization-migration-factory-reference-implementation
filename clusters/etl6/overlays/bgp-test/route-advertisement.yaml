@@ -3,7 +3,7 @@ kind: RouteAdvertisements
 metadata:
   name: default
 spec:
-  advertisements: []
+  advertisements: 
   - PodNetwork
   nodeSelector: {}
   frrConfigurationSelector:
