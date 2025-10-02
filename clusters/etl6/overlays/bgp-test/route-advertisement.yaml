@@ -4,7 +4,7 @@ metadata:
   name: default
 spec:
   advertisements: []
-  #- PodNetwork
+  - PodNetwork
   nodeSelector: {}
   frrConfigurationSelector:
     matchLabels:
