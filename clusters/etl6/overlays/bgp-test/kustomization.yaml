@@ -5,4 +5,5 @@ resources:
 - ./route-advertisement.yaml
 - ./cudn.yaml
 - ./frr-configuration.yaml
-
+- ./namespace.yaml
+- ./deployment.yaml
