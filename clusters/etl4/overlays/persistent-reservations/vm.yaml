@@ -33,6 +33,7 @@ spec:
         kubevirt.io/size: small
         network.kubevirt.io/headlessService: headless
     spec:
+      evictionStrategy: LiveMigrateIfPossible
       architecture: amd64
       domain:
         cpu:
@@ -131,6 +132,7 @@ spec:
         kubevirt.io/size: small
         network.kubevirt.io/headlessService: headless
     spec:
+      evictionStrategy: LiveMigrateIfPossible
       architecture: amd64
       domain:
         cpu:
