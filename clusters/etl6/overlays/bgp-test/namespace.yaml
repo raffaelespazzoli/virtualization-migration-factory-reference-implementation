@@ -4,3 +4,4 @@ metadata:
   name: bgp-app-test
   labels:
     cudn/network: bgp-test-l2udn
+    k8s.ovn.org/primary-user-defined-network: ""
