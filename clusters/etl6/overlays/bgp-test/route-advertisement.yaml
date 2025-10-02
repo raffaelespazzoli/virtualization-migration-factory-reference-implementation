@@ -3,14 +3,14 @@ kind: RouteAdvertisements
 metadata:
   name: default
 spec:
-  advertisements:
-  - PodNetwork
+  advertisements: []
+  #- PodNetwork
   nodeSelector: {}
   frrConfigurationSelector:
     matchLabels:
       use-for-advertisements: "true"
   networkSelectors:
-  - networkSelectionType: DefaultNetwork
+  #- networkSelectionType: DefaultNetwork
   - networkSelectionType: ClusterUserDefinedNetworks
     clusterUserDefinedNetworkSelector:
       networkSelector:
