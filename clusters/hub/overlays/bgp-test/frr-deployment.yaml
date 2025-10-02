@@ -90,6 +90,9 @@ data:
       neighbor 192.168.100.3 remote-as 65005
       neighbor 192.168.100.4 remote-as 65005
       neighbor 192.168.100.5 remote-as 65005
+      neighbor 192.168.100.3 soft-reconfiguration inbound
+      neighbor 192.168.100.4 soft-reconfiguration inbound
+      neighbor 192.168.100.5 soft-reconfiguration inbound
       address-family ipv4 unicast
         maximum-paths 4
     !
