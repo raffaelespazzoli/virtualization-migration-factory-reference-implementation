@@ -25,3 +25,4 @@ clusters/etl4/overlays/cluster-virtual-ocp-1/pull-secret.yaml
 components/fusion-access-for-san-operator/pull-secret.json
 clusters/hub/kubeadmin
 clusters/hub/kubeconfig
+components/external-dns-configuration/rfc2136-tsig-secret.yaml

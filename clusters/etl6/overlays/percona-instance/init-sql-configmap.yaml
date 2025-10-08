@@ -3,4 +3,4 @@ kind: ConfigMap
 metadata:
   name: demo-init-sql
 data:
-  init.sql: CREATE DATABASE dbbench WITH ENCODING = 'UTF8' CONNECTION LIMIT = 100;
+  init.sql: CREATE DATABASE dbbench WITH ENCODING = 'UTF8' CONNECTION LIMIT = 100; GRANT CREATE ON SCHEMA public TO demo;
