@@ -3,9 +3,11 @@
 0. preparation 
 
 ```sh
+oc login -u raffa -p raffa https://api.etl4.ocp.rht-labs.com:6443
 oc login -u raffa -p raffa https://api.etl6.ocp.rht-labs.com:6443
 oc login -u raffa -p raffa https://api.etl7.ocp.rht-labs.com:6443
 oc login -u raffa -p raffa https://api.hub2.ocp.rht-labs.com:6443
+oc config rename-context openshift-gitops/api-etl4-ocp-rht-labs-com:6443/raffa etl4
 oc config rename-context openshift-gitops/api-etl6-ocp-rht-labs-com:6443/raffa etl6
 oc config rename-context openshift-gitops/api-etl7-ocp-rht-labs-com:6443/raffa etl7
 oc config rename-context openshift-gitops/api-hub2-ocp-rht-labs-com:6443/raffa hub2
