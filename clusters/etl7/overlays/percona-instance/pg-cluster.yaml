@@ -35,7 +35,7 @@ spec:
           - ReadWriteOnce
         resources:
           requests:
-            storage: 1Gi
+            storage: 2Gi
   proxy:
     pgBouncer:
       replicas: 3
@@ -80,7 +80,7 @@ spec:
                 - ReadWriteOnce
               resources:
                 requests:
-                  storage: 1Gi
+                  storage: 2Gi
   pmm:
     enabled: false
     image: 'registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:66c0a3c24930ad0e25ec54440f5cfcb145a3b4e23ccec8fb2de678fe440093b2'

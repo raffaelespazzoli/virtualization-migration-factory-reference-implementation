@@ -20,23 +20,19 @@ export DATABASE_URL='percona-demo.glb.ocp.rht-labs.com'
 export PGPASSWORD=$(oc --context etl6 get secret demo-pguser-demo -n percona-operator -o jsonpath='{.data.password}' | base64 -d)
 export USERNAME=$(oc --context etl6 get secret demo-pguser-demo -n percona-operator -o jsonpath='{.data.user}' | base64 -d)
 psql -h $DATABASE_URL -U $USERNAME
-
-psql -h $DATABASE_URL -U $USERNAME -C "CREATE DATABASE dbbench WITH ENCODING = 'UTF8' CONNECTION LIMIT = 100;"
-
 ```
 
 1. describe the steady state situation
 2. prepare pgbench
 
 ```sh
-
-pgbench --initialize -h  $DATABASE_URL  -U $USERNAME dbbench --scale=50
+pgbench --initialize -h  $DATABASE_URL  -U $USERNAME demo
 ```
 
 3. run pgbench
 
 ```sh
-pgbench -h $DATABASE_URL  -U postgres  postgres -T 10  -R 2 -v
+pgbench -h $DATABASE_URL  -U $USERNAME demo -T 10  -R 2 -v
 ```
 
 4. navigate the pet clinic
