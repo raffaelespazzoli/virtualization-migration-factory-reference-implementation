@@ -5,6 +5,7 @@ namespace: kubevirtbmc-system
 resources:
   - ./namespace.yaml
   - ./charts/kubevirtbmc/crds/virtualmachine.kubevirt.io_virtualmachinebmcs.yaml 
+  - ./curl-deployment.yaml
 
 helmGlobals:
   chartHome: ./charts
