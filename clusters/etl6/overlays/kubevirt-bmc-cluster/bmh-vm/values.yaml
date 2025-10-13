@@ -1,0 +1,4 @@
+nodes:
+  - name: master1
+  - name: master2
+  - name: master3

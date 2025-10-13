@@ -1,0 +1,77 @@
+{{ range .Values.nodes }}
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: {{ .name }}
+  labels:
+    app: ocp-node
+    {{- include "bmh-vm.labels" . | nindent 4 }}    
+spec:
+  running: false
+  template:
+    metadata:
+      annotations:
+        vm.kubevirt.io/os: coreos
+        vm.kubevirt.io/workload: ocp-node
+      creationTimestamp: null
+      labels:
+        kubevirt.io/domain: {{ .name }}
+        network.kubevirt.io/headlessService: headless
+        app: ocp-node
+    spec:
+      evictionStrategy: LiveMigrate
+      topologySpreadConstraints:
+        - maxSkew: 2
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: ocp-node
+      architecture: amd64
+      domain:
+        cpu:
+          cores: 4
+        devices:
+          disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+          interfaces:
+            - masquerade: {}
+              model: virtio
+              name: default
+          rng: {}
+        features:
+          acpi: {}
+          smm:
+            enabled: true
+        firmware:
+          bootloader:
+            efi: {}
+        memory:
+          guest: 16Gi
+        resources: {}
+      networks:
+        - name: default
+          pod: {}
+      terminationGracePeriodSeconds: 180
+      accessCredentials:      
+      volumes:
+        - persistentVolumeClaim:
+            name: {{ .name }}
+          name: rootdisk
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .name }}
+  labels: 
+    {{- include "bmh-vm.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  volumeMode: Block  
+  resources:
+    requests:
+      storage: 40Gi
+{{ end }}      

@@ -1,0 +1,17 @@
+apiVersion: k8s.ovn.org/v1
+kind: ClusterUserDefinedNetwork
+metadata:
+  name: kubevirt-bmc-cluster
+  labels:
+    advertise: "false"
+    use-for-advertisements: "false"
+spec:
+  namespaceSelector:
+    matchLabels:
+      cudn/network: kubevirt-bmc-cluster
+  network:
+    topology: Layer2
+    layer2:
+      role: Primary
+      subnets:
+        - 192.168.253.0/24
