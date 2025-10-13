@@ -10,3 +10,4 @@ helmCharts:
     namespace: kubevirtbmc-system
     releaseName: kubevirtbmc
     repo: https://charts.zespre.com/
+    version: 0.2.3
