@@ -3,7 +3,8 @@ kind: Kustomization
 namespace: kubevirtbmc-system
 
 resources:
-  - ./namespace.yaml 
+  - ./namespace.yaml
+  - ./charts/kubevirtbmc/crds/virtualmachine.kubevirt.io_virtualmachinebmcs.yaml 
 
 helmGlobals:
   chartHome: ./charts
@@ -12,3 +13,4 @@ helmCharts:
   - name: kubevirtbmc
     namespace: kubevirtbmc-system
     releaseName: kubevirtbmc
+
