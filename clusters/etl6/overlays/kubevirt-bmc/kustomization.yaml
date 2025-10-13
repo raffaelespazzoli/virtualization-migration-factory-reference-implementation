@@ -5,9 +5,10 @@ namespace: kubevirtbmc-system
 resources:
   - ./namespace.yaml 
 
+helmGlobals:
+  chartHome: ./charts
+
 helmCharts:
   - name: kubevirtbmc
     namespace: kubevirtbmc-system
     releaseName: kubevirtbmc
-    repo: https://charts.zespre.com/
-    version: 0.2.3
