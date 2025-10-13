@@ -180,3 +180,13 @@ applications:
       namespace: persistent-reservations
     source:
       path: clusters/etl4/overlays/persistent-reservations
+
+# kubevirt-bmc
+
+  kubevirt-bmc:
+    annotations:
+      argocd.argoproj.io/sync-wave: '6'     
+    destination:
+      namespace: kubevirtbmc-system
+    source:
+      path: clusters/etl6/overlays/kubevirt-bmc

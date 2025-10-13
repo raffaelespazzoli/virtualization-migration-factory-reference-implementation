@@ -32,7 +32,7 @@ pgbench --initialize -h  $DATABASE_URL  -U $USERNAME demo
 3. run pgbench
 
 ```sh
-pgbench -h $DATABASE_URL  -U $USERNAME demo -T 10  -R 2 -v
+pgbench -T 3600  -R 2 -v -P 2 -h $DATABASE_URL -U $USERNAME demo 
 ```
 
 4. navigate the pet clinic
