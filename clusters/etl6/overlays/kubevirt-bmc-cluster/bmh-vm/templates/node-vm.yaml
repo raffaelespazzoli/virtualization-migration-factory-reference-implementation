@@ -60,7 +60,7 @@ spec:
       accessCredentials:      
       volumes:
         - persistentVolumeClaim:
-            name: {{ .name }}
+            claimName: {{ .name }}
           name: rootdisk
 ---
 apiVersion: v1
