@@ -54,7 +54,7 @@ spec:
           guest: 16Gi
         resources: {}
       networks:
-        - name: l2bridge
+        - name: udn-l2-net
           pod: {}
       terminationGracePeriodSeconds: 180     
       volumes:
