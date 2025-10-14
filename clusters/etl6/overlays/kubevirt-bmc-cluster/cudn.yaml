@@ -15,3 +15,5 @@ spec:
       role: Primary
       subnets:
         - 192.168.253.0/24
+    ipam:
+      lifecycle: Persistent         

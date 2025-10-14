@@ -39,9 +39,9 @@ spec:
                 bus: virtio
               name: rootdisk
           interfaces:
-            - masquerade: {}
-              model: virtio
-              name: default
+            - name: udn-l2-net
+              binding:
+                name: l2bridge
           rng: {}
         features:
           acpi: {}
@@ -54,7 +54,7 @@ spec:
           guest: 16Gi
         resources: {}
       networks:
-        - name: default
+        - name: l2bridge
           pod: {}
       terminationGracePeriodSeconds: 180     
       volumes:
