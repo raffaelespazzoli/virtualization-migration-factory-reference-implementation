@@ -197,4 +197,11 @@ applications:
     destination:
       namespace: kubevirt-bmc-cluster
     source:
-      path: clusters/etl6/overlays/kubevirt-bmc-cluster  
+      path: clusters/etl6/overlays/kubevirt-bmc-cluster
+    extraFields: |
+      ignoreDifferences:
+      - group: kubevirt.io
+        kind: VirtualMachine
+        jsonPointers:
+          - /spec/templayte/spec/domain/interfaces/0/macAddress
+          - /spec/running         
