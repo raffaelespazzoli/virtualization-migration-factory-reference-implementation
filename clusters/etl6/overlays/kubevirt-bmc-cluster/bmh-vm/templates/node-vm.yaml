@@ -1,11 +1,13 @@
+{{ $dot := . }}
 {{ range .Values.nodes }}
+---
 apiVersion: kubevirt.io/v1
 kind: VirtualMachine
 metadata:
   name: {{ .name }}
   labels:
     app: ocp-node
-    {{- include "bmh-vm.labels" . | nindent 4 }}    
+    {{- include "bmh-vm.labels" $dot | nindent 4 }}    
 spec:
   running: false
   template:
@@ -66,7 +68,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: {{ .name }}
   labels: 
-    {{- include "bmh-vm.labels" . | nindent 4 }}
+    {{- include "bmh-vm.labels" $dot | nindent 4 }}
 spec:
   accessModes:
     - ReadWriteMany

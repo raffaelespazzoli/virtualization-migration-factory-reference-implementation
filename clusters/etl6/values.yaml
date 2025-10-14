@@ -190,3 +190,11 @@ applications:
       namespace: kubevirtbmc-system
     source:
       path: clusters/etl6/overlays/kubevirt-bmc
+
+  kubevirt-bmc-cluster:
+    annotations:
+      argocd.argoproj.io/sync-wave: '25'     
+    destination:
+      namespace: kubevirt-bmc-cluster
+    source:
+      path: clusters/etl6/overlays/kubevirt-bmc-cluster  
