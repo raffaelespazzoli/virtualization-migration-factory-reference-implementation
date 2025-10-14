@@ -203,5 +203,5 @@ applications:
       - group: kubevirt.io
         kind: VirtualMachine
         jsonPointers:
-          - /spec/template/spec/domain/interfaces/0/macAddress
+          - /spec/template/spec/domain/devices/interfaces/0/macAddress
           - /spec/running         
