@@ -56,8 +56,7 @@ spec:
       networks:
         - name: default
           pod: {}
-      terminationGracePeriodSeconds: 180
-      accessCredentials:      
+      terminationGracePeriodSeconds: 180     
       volumes:
         - persistentVolumeClaim:
             claimName: {{ .name }}
