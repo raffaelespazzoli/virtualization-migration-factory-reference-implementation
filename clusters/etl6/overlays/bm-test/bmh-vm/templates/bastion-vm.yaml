@@ -1,0 +1,95 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: bastion
+  labels:
+    app: bastion
+spec:
+  dataVolumeTemplates:
+    - apiVersion: cdi.kubevirt.io/v1beta1
+      kind: DataVolume
+      metadata:
+        creationTimestamp: null
+        name: bastion
+      spec:
+        sourceRef:
+          kind: DataSource
+          name: fedora
+          namespace: openshift-virtualization-os-images
+        storage:
+          resources:
+            requests:
+              storage: 30Gi
+  running: true
+  template:
+    metadata:
+      annotations:
+        vm.kubevirt.io/flavor: small
+        vm.kubevirt.io/os: fedora
+        vm.kubevirt.io/workload: server
+        vm.redhat-cop.dns-name/nic-sapphire-roadrunner-92: fedora-vm1.lab.example.com
+      creationTimestamp: null
+      labels:
+        kubevirt.io/domain: fedora-vm1
+        kubevirt.io/size: small
+        network.kubevirt.io/headlessService: headless
+        vm.redhat-cop.dns-name: "true"
+    spec:
+      architecture: amd64
+      domain:
+        cpu:
+          cores: 2
+          sockets: 1
+          threads: 1
+        devices:
+          disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+            - disk:
+                bus: virtio
+              name: cloudinitdisk
+          interfaces:
+            - masquerade: {}
+              name: default
+            - name: nm
+              binding:
+                name: l2bridge
+          rng: {}
+        features:
+          acpi: {}
+          smm:
+            enabled: true
+        firmware:
+          bootloader:
+            efi: {}
+        machine:
+          type: pc-q35-rhel9.4.0
+        memory:
+          guest: 2Gi
+        resources: {}
+      networks:
+        - name: default
+          pod: {}
+        - multus:
+            networkName: nm
+          name: nm
+      terminationGracePeriodSeconds: 180
+      accessCredentials:
+      - sshPublicKey:
+          source:
+            secret:
+              secretName: {{ .Values.bastion.sshPublicKeySecretName }}
+          propagationMethod:
+            noCloud: {}      
+      volumes:
+        - dataVolume:
+            name: bastion
+          name: rootdisk
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              user: fedora
+              password: {{ .Values.bastion.password }}
+              chpasswd: { expire: False }
+          name: cloudinitdisk

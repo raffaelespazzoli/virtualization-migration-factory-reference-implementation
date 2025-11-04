@@ -1,0 +1,15 @@
+nodes:
+  - name: master1
+  - name: master2
+  - name: master3
+  - name: worker1
+  - name: worker2
+  - name: worker3
+
+bastion:
+  sshPublicKeySecretName: ciao
+  password: j7q5-vkj6-5pcr
+
+storage:
+  sshPublicKeySecretName: ciao
+  password: j7q5-vkj6-5pcr     

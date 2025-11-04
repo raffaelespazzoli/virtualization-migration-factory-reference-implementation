@@ -487,7 +487,7 @@ spec:
       - cp /policy-generator/PolicyGenerator-not-fips-compliant /policy-generator-tmp/PolicyGenerator
       command:
       - /bin/bash
-      image: registry.redhat.io/rhacm2/multicluster-operators-subscription-rhel9:v2.11
+      image: '{{ (index (lookup "apps/v1" "Deployment" "open-cluster-management" "multicluster-operators-hub-subscription").spec.template.spec.containers 0).image }}'
       name: policy-generator-install
       volumeMounts:
       - mountPath: /policy-generator-tmp

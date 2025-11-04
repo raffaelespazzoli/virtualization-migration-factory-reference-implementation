@@ -1,0 +1,122 @@
+{{ $dot := . }}
+{{ range .Values.nodes }}
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: {{ .name }}
+  labels:
+    app: ocp-node
+    {{- include "bmh-vm.labels" $dot | nindent 4 }}    
+spec:
+  running: true
+  template:
+    metadata:
+      annotations:
+        vm.kubevirt.io/os: coreos
+        vm.kubevirt.io/workload: ocp-node
+      creationTimestamp: null
+      labels:
+        kubevirt.io/domain: {{ .name }}
+        network.kubevirt.io/headlessService: headless
+        app: ocp-node
+        bmc-emulation: "true"
+    spec:
+      evictionStrategy: LiveMigrate
+      architecture: amd64
+      domain:
+        cpu:
+          cores: 4
+        devices:
+          disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+          interfaces:
+            - name: cp1
+              binding:
+                name: l2bridge
+            - name: cp2
+              binding:
+                name: l2bridge
+            - name: vm1
+              binding:
+                name: l2bridge
+            - name: vm2
+              binding:
+                name: l2bridge
+            - name: st1
+              binding:
+                name: l2bridge
+            - name: st2
+              binding:
+                name: l2bridge                                                                                
+          rng: {}
+        features:
+          acpi: {}
+          smm:
+            enabled: true
+        firmware:
+          bootloader:
+            efi: {}
+        memory:
+          guest: 16Gi
+        resources: {}
+      networks:
+        - name: cp1
+          multus: 
+            networkName: cp1
+        - name: cp2
+          multus: 
+            networkName: cp2
+        - name: vm1
+          multus: 
+            networkName: vm1
+        - name: vm2
+          multus: 
+            networkName: vm2  
+        - name: st1
+          multus: 
+            networkName: st1
+        - name: st2
+          multus: 
+            networkName: st2                               
+      terminationGracePeriodSeconds: 180     
+      volumes:
+        - persistentVolumeClaim:
+            claimName: {{ .name }}
+          name: rootdisk
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: "{{ .name }}-bmc"
+  labels: 
+    {{- include "bmh-vm.labels" $dot | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    kubevirt.io/domain: {{ .name }}
+  ports:
+    - name: redfish
+      protocol: TCP
+      port: 8000
+      targetPort: 8000
+  sessionAffinity: None
+  publishNotReadyAddresses: true
+---
+apiVersion: Route.openshift.io/v1
+kind: Route
+metadata:
+  name: "{{ .name }}-bmc"
+  labels: 
+    {{- include "bmh-vm.labels" $dot | nindent 4 }}    
+spec:
+  to:
+    kind: Service
+    name: "{{ .name }}-bmc"
+  port:
+    targetPort: redfish
+  tls:
+    termination: edge
+{{ end }}      

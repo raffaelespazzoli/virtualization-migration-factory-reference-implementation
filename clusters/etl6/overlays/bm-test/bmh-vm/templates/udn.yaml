@@ -1,0 +1,76 @@
+apiVersion: k8s.ovn.org/v1
+kind: UserDefinedNetwork
+metadata:
+  name: cp1
+spec:
+  topology: Layer2 
+  layer2: 
+    role: Secondary
+    ipam:
+      mode: Disabled
+---
+apiVersion: k8s.ovn.org/v1
+kind: UserDefinedNetwork
+metadata:
+  name: cp2
+spec:
+  topology: Layer2 
+  layer2: 
+    role: Secondary
+    ipam:
+      mode: Disabled
+---
+apiVersion: k8s.ovn.org/v1
+kind: UserDefinedNetwork
+metadata:
+  name: vm1
+spec:
+  topology: Layer2 
+  layer2: 
+    role: Secondary
+    ipam:
+      mode: Disabled      
+---
+apiVersion: k8s.ovn.org/v1
+kind: UserDefinedNetwork
+metadata:
+  name: vm2
+spec:
+  topology: Layer2 
+  layer2: 
+    role: Secondary
+    ipam:
+      mode: Disabled             
+---
+apiVersion: k8s.ovn.org/v1
+kind: UserDefinedNetwork
+metadata:
+  name: st1
+spec:
+  topology: Layer2 
+  layer2: 
+    role: Secondary
+    ipam:
+      mode: Disabled 
+---
+apiVersion: k8s.ovn.org/v1
+kind: UserDefinedNetwork
+metadata:
+  name: st2
+spec:
+  topology: Layer2 
+  layer2: 
+    role: Secondary
+    ipam:
+      mode: Disabled
+---
+apiVersion: k8s.ovn.org/v1
+kind: UserDefinedNetwork
+metadata:
+  name: nm
+spec:
+  topology: Layer2 
+  layer2: 
+    role: Secondary
+    ipam:
+      mode: Disabled                  
