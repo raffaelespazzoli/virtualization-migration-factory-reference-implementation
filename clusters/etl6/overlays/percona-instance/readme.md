@@ -35,13 +35,16 @@ pgbench --initialize -h  $DATABASE_URL  -U $USERNAME demo
 pgbench -T 3600  -R 2 -v -P 2 -h $DATABASE_URL -U $USERNAME demo 
 ```
 
+DEMO
+
+
 4. navigate the pet clinic
 
 ```sh
 http://petclinic.glb.ocp.rht-labs.com
 ```
 
-and book an appointment
+and an onwer
 
 5. isolate primary
 
