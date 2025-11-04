@@ -10,4 +10,4 @@ resources:
   - ./rbac.yaml
   - ./pet-clinic.yaml
   - ./init-sql-configmap.yaml
-  #- ./network-policy.yaml
+  - ./network-policy.yaml
