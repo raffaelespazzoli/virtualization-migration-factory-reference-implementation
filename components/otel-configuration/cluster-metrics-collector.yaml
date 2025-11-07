@@ -84,7 +84,7 @@ spec:
       enabled: true
       podMonitorSelector: {}
       serviceMonitorSelector: {}    
-  config:
+  config: |
     receivers:
       prometheus:
         config:
