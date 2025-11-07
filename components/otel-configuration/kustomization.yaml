@@ -4,6 +4,7 @@ namespace: otel-collector
 
 resources:
   - ./namespace.yaml
-  - ./collector.yaml
+  #- ./collector.yaml
   - ./rbac.yaml
   - ./service-account.yaml
+  - ./cluster-metrics-collector.yaml
