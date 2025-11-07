@@ -81,9 +81,7 @@ spec:
     enabled: true
     serviceAccount: otel-collector
     prometheusCR:
-      enabled: true
-      podMonitorSelector: {}
-      serviceMonitorSelector: {}    
+      enabled: true  
   config: |
     receivers:
       prometheus:
@@ -92,11 +90,11 @@ spec:
           - job_name: 'otel-collector'
             scrape_interval: 10s
             static_configs:
-            - targets: [ '0.0.0.0:8888' ]
+            - targets: 
+              - 0.0.0.0:8888
 
     exporters:
-      # NOTE: Prior to v0.86.0 use `logging` instead of `debug`.
-      debug:
+      debug: null
 
     service:
       pipelines:

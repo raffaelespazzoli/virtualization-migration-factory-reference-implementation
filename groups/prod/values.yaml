@@ -161,7 +161,13 @@ applications:
       namespace: otel-collector
     source:
       path: components/otel-configuration
-
+    extraFields: |
+      ignoreDifferences:
+      - group: opentelemetry.io
+        kind: OpenTelemetryCollector
+        jsonPointers:
+          - /spec/config      
+          
   openshift-grafana-operator:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
