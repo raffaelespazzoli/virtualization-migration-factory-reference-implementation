@@ -1,0 +1,18 @@
+apiVersion: v2
+appVersion: v0.2.3-f87ff92
+description: Custom kubevirt-redfish chart with enhanced features
+home: https://github.com/kubevirt/kubevirt-redfish
+icon: https://raw.githubusercontent.com/kubevirt/kubevirt/main/logo/kubevirt-logo.png
+keywords:
+- kubevirt
+- redfish
+- virtualization
+- api
+maintainers:
+- email: bjozsa@redhat.com
+  name: Brandon B. Jozsa
+name: kubevirt-redfish
+sources:
+- https://github.com/kubevirt/kubevirt-redfish
+type: application
+version: 0.2.3
