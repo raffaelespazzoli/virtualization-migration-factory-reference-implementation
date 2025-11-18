@@ -204,4 +204,12 @@ applications:
         kind: VirtualMachine
         jsonPointers:
           - /spec/template/spec/domain/devices/interfaces/0/macAddress
-          - /spec/running         
+          - /spec/running
+
+  kubevirt-redfish:
+    annotations:
+      argocd.argoproj.io/sync-wave: '6'     
+    destination:
+      namespace: kubevirt-redfish
+    source:
+      path: clusters/etl6/overlays/kubevirt-redfish                  

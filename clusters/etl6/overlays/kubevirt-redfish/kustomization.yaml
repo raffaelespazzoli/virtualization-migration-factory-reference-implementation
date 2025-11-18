@@ -1,0 +1,39 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: kubevirt-redfish
+
+resources:
+  - ./namespace.yaml
+
+helmCharts:
+  - name: kubevirt-redfish
+    namespace: kubevirt-redfish
+    releaseName: kubevirt-redfish
+    repo: https://v1k0d3n.github.io/charts
+    valuesInLine:
+      route:
+        enabled: true
+        host: "kubevirt-redfish-kubevirt-redfish.apps.${CLUSTER_BASE_DOMAIN}"
+        tls:
+          termination: "edge"
+          insecureEdgeTerminationPolicy: "Redirect"        
+
+      datavolume:
+        storage_size: "20Gi"
+        allow_insecure_tls: true
+        storage_class: ontap-san
+        vm_update_timeout: "2m"
+        iso_download_timeout: "30m"  
+
+      chassis:
+        - name: "chassis-0"
+          namespace: "bm-lab"
+          service_account: "default"
+          description: "My ocp-virt cluster with test VMs"
+
+      authentication:
+        users:
+          - username: "admin"
+            password: "changeme"  # CHANGE THIS PASSWORD!
+            chassis: ["chassis-0"]                      
+        
