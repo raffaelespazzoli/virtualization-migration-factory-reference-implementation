@@ -10,6 +10,6 @@ spec:
     name: cluster-ingress-certs-tls
   replicas: 3
   routeAdmission:
-    wildcardPolicy: Subdomain
+    wildcardPolicy: WildcardsAllowed
     namespaceOwnership: InterNamespaceAllowed
 
