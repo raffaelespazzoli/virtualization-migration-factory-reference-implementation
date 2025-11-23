@@ -11,4 +11,5 @@ spec:
   replicas: 3
   routeAdmission:
     wildcardPolicy: Subdomain
+    namespaceOwnership: InterNamespaceAllowed
 
