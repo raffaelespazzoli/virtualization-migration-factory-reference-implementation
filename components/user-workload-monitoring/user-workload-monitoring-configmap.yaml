@@ -19,7 +19,13 @@ data:
         processes: {}	
         systemd: {}	
         tcpstat: {}	
-    prometheusK8s:	
+    prometheusK8s:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: ontap-nas
+          resources:
+            requests:
+              storage: 200Gi    	
       additionalAlertmanagerConfigs:	
       - apiVersion: v2	
         bearerToken:	
