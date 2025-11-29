@@ -6,4 +6,5 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-options: ServerSideApply=true
 data:
-  "ack-4.18-kube-1.32-api-removals-in-4.19": "true"      
+  "ack-4.18-kube-1.32-api-removals-in-4.19": "true"
+  "ack-4.19-admissionregistration-v1beta1-api-removals-in-4.20": "true"      
