@@ -7,5 +7,5 @@ metadata:
 spec:
   channel: stable-4.19
   desiredUpdate:
-    version: 4.19.13
-    image: quay.io/openshift-release-dev/ocp-release@sha256:b221339d28377e7654ecfa76debf7cd11eccc4e45516cca393df6a5ca4dbc736     
+    version: 4.19.17
+    image: quay.io/openshift-release-dev/ocp-release@sha256:5c01281c55d75a1569440f91d2708125f14533c675b96d7be67b7a1badd759e5     
