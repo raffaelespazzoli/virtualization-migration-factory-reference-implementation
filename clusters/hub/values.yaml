@@ -214,11 +214,11 @@ applications:
 
 #percona DR demo
 
-  percona-root-cert:
-    annotations:
-      argocd.argoproj.io/sync-wave: '25'
-    source:
-      path: clusters/hub/overlays/percona-root-cert 
+  # percona-root-cert:
+  #   annotations:
+  #     argocd.argoproj.io/sync-wave: '25'
+  #   source:
+  #     path: clusters/hub/overlays/percona-root-cert 
 
 # bgp test 
 
