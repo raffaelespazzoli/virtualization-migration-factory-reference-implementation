@@ -5,9 +5,9 @@ metadata:
 spec:
   olm_managed: true
   # For the main controller container
-  controller_container_limits_cpu: 4
+  controller_container_limits_cpu: "4"
   controller_container_limits_memory: 6Gi
   # For the inventory container
-  inventory_container_limits_cpu: 4
+  inventory_container_limits_cpu: "4"
   inventory_container_limits_memory: 6Gi  
   
