@@ -48,4 +48,6 @@ spec:
     - kubernetes-nmstate-operator.4.18.0-202504231304
     - kubernetes-nmstate-operator.4.18.0-202504300105
     - kubernetes-nmstate-operator.4.19.0-202507291138
+    - kubernetes-nmstate-operator.4.19.0-202508120121
+    - kubernetes-nmstate-operator.4.20.0-202511181524
 

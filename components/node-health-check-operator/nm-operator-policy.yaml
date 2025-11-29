@@ -27,3 +27,4 @@ spec:
   versions: 
     - node-maintenance-operator.v5.4.0
     - node-maintenance-operator.v5.4.1
+    - node-maintenance-operator.v5.5.0

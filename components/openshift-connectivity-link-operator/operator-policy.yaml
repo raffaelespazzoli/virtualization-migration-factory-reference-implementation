@@ -26,3 +26,5 @@ spec:
     startingCSV: rhcl-operator.v1.1.0
   versions: 
     - rhcl-operator.v1.1.0
+    - rhcl-operator.v1.1.1
+    - rhcl-operator.v1.2.0

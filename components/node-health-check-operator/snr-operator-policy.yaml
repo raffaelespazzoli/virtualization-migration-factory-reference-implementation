@@ -27,3 +27,4 @@ spec:
   versions:
   - self-node-remediation.v0.10.0
   - self-node-remediation.v0.10.2
+  - self-node-remediation.v0.11.0

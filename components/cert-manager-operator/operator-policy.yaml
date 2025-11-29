@@ -30,6 +30,7 @@ spec:
     sourceNamespace: openshift-marketplace
     startingCSV: cert-manager-operator.v1.15.0
   versions: 
+    - cert-manager-operator.v1.18.0
     - cert-manager-operator.v1.17.0
     - cert-manager-operator.v1.16.1
     - cert-manager-operator.v1.16.0

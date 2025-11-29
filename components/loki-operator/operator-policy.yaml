@@ -21,7 +21,7 @@ spec:
     name: loki-operator
     namespace: openshift-loki-operator
   subscription:
-    channel: stable-6.3
+    channel: stable-6.4
     name: loki-operator
     namespace: openshift-loki-operator
     source: redhat-operators
@@ -35,4 +35,6 @@ spec:
     - loki-operator.v6.2.1
     - loki-operator.v6.2.2
     - loki-operator.v6.2.3
-    - loki-operator.v6.3.0  
+    - loki-operator.v6.3.0
+    - loki-operator.v6.3.1
+    - loki-operator.v6.4.0          

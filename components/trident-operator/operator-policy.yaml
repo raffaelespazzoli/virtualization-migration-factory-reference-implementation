@@ -26,3 +26,5 @@ spec:
     startingCSV: trident-operator.v25.6.1
   versions: 
     - trident-operator.v25.6.1
+    - trident-operator.v25.6.2
+    - trident-operator.v25.10.0
