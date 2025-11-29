@@ -1,9 +1,0 @@
-apiVersion: scale.spectrum.ibm.com/v1beta1
-kind: LocalDisk
-metadata:
-  name: main
-spec:
-  device: /dev/dm-14
-  existingDataSkipVerify: true
-  node: dl380g9-5.etl6.ocp.rht-labs.com
-  thinDiskType: 'no' 

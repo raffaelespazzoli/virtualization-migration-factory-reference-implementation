@@ -1,9 +1,0 @@
-apiVersion: operators.coreos.com/v1alpha1
-kind: CatalogSource
-metadata:
-  name: test-fusion-access-operator
-  namespace: openshift-marketplace
-spec:
-  displayName: Test Storage Scale Operator
-  sourceType: grpc
-  image: "quay.io/openshift-storage-scale/openshift-fusion-access-catalog:stable" 
