@@ -55,11 +55,11 @@ applications:
 
 # percona demo
 
-  percona-operator:
-    annotations:
-      argocd.argoproj.io/sync-wave: '5'     
-    source:
-      path: clusters/etl6/overlays/percona-operator
+  # percona-operator:
+  #   annotations:
+  #     argocd.argoproj.io/sync-wave: '5'     
+  #   source:
+  #     path: clusters/etl6/overlays/percona-operator
 
   # percona-instance:
   #   annotations:

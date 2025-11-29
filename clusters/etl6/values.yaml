@@ -142,11 +142,11 @@ applications:
 
 # percona demo
 
-  percona-operator:
-    annotations:
-      argocd.argoproj.io/sync-wave: '5'     
-    source:
-      path: clusters/etl6/overlays/percona-operator
+  # percona-operator:
+  #   annotations:
+  #     argocd.argoproj.io/sync-wave: '5'     
+  #   source:
+  #     path: clusters/etl6/overlays/percona-operator
 
   # percona-instance:
   #   annotations:
@@ -183,28 +183,28 @@ applications:
 
 # kubevirt-bmc
 
-  kubevirt-bmc:
-    annotations:
-      argocd.argoproj.io/sync-wave: '6'     
-    destination:
-      namespace: kubevirtbmc-system
-    source:
-      path: clusters/etl6/overlays/kubevirt-bmc
+  # kubevirt-bmc:
+  #   annotations:
+  #     argocd.argoproj.io/sync-wave: '6'     
+  #   destination:
+  #     namespace: kubevirtbmc-system
+  #   source:
+  #     path: clusters/etl6/overlays/kubevirt-bmc
 
-  kubevirt-bmc-cluster:
-    annotations:
-      argocd.argoproj.io/sync-wave: '25'     
-    destination:
-      namespace: kubevirt-bmc-cluster
-    source:
-      path: clusters/etl6/overlays/kubevirt-bmc-cluster
-    extraFields: |
-      ignoreDifferences:
-      - group: kubevirt.io
-        kind: VirtualMachine
-        jsonPointers:
-          - /spec/template/spec/domain/devices/interfaces/0/macAddress
-          - /spec/running
+  # kubevirt-bmc-cluster:
+  #   annotations:
+  #     argocd.argoproj.io/sync-wave: '25'     
+  #   destination:
+  #     namespace: kubevirt-bmc-cluster
+  #   source:
+  #     path: clusters/etl6/overlays/kubevirt-bmc-cluster
+  #   extraFields: |
+  #     ignoreDifferences:
+  #     - group: kubevirt.io
+  #       kind: VirtualMachine
+  #       jsonPointers:
+  #         - /spec/template/spec/domain/devices/interfaces/0/macAddress
+  #         - /spec/running
 
   kubevirt-redfish:
     annotations:
