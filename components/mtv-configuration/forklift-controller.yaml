@@ -3,6 +3,9 @@ kind: ForkliftController
 metadata:
   name: forklift-controller
 spec:
+  feature_copy_offload: "true"
+  feature_ocp_live_migration : "true"
+  feature_ova_appliance_management : "true"
   olm_managed: true
   # For the main controller container
   controller_container_limits_cpu: "4"
