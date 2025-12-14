@@ -11,6 +11,9 @@ spec:
   forecasting:
     fullImageName: 'registry.connect.redhat.com/kubecost/kubecost-modeling@sha256:8f59f8fd8696964c1b5322ca79fae78befe97323fa56c2b509bdcc67ee4c0edd'
   global:
+    clusterId: ${CLUSER_NAME}
+    federatedStorage:
+      existingSecret: "federated-store"    
     platforms:
       openshift:
         createMonitoringClusterRoleBinding: true

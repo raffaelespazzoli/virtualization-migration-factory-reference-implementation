@@ -29,5 +29,10 @@ spec:
     source: certified-operators
     sourceNamespace: openshift-marketplace
     startingCSV: kubecost-operator.v2.8.2
+    config:
+      resources:
+        request:
+          cpu: 200m
+          memory: 1Gi
   versions: 
     - kubecost-operator.v2.8.2  
