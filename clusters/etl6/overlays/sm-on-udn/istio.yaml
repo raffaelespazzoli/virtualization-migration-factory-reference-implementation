@@ -63,7 +63,7 @@ spec:
       discoverySelectors:
         - matchLabels:
             istio-discovery: blue
-            ---
+---
 apiVersion: sailoperator.io/v1
 kind: Istio
 metadata:
