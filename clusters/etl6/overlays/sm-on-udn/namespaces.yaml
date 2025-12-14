@@ -44,7 +44,7 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: "sleep-blue"
+  name: "httpbin-blue"
   labels:
     k8s.ovn.org/primary-user-defined-network: ""
     istio.io/rev: istio-blue
