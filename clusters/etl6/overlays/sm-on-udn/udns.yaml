@@ -43,7 +43,7 @@ spec:
     layer2:
       role: Primary
       ipam:
-        mode: enabled
-        lifecycle: persistent
+        mode: Enabled
+        lifecycle: Persistent
       subnets:
         - 22.233.0.0/16                     
