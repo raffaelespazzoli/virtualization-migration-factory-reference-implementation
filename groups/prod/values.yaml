@@ -195,12 +195,12 @@ applications:
     source:
       path: components/openshift-servicemesh-operator   
 
-  servicemesh-configuration:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '15'     
-    source:
-      path: components/openshift-servicemesh-configuration 
+  # servicemesh-configuration:
+  #   annotations:
+  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
+  #     argocd.argoproj.io/sync-wave: '15'     
+  #   source:
+  #     path: components/openshift-servicemesh-configuration 
 
   kiali-operator:
     annotations:
@@ -211,14 +211,14 @@ applications:
     source:
       path: components/kiali-operator
 
-  kiali-configuration:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '15'
-    destination:
-      namespace: istio-system
-    source:
-      path: components/kiali-configuration
+  # kiali-configuration:
+  #   annotations:
+  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
+  #     argocd.argoproj.io/sync-wave: '15'
+  #   destination:
+  #     namespace: istio-system
+  #   source:
+  #     path: components/kiali-configuration
 
   openshift-connectivity-link-operator:
     annotations:
@@ -227,30 +227,30 @@ applications:
     source:
       path: components/openshift-connectivity-link-operator 
 
-  openshift-connectivity-link-configuration:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '15'
-    destination:
-      namespace: kuadrant-system           
-    source:
-      path: components/openshift-connectivity-link-configuration
+  # openshift-connectivity-link-configuration:
+  #   annotations:
+  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
+  #     argocd.argoproj.io/sync-wave: '15'
+  #   destination:
+  #     namespace: kuadrant-system           
+  #   source:
+  #     path: components/openshift-connectivity-link-configuration
 
-  kuadrant-coredns:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '15'
-    destination:
-      namespace: kuadrant-coredns           
-    source:
-      path: components/kuadrant-coredns
+  # kuadrant-coredns:
+  #   annotations:
+  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
+  #     argocd.argoproj.io/sync-wave: '15'
+  #   destination:
+  #     namespace: kuadrant-coredns           
+  #   source:
+  #     path: components/kuadrant-coredns
 
 # mesh applications
-  bookinfo:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '25'
-    destination:
-      namespace: bookinfo
-    source:
-      path: components/bookinfo                     
+  # bookinfo:
+  #   annotations:
+  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
+  #     argocd.argoproj.io/sync-wave: '25'
+  #   destination:
+  #     namespace: bookinfo
+  #   source:
+  #     path: components/bookinfo                     
