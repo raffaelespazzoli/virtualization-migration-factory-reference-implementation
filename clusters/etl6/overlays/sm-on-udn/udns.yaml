@@ -45,5 +45,5 @@ spec:
       ipam:
         mode: enabled
         lifecycle: persistent
-        subnets:
-          - 22.233.0.0/16                     
+      subnets:
+        - 22.233.0.0/16                     
