@@ -29,6 +29,7 @@ spec:
       subnets:
         - cidr: 22.233.0.0/16
           hostSubnet: 24
+---          
 apiVersion: k8s.ovn.org/v1
 kind: ClusterUserDefinedNetwork
 metadata:
