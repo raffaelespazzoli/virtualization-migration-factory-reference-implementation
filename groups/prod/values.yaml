@@ -105,11 +105,11 @@ applications:
 
 # Observability
 
-  power-monitoring-operator:
-    annotations:
-      argocd.argoproj.io/sync-wave: '5'
-    source:
-      path: components/power-monitoring-operator
+  # power-monitoring-operator:
+  #   annotations:
+  #     argocd.argoproj.io/sync-wave: '5'
+  #   source:
+  #     path: components/power-monitoring-operator
 
   # power-monitoring-configuration:
   #   annotations:
