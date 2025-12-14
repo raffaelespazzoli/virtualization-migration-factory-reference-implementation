@@ -111,11 +111,11 @@ applications:
     source:
       path: components/power-monitoring-operator
 
-  power-monitoring-configuration:
-    annotations:
-      argocd.argoproj.io/sync-wave: '15'
-    source:
-      path: components/power-monitoring-configuration 
+  # power-monitoring-configuration:
+  #   annotations:
+  #     argocd.argoproj.io/sync-wave: '15'
+  #   source:
+  #     path: components/power-monitoring-configuration 
 
   openshift-tempo-operator:
     annotations:
@@ -188,12 +188,12 @@ applications:
 
 # service mesh
 
-  servicemesh-operator:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '5'     
-    source:
-      path: components/openshift-servicemesh-operator   
+  # servicemesh-operator:
+  #   annotations:
+  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
+  #     argocd.argoproj.io/sync-wave: '5'     
+  #   source:
+  #     path: components/openshift-servicemesh-operator   
 
   # servicemesh-configuration:
   #   annotations:
@@ -202,14 +202,14 @@ applications:
   #   source:
   #     path: components/openshift-servicemesh-configuration 
 
-  kiali-operator:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '5'
-    destination:
-      namespace: openshift-kiali-operator
-    source:
-      path: components/kiali-operator
+  # kiali-operator:
+  #   annotations:
+  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
+  #     argocd.argoproj.io/sync-wave: '5'
+  #   destination:
+  #     namespace: openshift-kiali-operator
+  #   source:
+  #     path: components/kiali-operator
 
   # kiali-configuration:
   #   annotations:
@@ -220,12 +220,12 @@ applications:
   #   source:
   #     path: components/kiali-configuration
 
-  openshift-connectivity-link-operator:
-    annotations:
-      argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '5'     
-    source:
-      path: components/openshift-connectivity-link-operator 
+  # openshift-connectivity-link-operator:
+  #   annotations:
+  #     argocd.argoproj.io/compare-options: IgnoreExtraneous
+  #     argocd.argoproj.io/sync-wave: '5'     
+  #   source:
+  #     path: components/openshift-connectivity-link-operator 
 
   # openshift-connectivity-link-configuration:
   #   annotations:
