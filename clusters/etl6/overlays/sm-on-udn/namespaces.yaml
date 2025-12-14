@@ -17,6 +17,14 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
+  name: istio-system-yellow
+  labels:
+    k8s.ovn.org/primary-user-defined-network: ""
+    istio-discovery: yellow    
+---
+apiVersion: v1
+kind: Namespace
+metadata:
   name: "sleep-red"
   labels:
     k8s.ovn.org/primary-user-defined-network: ""
@@ -49,6 +57,15 @@ metadata:
     k8s.ovn.org/primary-user-defined-network: ""
     istio.io/rev: istio-blue
     istio-discovery: blue
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: "vm-yellow"
+  labels:
+    k8s.ovn.org/primary-user-defined-network: ""
+    istio.io/rev: istio-yellow
+    istio-discovery: yellow    
 
 
 
