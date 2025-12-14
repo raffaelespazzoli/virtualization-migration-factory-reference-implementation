@@ -212,4 +212,13 @@ applications:
     destination:
       namespace: kubevirt-redfish
     source:
-      path: clusters/etl6/overlays/kubevirt-redfish                  
+      path: clusters/etl6/overlays/kubevirt-redfish       
+
+
+# sm over ove experiments
+
+  sm-on-udn:
+    annotations:
+      argocd.argoproj.io/sync-wave: '25'     
+    source:
+      path: clusters/etl6/overlays/sm-on-udn                 

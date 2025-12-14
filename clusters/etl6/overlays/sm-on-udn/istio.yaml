@@ -1,0 +1,65 @@
+apiVersion: sailoperator.io/v1
+kind: Istio
+metadata:
+  name: istio-red
+spec:
+  version: v1.28.1
+  namespace: istio-system-red
+  updateStrategy:
+    type: InPlace
+    inactiveRevisionDeletionGracePeriodSeconds: 30
+  values:
+    pilot:
+      image: quay.io/skriss/pilot:ovnk-udn
+      podAnnotations:
+        k8s.ovn.org/open-default-ports: |
+          - protocol: tcp
+            port: 15017
+          - protocol: tcp
+            port: 15012
+          - protocol: tcp
+            port: 8080
+          - protocol: tcp
+            port: 15010
+          - protocol: tcp
+            port: 15014
+    global:
+      imagePullPolicy: "Always"
+    meshConfig:
+      accessLogFile: /dev/stdout
+      discoverySelectors:
+        - matchLabels:
+            istio-discovery: red 
+---
+apiVersion: sailoperator.io/v1
+kind: Istio
+metadata:
+  name: istio-blue
+spec:
+  version: v1.28.1
+  namespace: istio-system-blue
+  updateStrategy:
+    type: InPlace
+    inactiveRevisionDeletionGracePeriodSeconds: 30
+  values:
+    pilot:
+      image: quay.io/skriss/pilot:ovnk-udn
+      podAnnotations:
+        k8s.ovn.org/open-default-ports: |
+          - protocol: tcp
+            port: 15017
+          - protocol: tcp
+            port: 15012
+          - protocol: tcp
+            port: 8080
+          - protocol: tcp
+            port: 15010
+          - protocol: tcp
+            port: 15014
+    global:
+      imagePullPolicy: "Always"
+    meshConfig:
+      accessLogFile: /dev/stdout
+      discoverySelectors:
+        - matchLabels:
+            istio-discovery: blue            
