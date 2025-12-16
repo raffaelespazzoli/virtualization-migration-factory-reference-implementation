@@ -23,7 +23,10 @@ spec:
   gateways:
   - vm-yellow/vm-yelllow
   http:
-  - route:
+  - match:
+    - uri:
+        prefix: /
+    route:
     - destination:
         host: httpd-vm
         port:
