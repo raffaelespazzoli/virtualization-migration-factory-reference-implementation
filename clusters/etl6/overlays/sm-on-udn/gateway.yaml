@@ -12,7 +12,7 @@ spec:
       name: https-443
       protocol: HTTPS
     hosts:
-    - '*.mesh.vips.${CLUSTER_BASE_DOMAIN}'
+    - '*.mesh-yellow.vips.${CLUSTER_BASE_DOMAIN}'
     tls:
       mode: SIMPLE
       credentialName: gateway-ingress-certs-tls
