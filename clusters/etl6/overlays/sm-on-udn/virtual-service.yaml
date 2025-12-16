@@ -21,7 +21,7 @@ spec:
   hosts:
   - httpd-vm.mesh-yellow.vips.${CLUSTER_BASE_DOMAIN}
   gateways:
-  - vm-yellow/vm-yelllow
+  - vm-yellow/vm-yellow
   http:
   - match:
     - uri:
