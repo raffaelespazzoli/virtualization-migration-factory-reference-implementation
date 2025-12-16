@@ -1,0 +1,18 @@
+apiVersion: networking.istio.io/v1
+kind: Gateway
+metadata:
+  name: vm-yellow
+  namespace: vm-yellow
+spec:
+  selector:
+    istio: vm-yellow-ingressgateway
+  servers:
+  - port:
+      number: 443
+      name: https-443
+      protocol: HTTPS
+    hosts:
+    - '*.mesh.vips.${CLUSTER_BASE_DOMAIN}'
+    tls:
+      mode: SIMPLE
+      credentialName: gateway-ingress-certs-tls

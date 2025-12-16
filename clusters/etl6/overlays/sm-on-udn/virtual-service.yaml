@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Service
+metadata:
+    name: httpd-vm
+    namespace: vm-yellow
+spec:
+    selector:
+        app: httpd
+    ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+    type: ClusterIP
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: httpd-vm
+  namespace: vm-yellow
+spec:
+  hosts:
+  - httpd-vm.mesh-yellow.vips.${CLUSTER_BASE_DOMAIN}
+  gateways:
+  - vm-yellow/vm-yelllow
+  http:
+    route:
+    - destination:
+        host: httpd-vm
+        port:
+          number: 80
