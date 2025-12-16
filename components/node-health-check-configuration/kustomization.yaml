@@ -10,7 +10,7 @@ resources:
 - service-account.yaml
 - daemonset.yaml
 - pvc.yaml
-- node-taints-on-node-condition-policy.yaml
+#- node-taints-on-node-condition-policy.yaml
 
 generatorOptions:
   disableNameSuffixHash: true
