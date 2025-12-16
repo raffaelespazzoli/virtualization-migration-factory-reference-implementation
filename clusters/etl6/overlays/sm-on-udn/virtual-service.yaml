@@ -10,6 +10,7 @@ spec:
     - port: 80
       targetPort: 80
       protocol: TCP
+      name: http
     type: ClusterIP
 ---
 apiVersion: networking.istio.io/v1
