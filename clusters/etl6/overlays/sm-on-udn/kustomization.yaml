@@ -13,7 +13,7 @@ resources:
 
 
 helmGlobals:
-  chartHome: ../../.helm-charts
+  chartHome: ../../../../.helm-charts
 
 helmCharts:
   - name: gateway
