@@ -76,7 +76,7 @@ spec:
     inactiveRevisionDeletionGracePeriodSeconds: 30
   values:
     pilot:
-      image: quay.io/skriss/pilot:ovnk-udn
+      image: quay.io/sridhargaddam/pilot:ovnk-udn-1.28
       podAnnotations:
         k8s.ovn.org/open-default-ports: |
           - protocol: tcp
@@ -89,6 +89,9 @@ spec:
             port: 15010
           - protocol: tcp
             port: 15014
+          #ssh connections  
+          - protocol: tcp
+            port: 22            
     global:
       imagePullPolicy: "Always"
     meshConfig:
