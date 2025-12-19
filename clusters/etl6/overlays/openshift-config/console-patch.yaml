@@ -13,8 +13,8 @@ spec:
   - node-remediation-console-plugin
   - networking-console-plugin
   - logging-view-plugin
-  - ossmconsole
+  #- ossmconsole
   - troubleshooting-panel-console-plugin
   - distributed-tracing-console-plugin
-  - kuadrant-console-plugin
+  #- kuadrant-console-plugin
 
