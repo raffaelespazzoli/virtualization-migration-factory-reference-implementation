@@ -33,7 +33,7 @@ metadata:
   name: istio-system-ambient-yellow
   labels:
     k8s.ovn.org/primary-user-defined-network: ""
-    istio-discovery: ambientyellow     
+    istio-discovery: ambient-yellow     
 ---
 apiVersion: v1
 kind: Namespace
