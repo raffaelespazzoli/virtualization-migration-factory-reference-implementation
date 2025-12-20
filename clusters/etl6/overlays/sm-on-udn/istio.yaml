@@ -99,3 +99,41 @@ spec:
       discoverySelectors:
         - matchLabels:
             istio-discovery: yellow
+---
+apiVersion: sailoperator.io/v1
+kind: Istio
+metadata:
+  name: istio-ambient-yellow
+spec:
+  version: v1.28.1
+  namespace: istio-system-ambient-yellow
+  updateStrategy:
+    type: InPlace
+    inactiveRevisionDeletionGracePeriodSeconds: 30
+  values:
+    profile: ambient 
+    pilot:
+      trustedZtunnelNamespace: ztunnel-yellow
+      image: quay.io/sridhargaddam/pilot:ovnk-udn-1.28
+      podAnnotations:
+        k8s.ovn.org/open-default-ports: |
+          - protocol: tcp
+            port: 15017
+          - protocol: tcp
+            port: 15012
+          - protocol: tcp
+            port: 8080
+          - protocol: tcp
+            port: 15010
+          - protocol: tcp
+            port: 15014
+          #ssh connections  
+          - protocol: tcp
+            port: 22            
+    global:
+      imagePullPolicy: "Always"
+    meshConfig:
+      accessLogFile: /dev/stdout
+      discoverySelectors:
+        - matchLabels:
+            istio-discovery: ambient-yellow            

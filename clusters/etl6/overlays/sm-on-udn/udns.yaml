@@ -46,4 +46,22 @@ spec:
         mode: Enabled
         lifecycle: Persistent
       subnets:
-        - 22.233.0.0/16                     
+        - 22.233.0.0/16
+---
+apiVersion: k8s.ovn.org/v1
+kind: ClusterUserDefinedNetwork
+metadata:
+  name: cudn-ambient-yellow
+spec:     
+  namespaceSelector:
+    matchLabels:
+      istio-discovery: ambient-yellow
+  network:
+    topology: Layer2
+    layer2:
+      role: Primary
+      ipam:
+        mode: Enabled
+        lifecycle: Persistent
+      subnets:
+        - 22.233.0.0/16                             
