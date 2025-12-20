@@ -136,4 +136,12 @@ spec:
       accessLogFile: /dev/stdout
       discoverySelectors:
         - matchLabels:
-            istio-discovery: ambient-yellow            
+            istio-discovery: ambient-yellow
+---
+apiVersion: sailoperator.io/v1alpha1
+kind: ZTunnel
+metadata:
+  name: default
+spec:
+  namespace: ztunnel-yallow
+  profile: ambient                        
