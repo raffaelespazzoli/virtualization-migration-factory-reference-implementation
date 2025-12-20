@@ -83,7 +83,7 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: "vm-yellow"
+  name: "vm-ambient-yellow"
   labels:
     k8s.ovn.org/primary-user-defined-network: ""
     istio.io/rev: istio-ambient-yellow
