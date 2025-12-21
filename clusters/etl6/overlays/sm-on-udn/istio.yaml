@@ -143,4 +143,6 @@ kind: ZTunnel
 metadata:
   name: default
 spec:
-  namespace: ztunnel-yellow                       
+  namespace: ztunnel-yellow
+  values:
+   istio-namespace: istio-system-ambient-yellow                       
