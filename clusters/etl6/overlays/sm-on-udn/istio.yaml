@@ -148,6 +148,11 @@ spec:
     ztunnel:
       istioNamespace: istio-system-ambient-yellow
       image: quay.io/sridhargaddam/ztunnel:ovnk-udn-1.28
+      meshConfig:
+        accessLogFile: /dev/stdout
+        discoverySelectors:
+          - matchLabels:
+              istio-discovery: ambient-yellow
     global:
       imagePullPolicy: "Always"
                        
