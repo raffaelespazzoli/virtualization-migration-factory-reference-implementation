@@ -150,9 +150,4 @@ spec:
       image: quay.io/sridhargaddam/ztunnel:ovnk-udn-1.28
     global:
       imagePullPolicy: "Always"
-    meshConfig:
-      accessLogFile: /dev/stdout
-      discoverySelectors:
-        - matchLabels:
-            istio-discovery: ambient-yellow
                        
