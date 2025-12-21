@@ -145,4 +145,14 @@ metadata:
 spec:
   namespace: ztunnel-yellow
   values:
-   istio-namespace: istio-system-ambient-yellow                       
+    ztunnel:
+      istioNamespace: istio-system-ambient-yellow
+      image: quay.io/sridhargaddam/ztunnel:ovnk-udn-1.28
+    global:
+      imagePullPolicy: "Always"
+    meshConfig:
+      accessLogFile: /dev/stdout
+      discoverySelectors:
+        - matchLabels:
+            istio-discovery: ambient-yellow
+                       
