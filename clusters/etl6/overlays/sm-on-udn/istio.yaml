@@ -111,7 +111,7 @@ spec:
     type: InPlace
     inactiveRevisionDeletionGracePeriodSeconds: 30
   values:
-    profile: ambient 
+    profile: openshift-ambient 
     pilot:
       trustedZtunnelNamespace: ztunnel-yellow
       image: quay.io/sridhargaddam/pilot:ovnk-udn-1.28
