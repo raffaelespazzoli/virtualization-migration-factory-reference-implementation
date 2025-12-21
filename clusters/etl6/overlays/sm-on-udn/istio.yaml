@@ -141,7 +141,7 @@ spec:
 apiVersion: sailoperator.io/v1alpha1
 kind: ZTunnel
 metadata:
-  name: yellow
+  name: default
 spec:
   namespace: ztunnel-yellow
   profile: ambient                        
