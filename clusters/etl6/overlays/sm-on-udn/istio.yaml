@@ -143,5 +143,4 @@ kind: ZTunnel
 metadata:
   name: default
 spec:
-  namespace: ztunnel-yellow
-  profile: ambient                        
+  namespace: ztunnel-yellow                       
