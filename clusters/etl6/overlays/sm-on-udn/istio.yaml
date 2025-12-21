@@ -148,6 +148,7 @@ spec:
     ztunnel:
       #istioNamespace: istio-system-ambient-yellow
       xdsAddress: istiod-istio-ambient-yellow.istio-system-ambient-yellow.svc.cluster.local:15012
+      caAddress: istiod-istio-ambient-yellow.istio-system-ambient-yellow.svc.cluster.local:15012
       #image: quay.io/sridhargaddam/ztunnel:ovnk-udn-1.28
     global:
       imagePullPolicy: "Always"
