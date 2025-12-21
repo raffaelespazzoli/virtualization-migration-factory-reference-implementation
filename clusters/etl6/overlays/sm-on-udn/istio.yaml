@@ -147,7 +147,7 @@ spec:
   values:
     ztunnel:
       istioNamespace: istio-system-ambient-yellow
-      image: quay.io/sridhargaddam/ztunnel:ovnk-udn-1.28
+      #image: quay.io/sridhargaddam/ztunnel:ovnk-udn-1.28
     global:
       imagePullPolicy: "Always"
                        
