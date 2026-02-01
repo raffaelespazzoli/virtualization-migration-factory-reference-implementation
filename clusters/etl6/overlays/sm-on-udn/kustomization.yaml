@@ -12,6 +12,7 @@ resources:
 - ./vms.yaml
 - ./gateway-api-gateway.yaml
 - ./httproute.yaml
+- ./coraza-wasm-plugin.yaml
 
 
 # helmGlobals:
