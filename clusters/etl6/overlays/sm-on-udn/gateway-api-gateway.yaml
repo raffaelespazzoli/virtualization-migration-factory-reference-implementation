@@ -30,8 +30,8 @@ spec:
         kind: Secret
         name: gateway-ingress-certs-tls      
     allowedRoutes:
-      from: Selector
       namespaces:
+        from: Selector
         selector:
           matchLabels:
             istio-discovery: yellow
