@@ -2,6 +2,7 @@ apiVersion: extensions.istio.io/v1alpha1
 kind: WasmPlugin
 metadata:
   name: coraza-waf
+  namespace: istio-system-yellow
   labels:
     istio.io/rev: istio-yellow  
 spec:
