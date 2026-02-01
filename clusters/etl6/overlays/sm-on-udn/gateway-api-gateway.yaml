@@ -31,4 +31,6 @@ spec:
         name: gateway-ingress-certs-tls      
     allowedRoutes:
       namespaces:
-        from: All
+        selector:
+        - matchLabels:
+            istio-discovery: yellow

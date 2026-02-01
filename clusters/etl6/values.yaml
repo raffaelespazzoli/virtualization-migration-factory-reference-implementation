@@ -37,11 +37,11 @@ applications:
     source:
       path: clusters/etl6/overlays/metallb-configuration
 
-  gateway-api:
-    annotations:
-      argocd.argoproj.io/sync-wave: '9'
-    source:
-      path: components/gateway-api
+  # gateway-api:
+  #   annotations:
+  #     argocd.argoproj.io/sync-wave: '9'
+  #   source:
+  #     path: components/gateway-api
             
 # Storage
 
