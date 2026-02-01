@@ -30,6 +30,7 @@ spec:
         kind: Secret
         name: gateway-ingress-certs-tls      
     allowedRoutes:
+      from: Selector
       namespaces:
         selector:
           matchLabels:
