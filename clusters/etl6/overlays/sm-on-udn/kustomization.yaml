@@ -6,17 +6,17 @@ resources:
 - ./istio.yaml
 - ./udns.yaml
 - ./istiocni.yaml
-- ./gateway.yaml
-- ./virtual-service.yaml
+#- ./gateway.yaml
+#- ./virtual-service.yaml
 - ./certificate.yaml
 - ./vms.yaml
 
 
-helmGlobals:
-  chartHome: ../../../../.helm-charts
+# helmGlobals:
+#   chartHome: ../../../../.helm-charts
 
-helmCharts:
-  - name: gateway
-    releaseName: vm-yellow-ingressgateway
-    namespace: vm-yellow
-    valuesFile: ingress-gateway-values.yaml
+# helmCharts:
+#   - name: gateway
+#     releaseName: vm-yellow-ingressgateway
+#     namespace: vm-yellow
+#     valuesFile: ingress-gateway-values.yaml

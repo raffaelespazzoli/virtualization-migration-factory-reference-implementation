@@ -1,61 +1,11 @@
 apiVersion: k8s.ovn.org/v1
 kind: ClusterUserDefinedNetwork
 metadata:
-  name: cudn-red
-spec:
-  namespaceSelector:
-    matchLabels:
-      istio-discovery: red
-  network:
-    topology: Layer3
-    layer3:
-      role: Primary
-      subnets:
-        - cidr: 22.222.0.0/16
-          hostSubnet: 24
----
-apiVersion: k8s.ovn.org/v1
-kind: ClusterUserDefinedNetwork
-metadata:
-  name: cudn-blue
-spec:     
-  namespaceSelector:
-    matchLabels:
-      istio-discovery: blue
-  network:
-    topology: Layer3
-    layer3:
-      role: Primary
-      subnets:
-        - cidr: 22.233.0.0/16
-          hostSubnet: 24
----          
-apiVersion: k8s.ovn.org/v1
-kind: ClusterUserDefinedNetwork
-metadata:
   name: cudn-yellow
 spec:     
   namespaceSelector:
     matchLabels:
       istio-discovery: yellow
-  network:
-    topology: Layer2
-    layer2:
-      role: Primary
-      ipam:
-        mode: Enabled
-        lifecycle: Persistent
-      subnets:
-        - 22.233.0.0/16
----
-apiVersion: k8s.ovn.org/v1
-kind: ClusterUserDefinedNetwork
-metadata:
-  name: cudn-ambient-yellow
-spec:     
-  namespaceSelector:
-    matchLabels:
-      istio-discovery: ambient-yellow
   network:
     topology: Layer2
     layer2:

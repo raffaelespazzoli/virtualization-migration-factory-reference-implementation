@@ -6,78 +6,10 @@ metadata:
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: istio-system-red
-  labels:
-    k8s.ovn.org/primary-user-defined-network: ""
-    istio-discovery: red
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: istio-system-blue
-  labels:
-    k8s.ovn.org/primary-user-defined-network: ""
-    istio-discovery: blue
----
-apiVersion: v1
-kind: Namespace
-metadata:
   name: istio-system-yellow
   labels:
     k8s.ovn.org/primary-user-defined-network: ""
-    istio-discovery: yellow
----    
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: istio-system-ambient-yellow
-  labels:
-    k8s.ovn.org/primary-user-defined-network: ""
-    istio-discovery: ambient-yellow
----    
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: ztunnel-yellow
-  labels:
-    k8s.ovn.org/primary-user-defined-network: ""
-    istio-discovery: ambient-yellow        
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: "sleep-red"
-  labels:
-    k8s.ovn.org/primary-user-defined-network: ""
-    istio.io/rev: istio-red
-    istio-discovery: red
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: "httpbin-red"
-  labels:
-    k8s.ovn.org/primary-user-defined-network: ""
-    istio.io/rev: istio-red
-    istio-discovery: red    
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: "sleep-blue"
-  labels:
-    k8s.ovn.org/primary-user-defined-network: ""
-    istio.io/rev: istio-blue
-    istio-discovery: blue
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: "httpbin-blue"
-  labels:
-    k8s.ovn.org/primary-user-defined-network: ""
-    istio.io/rev: istio-blue
-    istio-discovery: blue
+    istio-discovery: yellow        
 ---
 apiVersion: v1
 kind: Namespace
@@ -86,16 +18,7 @@ metadata:
   labels:
     k8s.ovn.org/primary-user-defined-network: ""
     istio.io/rev: istio-yellow
-    istio-discovery: yellow
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: "vm-ambient-yellow"
-  labels:
-    k8s.ovn.org/primary-user-defined-network: ""
-    istio.io/rev: istio-ambient-yellow
-    istio-discovery: ambient-yellow        
+    istio-discovery: yellow        
 
 
 

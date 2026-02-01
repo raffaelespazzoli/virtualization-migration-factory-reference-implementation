@@ -1,0 +1,19 @@
+apiVersion: sailoperator.io/v1
+kind: Istio
+metadata:
+  name: openshift-gateway
+spec:
+  pilot:
+    image: quay.io/sridhargaddam/pilot:ovnk-udn-1.28
+    podAnnotations:
+      k8s.ovn.org/open-default-ports: |
+        - protocol: tcp
+          port: 15017
+        - protocol: tcp
+          port: 15012
+        - protocol: tcp
+          port: 8080
+        - protocol: tcp
+          port: 15010
+        - protocol: tcp
+          port: 15014    
