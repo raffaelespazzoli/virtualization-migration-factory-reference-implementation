@@ -7,12 +7,12 @@ spec:
   secretName: gateway-ingress-certs-tls
   duration: 168h0m0s
   renewBefore: 1h0m0s
-  commonName: '*.mesh-yellow.vips.${CLUSTER_BASE_DOMAIN}'
+  commonName: '*.gwapi-yellow.vips.${CLUSTER_BASE_DOMAIN}'
   usages:
     - server auth
   # At least one of a DNS Name, URI, or IP address is required.
   dnsNames:
-    - '*.mesh-yellow.vips.${CLUSTER_BASE_DOMAIN}'
+    - '*.gwapi-yellow.vips.${CLUSTER_BASE_DOMAIN}'
     #- '*.mesh.global.${PLATFORM_BASE_DOMAIN}'
   issuerRef:
     name: letsencrypt-issuer
