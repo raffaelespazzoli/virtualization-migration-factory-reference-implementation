@@ -19,4 +19,4 @@ spec:
   selector:
     matchLabels:
       gateway.networking.k8s.io/gateway-name: yellow-gateway
-  url: oci://ghcr.io/corazawaf/coraza-proxy-wasm
+  url: oci://ghcr.io/corazawaf/coraza-proxy-wasm:0.6.0
