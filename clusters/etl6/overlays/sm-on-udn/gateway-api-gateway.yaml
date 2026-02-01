@@ -4,7 +4,7 @@ metadata:
   name: yellow-gateway
   namespace: istio-system-yellow
 spec:
-  gatewayClassName: openshift-default
+  gatewayClassName: istio
   infrastructure:
     annotations:
       k8s.ovn.org/open-default-ports: |
