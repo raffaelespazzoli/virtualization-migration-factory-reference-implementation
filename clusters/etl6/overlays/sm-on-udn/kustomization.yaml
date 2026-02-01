@@ -11,6 +11,7 @@ resources:
 - ./certificate.yaml
 - ./vms.yaml
 - ./gateway-api-gateway.yaml
+- ./httproute.yaml
 
 
 # helmGlobals:

@@ -188,4 +188,20 @@ spec:
               - [ systemctl, daemon-reload ]
               - [ systemctl, enable, httpd.service ]
               - [ systemctl, start, --no-block, httpd.service ]
-          name: cloudinitdisk 
+          name: cloudinitdisk
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vm-service
+  namespace: vm-yellow
+  labels:
+    app: httpd
+spec:
+  selector:
+    app: httpd
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
