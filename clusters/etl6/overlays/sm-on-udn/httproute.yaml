@@ -7,7 +7,7 @@ spec:
   parentRefs:
   - name: yellow-gateway
     namespace: istio-system-yellow
-  hostnames: ["vms.mesh-yellow.vips.${CLUSTER_BASE_DOMAIN}"]
+  hostnames: ["vms.gwapi-yellow.vips.${CLUSTER_BASE_DOMAIN}"]
   rules:
   - matches:
     - path:
