@@ -27,7 +27,7 @@ spec:
       #   PILOT_ENABLE_GATEWAY_API_GATEWAYCLASS_CONTROLLER: 'false'
       #   PILOT_ENABLE_GATEWAY_API_COPY_LABELS_ANNOTATIONS: 'false'
       #   PILOT_ENABLE_GATEWAY_API_CA_CERT_ONLY: 'true'      
-      #image: quay.io/sridhargaddam/pilot:ovnk-udn-1.28
+      image: quay.io/sridhargaddam/pilot:ovnk-udn-1.28
       podAnnotations:
         target.workload.openshift.io/management: '{"effect": "PreferredDuringScheduling"}'
         k8s.ovn.org/open-default-ports: |
