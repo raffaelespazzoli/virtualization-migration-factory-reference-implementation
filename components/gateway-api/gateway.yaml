@@ -13,7 +13,9 @@ spec:
     tls:
       mode: Terminate
       certificateRefs:
-      - name: gwapi-sdn-tls
+      - group: ''	
+        kind: Secret
+        name: gwapi-sdn-tls      
     allowedRoutes:
       namespaces:
         from: All
