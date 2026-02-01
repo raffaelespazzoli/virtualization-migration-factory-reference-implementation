@@ -6,7 +6,7 @@ metadata:
 spec:
   version: v1.28.1
   namespace: istio-system-yellow
-  profile: openshift
+  profile: minimal
   updateStrategy:
     type: InPlace
     inactiveRevisionDeletionGracePeriodSeconds: 30
