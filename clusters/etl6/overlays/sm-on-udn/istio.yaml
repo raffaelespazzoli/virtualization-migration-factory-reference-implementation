@@ -14,18 +14,18 @@ spec:
       cni:
         enabled: false
       enabled: true    
-      env:
-        PILOT_ENABLE_GATEWAY_API_DEPLOYMENT_CONTROLLER: 'true'
-        ENABLE_GATEWAY_API_MANUAL_DEPLOYMENT: 'false'
-        PILOT_MULTI_NETWORK_DISCOVER_GATEWAY_API: 'false'
-        PILOT_ENABLE_GATEWAY_API_STATUS: 'true'
-        PILOT_GATEWAY_API_CONTROLLER_NAME: openshift.io/gateway-controller/v1
-        PILOT_ENABLE_ALPHA_GATEWAY_API: 'false'
-        PILOT_ENABLE_GATEWAY_API: 'true'
-        PILOT_GATEWAY_API_DEFAULT_GATEWAYCLASS_NAME: openshift-default
-        PILOT_ENABLE_GATEWAY_API_GATEWAYCLASS_CONTROLLER: 'false'
-        PILOT_ENABLE_GATEWAY_API_COPY_LABELS_ANNOTATIONS: 'false'
-        PILOT_ENABLE_GATEWAY_API_CA_CERT_ONLY: 'true'      
+      # env:
+      #   PILOT_ENABLE_GATEWAY_API_DEPLOYMENT_CONTROLLER: 'true'
+      #   ENABLE_GATEWAY_API_MANUAL_DEPLOYMENT: 'false'
+      #   PILOT_MULTI_NETWORK_DISCOVER_GATEWAY_API: 'false'
+      #   PILOT_ENABLE_GATEWAY_API_STATUS: 'true'
+      #   PILOT_GATEWAY_API_CONTROLLER_NAME: openshift.io/gateway-controller/v1
+      #   PILOT_ENABLE_ALPHA_GATEWAY_API: 'false'
+      #   PILOT_ENABLE_GATEWAY_API: 'true'
+      #   PILOT_GATEWAY_API_DEFAULT_GATEWAYCLASS_NAME: openshift-default
+      #   PILOT_ENABLE_GATEWAY_API_GATEWAYCLASS_CONTROLLER: 'false'
+      #   PILOT_ENABLE_GATEWAY_API_COPY_LABELS_ANNOTATIONS: 'false'
+      #   PILOT_ENABLE_GATEWAY_API_CA_CERT_ONLY: 'true'      
       image: quay.io/sridhargaddam/pilot:ovnk-udn-1.28
       podAnnotations:
         target.workload.openshift.io/management: '{"effect": "PreferredDuringScheduling"}'
