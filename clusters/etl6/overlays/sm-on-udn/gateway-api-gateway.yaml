@@ -9,7 +9,7 @@ spec:
   gatewayClassName: istio
   infrastructure:
     annotations:
-      external-dns.alpha.kubernetes.io/hostname: '*.mesh-yellow.vips.${CLUSTER_BASE_DOMAIN}'    
+      external-dns.alpha.kubernetes.io/hostname: '*.gwapi-yellow.vips.${CLUSTER_BASE_DOMAIN}'    
   listeners:
   - name: https
     hostname: "*.gwapi-yellow.vips.${CLUSTER_BASE_DOMAIN}"
