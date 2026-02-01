@@ -18,7 +18,8 @@ metadata:
   labels:
     k8s.ovn.org/primary-user-defined-network: ""
     istio.io/rev: istio-yellow
-    istio-discovery: yellow        
+    istio-discovery: yellow
+    istio-injection: disabled        
 
 
 
