@@ -32,5 +32,5 @@ spec:
     allowedRoutes:
       namespaces:
         selector:
-        - matchLabels:
+          matchLabels:
             istio-discovery: yellow
