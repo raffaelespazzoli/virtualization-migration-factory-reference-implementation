@@ -92,11 +92,11 @@ applications:
     source:
       path: components/cluster-observability-operator  
 
-  kubecost-operator:
-    annotations:
-      argocd.argoproj.io/sync-wave: '5'            
-    source:
-      path: components/kubecost-operator
+  # kubecost-operator:
+  #   annotations:
+  #     argocd.argoproj.io/sync-wave: '5'            
+  #   source:
+  #     path: components/kubecost-operator
 
   # kubecost-configuration:
   #   annotations:
