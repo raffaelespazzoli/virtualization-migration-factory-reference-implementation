@@ -4,9 +4,6 @@ metadata:
   name: vm-yellow
   namespace: vm-yellow
 spec:
-  infrastructure:
-    annotations:
-      external-dns.alpha.kubernetes.io/hostname: '*.mesh-yellow.vips.${CLUSTER_BASE_DOMAIN}'
   selector:
     istio: vm-yellow-ingressgateway
   servers:
