@@ -4,9 +4,4 @@ metadata:
   name: default
 spec:
   version: v1.28.1
-  namespace: istio-cni
-  profile: ambient
-  values:
-    cni:
-      ambient:
-        reconcileIptablesOnStartup: true  
+  namespace: istio-cni 
