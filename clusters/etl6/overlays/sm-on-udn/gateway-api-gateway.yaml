@@ -3,6 +3,8 @@ kind: Gateway
 metadata:
   name: yellow-gateway
   namespace: istio-system-yellow
+  labels:
+    istio.io/rev: istio-yellow
 spec:
   gatewayClassName: istio
   # infrastructure:
