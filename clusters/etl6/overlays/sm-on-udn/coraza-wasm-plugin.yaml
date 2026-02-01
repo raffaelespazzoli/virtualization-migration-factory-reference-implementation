@@ -2,6 +2,8 @@ apiVersion: extensions.istio.io/v1alpha1
 kind: WasmPlugin
 metadata:
   name: coraza-waf
+  labels:
+    istio.io/rev: istio-yellow  
 spec:
   imagePullPolicy: IfNotPresent
   phase: AUTHN
