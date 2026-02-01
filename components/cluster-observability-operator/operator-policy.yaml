@@ -34,4 +34,5 @@ spec:
     - cluster-observability-operator.v1.1.0
     - cluster-observability-operator.v1.1.1
     - cluster-observability-operator.v1.2.2
-    - cluster-observability-operator.v1.3.0    
+    - cluster-observability-operator.v1.3.0
+    - cluster-observability-operator.v1.3.1        
