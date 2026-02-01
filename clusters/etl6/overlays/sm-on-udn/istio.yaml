@@ -39,10 +39,7 @@ spec:
           - protocol: tcp
             port: 15010
           - protocol: tcp
-            port: 15014
-          #ssh connections  
-          - protocol: tcp
-            port: 22            
+            port: 15014            
     global:
       imagePullPolicy: "Always"
       defaultPodDisruptionBudget:
