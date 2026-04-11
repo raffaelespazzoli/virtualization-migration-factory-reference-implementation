@@ -102,11 +102,11 @@ applications:
   #   source:
   #     path: components/odf-multicluster-operator
 
-  # acm-fusion-dr:
-  #   annotations:
-  #     argocd.argoproj.io/sync-wave: '25'
-  #   source:
-  #     path: components/acm-fusion-dr
+  acm-fusion-dr:
+    annotations:
+      argocd.argoproj.io/sync-wave: '25'
+    source:
+      path: components/acm-fusion-dr
 
   # vm-dr-test:
   #   annotations:
