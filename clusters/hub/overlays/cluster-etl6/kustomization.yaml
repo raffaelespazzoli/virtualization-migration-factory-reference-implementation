@@ -43,4 +43,5 @@ helmCharts:
         gitops: deploy
         servicemesh-federation: enabled
         percona-demo: enabled
-        vm-dnsrecord: enabled      
+        vm-dnsrecord: enabled     
+        soteria: enabled 

@@ -227,4 +227,12 @@ applications:
     annotations:
       argocd.argoproj.io/sync-wave: '25'     
     source:
-      path: clusters/etl6/overlays/sm-on-udn                 
+      path: clusters/etl6/overlays/sm-on-udn   
+
+# soteria demo
+
+  soteria:
+    annotations:
+      argocd.argoproj.io/sync-wave: '25'     
+    source:
+      path: clusters/etl6/overlays/soteria-instance                    

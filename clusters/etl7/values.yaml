@@ -72,4 +72,13 @@ applications:
   #       kind: Deployment
   #       name: quarkus-petclinic
   #       jsonPointers:
-  #         - /spec/replicas                                 
+  #         - /spec/replicas     
+
+
+# soteria demo
+
+  soteria:
+    annotations:
+      argocd.argoproj.io/sync-wave: '25'     
+    source:
+      path: clusters/etl6/overlays/soteria-instance                                 
