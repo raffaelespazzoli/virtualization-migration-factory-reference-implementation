@@ -1,0 +1,28 @@
+apiVersion: policy.open-cluster-management.io/v1beta1
+kind: OperatorPolicy
+metadata:
+  name: scylladb-operator
+  namespace: open-cluster-management-policies
+spec:
+  upgradeApproval: Automatic
+  complianceConfig:
+    catalogSourceUnhealthy: Compliant
+    deploymentsUnavailable: NonCompliant
+    upgradesAvailable: Compliant
+  complianceType: musthave
+  remediationAction: enforce
+  removalBehavior:
+    clusterServiceVersions: Delete
+    customResourceDefinitions: Keep
+    operatorGroups: DeleteIfUnused
+    subscriptions: Delete
+  severity: medium
+  subscription:
+    channel: stable
+    name: scylladb-operator
+    namespace: scylladb
+    source: certified-operators
+    sourceNamespace: openshift-marketplace
+    startingCSV: scylladb-operator.v1.20.2
+  versions: 
+    - scylladb-operator.v1.20.2

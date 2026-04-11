@@ -253,4 +253,13 @@ applications:
   #   destination:
   #     namespace: bookinfo
   #   source:
-  #     path: components/bookinfo                     
+  #     path: components/bookinfo   
+
+  scylladb-operator:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '5'
+    destination:
+      namespace: scylladb-operator
+    source:
+      path: components/scylladb-operator                     
