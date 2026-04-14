@@ -10,4 +10,4 @@ spec:
   #   - FRR
   defaultNetwork:
     ovnKubernetesConfig:
-      routeAdvertisements: Enabled
+      routeAdvertisements: Disabled
