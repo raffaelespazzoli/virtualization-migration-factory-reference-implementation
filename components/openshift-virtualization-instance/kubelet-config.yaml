@@ -6,8 +6,8 @@ spec:
   machineConfigPoolSelector:
     matchLabels:
       pools.operator.machineconfiguration.openshift.io/master: ""
+  autoSizingReserved: true    
   kubeletConfig:
-    autoSizingReserved: true
     maxPods: 500
     nodeStatusMaxImages: -1
     kubeAPIBurst: 200
