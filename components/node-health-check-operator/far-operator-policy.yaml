@@ -27,4 +27,5 @@ spec:
   versions: 
     - fence-agents-remediation.v0.5.0
     - fence-agents-remediation.v0.5.1
-    - fence-agents-remediation.v0.6.0    
+    - fence-agents-remediation.v0.6.0
+    - fence-agents-remediation.v0.6.1

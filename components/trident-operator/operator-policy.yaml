@@ -28,3 +28,4 @@ spec:
     - trident-operator.v25.6.1
     - trident-operator.v25.6.2
     - trident-operator.v25.10.0
+    - trident-operator.v26.2.0

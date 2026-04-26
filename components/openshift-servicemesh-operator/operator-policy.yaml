@@ -26,3 +26,27 @@ spec:
     startingCSV: servicemeshoperator3.v3.0.2
   versions: 
     - servicemeshoperator3.v3.0.2
+    - servicemeshoperator3.v3.0.3
+    - servicemeshoperator3.v3.0.4
+    - servicemeshoperator3.v3.0.5
+    - servicemeshoperator3.v3.0.6
+    - servicemeshoperator3.v3.0.7
+    - servicemeshoperator3.v3.0.8
+    - servicemeshoperator3.v3.0.9
+    - servicemeshoperator3.v3.0.10
+    - servicemeshoperator3.v3.1.0
+    - servicemeshoperator3.v3.1.1
+    - servicemeshoperator3.v3.1.2
+    - servicemeshoperator3.v3.1.3
+    - servicemeshoperator3.v3.1.4
+    - servicemeshoperator3.v3.1.5
+    - servicemeshoperator3.v3.1.6
+    - servicemeshoperator3.v3.1.7
+    - servicemeshoperator3.v3.2.0
+    - servicemeshoperator3.v3.2.1
+    - servicemeshoperator3.v3.2.2
+    - servicemeshoperator3.v3.2.3
+    - servicemeshoperator3.v3.2.4
+    - servicemeshoperator3.v3.3.0
+    - servicemeshoperator3.v3.3.1
+    - servicemeshoperator3.v3.3.2
