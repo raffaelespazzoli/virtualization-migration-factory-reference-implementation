@@ -1,9 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    openshift.io/cluster-monitoring: "true"
+  name: openshift-gitops-operator
 ---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
   name: openshift-gitops-operator
-  namespace: openshift-operators
+  namespace: openshift-gitops-operator
 spec:
   channel: latest
   installPlanApproval: Automatic
@@ -14,4 +20,12 @@ spec:
     env:
     - name: ARGOCD_CLUSTER_CONFIG_NAMESPACES
       value: openshift-gitops
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-gitops-operator
+  namespace: openshift-gitops-operator
+spec:
+  upgradeStrategy: Default       
 

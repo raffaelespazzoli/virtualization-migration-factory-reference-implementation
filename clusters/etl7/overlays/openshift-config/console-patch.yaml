@@ -8,7 +8,7 @@ spec:
   plugins:
   - monitoring-plugin
   - gitops-plugin
-  - kubevirt-plugin
+  #- kubevirt-plugin
   - nmstate-console-plugin
   - node-remediation-console-plugin
   - networking-console-plugin
