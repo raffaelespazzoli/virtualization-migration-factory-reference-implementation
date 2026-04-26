@@ -8,9 +8,9 @@ object-templates-raw: |
         # You'll usually want to add your resources to the argocd namespace.
         namespace: openshift-gitops
         # Add this finalizer ONLY if you want these to cascade delete.
-        finalizers: []
+        finalizers:
           # The default behaviour is foreground cascading deletion
-          # - resources-finalizer.argocd.argoproj.io
+          - resources-finalizer.argocd.argoproj.io
           # Alternatively, you can use background cascading deletion
           # - resources-finalizer.argocd.argoproj.io/background
         # Add labels to your application object.
