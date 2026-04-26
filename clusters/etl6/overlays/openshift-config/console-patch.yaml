@@ -14,8 +14,8 @@ spec:
   - networking-console-plugin
   - logging-view-plugin
   #- ossmconsole
-  - troubleshooting-panel-console-plugin
+  #- troubleshooting-panel-console-plugin
   - distributed-tracing-console-plugin
   #- kuadrant-console-plugin
-  - soteria-console-plugin
+  #- soteria-console-plugin
 
