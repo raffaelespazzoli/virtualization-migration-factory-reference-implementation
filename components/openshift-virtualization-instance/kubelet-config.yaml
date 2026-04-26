@@ -17,5 +17,4 @@ spec:
     evictionSoftGracePeriod:
       memory.available: "5m"
     evictionPressureTransitionPeriod: 0s
-    # disabled because not gitops friendly
-#    failSwapOn: false    
+    imageMaximumGCE: 168h    
