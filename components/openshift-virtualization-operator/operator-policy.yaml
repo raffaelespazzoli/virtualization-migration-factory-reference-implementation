@@ -28,7 +28,7 @@ spec:
     namespace: openshift-cnv
     source: redhat-operators
     sourceNamespace: openshift-marketplace
-    startingCSV: kubevirt-hyperconverged-operator.v4.17.4
+    startingCSV: kubevirt-hyperconverged-operator.v4.20.11
   versions: 
     - kubevirt-hyperconverged-operator.v4.17.4
     - kubevirt-hyperconverged-operator.v4.17.5
