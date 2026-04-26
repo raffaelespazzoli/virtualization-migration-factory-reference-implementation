@@ -16,5 +16,5 @@ resources:
 - volume-group-replication-class-policy.yaml
 - soteria-root-ca-policy.yaml
 
-generators:
-- policy-generator-config.yaml
+generators: []
+#- policy-generator-config.yaml
