@@ -74,6 +74,18 @@ data:
             key: service-ca.crt
             name: hub-alertmanager-router-ca
           insecureSkipVerify: false
+      - apiVersion: v2	
+        bearerToken:	
+          key: token	
+          name: observability-alertmanager-accessor-084511045d344ab4a31	
+        scheme: https	
+        staticConfigs:	
+        - alertmanager-open-cluster-management-observability.apps.hub2.ocp.rht-labs.com	
+        tlsConfig:	
+          ca:	
+            key: service-ca.crt	
+            name: hub-alertmanager-router-ca-084511045d344ab4a31	
+          insecureSkipVerify: false          
       externalLabels:
         managed_cluster: 7596ad4f-6531-4740-aeea-56ac1de750ff
       resources:
