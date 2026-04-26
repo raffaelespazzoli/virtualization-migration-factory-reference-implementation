@@ -16,3 +16,4 @@ spec:
   #- ossmconsole
   - troubleshooting-panel-console-plugin
   - distributed-tracing-console-plugin
+  - soteria-console-plugin

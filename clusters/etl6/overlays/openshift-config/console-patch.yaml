@@ -17,4 +17,5 @@ spec:
   - troubleshooting-panel-console-plugin
   - distributed-tracing-console-plugin
   #- kuadrant-console-plugin
+  - soteria-console-plugin
 
