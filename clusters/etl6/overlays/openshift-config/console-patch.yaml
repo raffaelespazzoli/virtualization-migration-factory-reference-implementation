@@ -8,14 +8,14 @@ spec:
   plugins:
   - monitoring-plugin
   - gitops-plugin
-  # - kubevirt-plugin
+  - kubevirt-plugin
   - nmstate-console-plugin
   - node-remediation-console-plugin
   - networking-console-plugin
   - logging-view-plugin
   #- ossmconsole
   #- troubleshooting-panel-console-plugin
-  - distributed-tracing-console-plugin
+  #- distributed-tracing-console-plugin
   #- kuadrant-console-plugin
   #- soteria-console-plugin
 
