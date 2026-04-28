@@ -10,7 +10,7 @@ spec:
   - monitoring-plugin
   - acm
   - mce
-  - forklift-console-plugin
+  #- forklift-console-plugin
   - nmstate-console-plugin
   - logging-view-plugin
   - networking-console-plugin
