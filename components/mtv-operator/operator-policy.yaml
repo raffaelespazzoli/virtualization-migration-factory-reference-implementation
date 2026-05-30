@@ -28,7 +28,7 @@ spec:
     namespace: openshift-mtv
     source: redhat-operators
     sourceNamespace: openshift-marketplace
-    startingCSV: mtv-operator.v2.10.0
+    startingCSV: mtv-operator.v2.11.7
   versions: 
     - mtv-operator.v2.10.0
     - mtv-operator.v2.10.1
@@ -42,3 +42,4 @@ spec:
     - mtv-operator.v2.11.2
     - mtv-operator.v2.11.3
     - mtv-operator.v2.11.4
+    - mtv-operator.v2.11.7    
