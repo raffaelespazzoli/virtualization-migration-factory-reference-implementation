@@ -23,7 +23,7 @@ spec:
     targetNamespaces:
         - external-dns-operator
   subscription:
-    channel: stable-v1
+    channel: stable-v3
     name: external-dns-operator
     namespace: external-dns-operator
     source: redhat-operators
@@ -34,3 +34,4 @@ spec:
     - external-dns-operator.v1.3.1
     - external-dns-operator.v1.3.2
     - external-dns-operator.v1.3.3
+    - external-dns-operator.v1.3.5    
