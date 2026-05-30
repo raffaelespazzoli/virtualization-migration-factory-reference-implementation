@@ -1,10 +1,21 @@
 apiVersion: machineconfiguration.openshift.io/v1
 kind: ContainerRuntimeConfig
 metadata:
- name: crun
+ name: crun-workers
 spec:
  machineConfigPoolSelector:
    matchLabels:
      pools.operator.machineconfiguration.openshift.io/worker: ''
  containerRuntimeConfig:
    defaultRuntime: "crun"
+---
+apiVersion: machineconfiguration.openshift.io/v1
+kind: ContainerRuntimeConfig
+metadata:
+ name: crun-masters
+spec:
+ machineConfigPoolSelector:
+   matchLabels:
+     pools.operator.machineconfiguration.openshift.io/master: ''
+ containerRuntimeConfig:
+   defaultRuntime: "crun"   
