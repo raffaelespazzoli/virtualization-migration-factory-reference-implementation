@@ -5,6 +5,6 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-options: Delete=false,ServerSideApply=true  
 spec:
-  channel: stable-4.20
+  channel: stable-4.21
   desiredUpdate:
-    version: 4.20.18
+    version: 4.21.16

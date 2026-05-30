@@ -6,3 +6,15 @@ namespace: netapp-trident
 resources:
 - ../../../../components/trident-configuration
 - ./ontap-san.yaml
+
+patches:
+- target:
+    group: trident.netapp.io
+    version: v1
+    kind: TridentBackendConfig
+    name: ontap-nas
+  patch: |-
+    - op: replace
+      path: /spec/storagePrefix
+      value: hub
+
