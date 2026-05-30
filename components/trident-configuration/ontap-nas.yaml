@@ -19,6 +19,7 @@ spec:
   backendName: ontap-nas
   svm: nfs_02
   autoExportPolicy: true
+  storagePrefix: ${CLUSTER_NAME}
   credentials: 
     name: ontap-nas-secret
 ---
