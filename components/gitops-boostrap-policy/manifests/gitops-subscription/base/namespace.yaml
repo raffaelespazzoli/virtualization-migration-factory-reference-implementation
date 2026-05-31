@@ -1,21 +1,21 @@
 object-templates-raw: |
-{{- if not lookup "namespace" "v1" "openshift-gitops" "" }}
-- complianceType: musthave
-  objectDefinition:
-    apiVersion: v1
-    kind: Namespace
-    metadata:
-      labels:
-        openshift.io/cluster-monitoring: "true"
-      name: openshift-gitops
-{{- end }}
-{{- if not lookup "namespace" "v1" "openshift-gitops-operator" "" }}
-- complianceType: musthave
-  objectDefinition:
-    apiVersion: v1
-    kind: Namespace
-    metadata:
-      labels:
-        openshift.io/cluster-monitoring: "true"
-      name: openshift-gitops-operator  
-{{- end }}
+  {{- if not lookup "namespace" "v1" "openshift-gitops" "" }}
+  - complianceType: musthave
+    objectDefinition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        labels:
+          openshift.io/cluster-monitoring: "true"
+        name: openshift-gitops
+  {{- end }}
+  {{- if not lookup "namespace" "v1" "openshift-gitops-operator" "" }}
+  - complianceType: musthave
+    objectDefinition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        labels:
+          openshift.io/cluster-monitoring: "true"
+        name: openshift-gitops-operator
+  {{- end }}
