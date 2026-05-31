@@ -18,7 +18,7 @@ spec:
         spec:
           remediationAction: enforce
           severity: high
-          object-templates-raw: |-
+          object-templates:
             - complianceType: musthave
               objectDefinition:
                 apiVersion: argoproj.io/v1beta1
@@ -38,7 +38,7 @@ spec:
                       name: policy-generator-install
                       volumeMounts:
                       - mountPath: /policy-generator-tmp
-                        name: policy-generator                   
+                        name: policy-generator
 ---
 apiVersion: cluster.open-cluster-management.io/v1beta1
 kind: Placement
