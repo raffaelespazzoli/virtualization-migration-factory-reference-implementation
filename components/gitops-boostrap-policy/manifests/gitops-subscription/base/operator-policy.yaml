@@ -1,4 +1,5 @@
 object-templates-raw: |
+  {{- $startingCSV := (index .metadata.annotations "startingCSV") }}
   {{  if not (lookup "policy.open-cluster-management.io/v1beta1" "OperatorPolicy" "openshift-gitops-operator" "open-cluster-management-policies") }}
   - complianceType: musthave
     objectDefinition:
@@ -27,11 +28,11 @@ object-templates-raw: |
           namespace: openshift-gitops-operator
           source: redhat-operators
           sourceNamespace: openshift-marketplace
-          startingCSV: '{{hub (lookup "policy.open-cluster-management.io/v1beta1" "OperatorPolicy" "openshift-gitops-operator" "open-cluster-management-policies").spec.subscription.startingCSV | default "openshift-gitops-operator.v1.20.4" hub}}'
+          startingCSV: '{{ $startingCSV }}'
           config:
             env:
             - name: ARGOCD_CLUSTER_CONFIG_NAMESPACES
               value: openshift-gitops
         versions: 
-        - '{{hub (lookup "policy.open-cluster-management.io/v1beta1" "OperatorPolicy" "openshift-gitops-operator" "open-cluster-management-policies").spec.subscription.startingCSV | default "openshift-gitops-operator.v1.20.4" hub}}'
+        - '{{ $startingCSV }}'
   {{- end }}

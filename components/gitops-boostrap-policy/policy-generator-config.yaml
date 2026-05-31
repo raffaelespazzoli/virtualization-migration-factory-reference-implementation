@@ -11,6 +11,8 @@ placementBindingDefaults:
   name: "binding-policy-gitops"
 policies:
   - name: policy-gitops-subscription
+    configurationPolicyAnnotations:
+      startingCSV: '{{hub (lookup "policy.open-cluster-management.io/v1beta1" "OperatorPolicy" "open-cluster-management-policies" "openshift-gitops-operator").spec.subscription.startingCSV | default "openshift-gitops-operator.v1.20.4" hub}}'
     remediationAction: enforce
     manifests:
       - path: manifests/gitops-subscription/base/namespace.yaml
