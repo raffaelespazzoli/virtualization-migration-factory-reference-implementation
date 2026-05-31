@@ -15,7 +15,7 @@ policies:
     manifests:
       - path: manifests/gitops-subscription/base/namespace.yaml
       - path: manifests/gitops-subscription/base/operator-policy.yaml
-      - path: manifests/gitops-subscription/base/clusterrolebinding.yaml
+      - path: manifests/gitops-subscription/base/cluster-rolebinding.yaml
   - name: policy-gitops-instance
     # Needed to fix issue with merging lists resulting in duplicates
     configurationPolicyAnnotations:
