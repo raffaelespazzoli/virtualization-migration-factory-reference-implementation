@@ -17,15 +17,15 @@ spec:
           name: add-policy-generator-to-argocd
         spec:
           remediationAction: enforce
-          severity: low
+          severity: high
           object-templates-raw: |-
-            - complianceType: mustonlyhave
+            - complianceType: musthave
               objectDefinition:
                 apiVersion: argoproj.io/v1beta1
                 kind: ArgoCD
                 metadata:
-                  name:  openshift-gitops
-                  namespace:  openshift-gitops
+                  name: openshift-gitops
+                  namespace: openshift-gitops
                 spec:
                   repo:
                     initContainers:
