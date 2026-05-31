@@ -1,24 +1,31 @@
----
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  name: openshift-gitops-operator
-  namespace: openshift-gitops-operator
-spec:
-  channel: latest
-  installPlanApproval: Automatic
-  name: openshift-gitops-operator
-  source: redhat-operators
-  sourceNamespace: openshift-marketplace
-  config:
-    env:
-    - name: ARGOCD_CLUSTER_CONFIG_NAMESPACES
-      value: openshift-gitops
----
-apiVersion: operators.coreos.com/v1
-kind: OperatorGroup
-metadata:
-  name: openshift-gitops-operator
-  namespace: openshift-gitops-operator
-spec:
-  upgradeStrategy: Default      
+object-templates-raw: |
+{{ if not lookup "operators.coreos.com/v1alpha1" "Subscription" "openshift-gitops-operator" "openshift-gitops-operator" }}
+- complianceType: musthave
+  objectDefinition:
+    apiVersion: operators.coreos.com/v1alpha1
+    kind: Subscription
+    metadata:
+      name: openshift-gitops-operator
+      namespace: openshift-gitops-operator
+    spec:
+      channel: latest
+      installPlanApproval: Automatic
+      name: openshift-gitops-operator
+      source: redhat-operators
+      sourceNamespace: openshift-marketplace
+      config:
+        env:
+        - name: ARGOCD_CLUSTER_CONFIG_NAMESPACES
+          value: openshift-gitops    
+{{- end }}
+{{ if not lookup "operators.coreos.com/v1" "OperatorGroup" "openshift-gitops-operator" "openshift-gitops-operator" }}
+- complianceType: musthave
+  objectDefinition:
+    apiVersion: operators.coreos.com/v1
+    kind: OperatorGroup
+    metadata:       
+      name: openshift-gitops-operator
+      namespace: openshift-gitops-operator
+    spec:
+      upgradeStrategy: Default
+{{- end }}      

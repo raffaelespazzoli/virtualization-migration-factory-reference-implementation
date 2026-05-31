@@ -13,14 +13,18 @@ policies:
   - name: policy-gitops-subscription
     remediationAction: enforce
     manifests:
-      - path: manifests/gitops-subscription/base/
+      - path: manifests/gitops-subscription/base/namespace.yaml
+      - path: manifests/gitops-subscription/base/operator-policy.yaml
+      - path: manifests/gitops-subscription/base/clusterrolebinding.yaml
   - name: policy-gitops-instance
     # Needed to fix issue with merging lists resulting in duplicates
     configurationPolicyAnnotations:
       apps.open-cluster-management.io/reconcile-option: replace
     complianceType: "mustonlyhave"
     manifests:
-      - path: manifests/gitops-instance/base/
+      - path: manifests/gitops-instance/base/setenv-cmp-plugin-configmap.yaml
+      - path: manifests/gitops-instance/base/argocd.yaml
+      - path: manifests/gitops-instance/base/environment-variables-configmap.yaml
   - name: policy-gitops-bootstrap
     manifests:
       - path: manifests/gitops-bootstrap/base/bootstrap-app.yaml

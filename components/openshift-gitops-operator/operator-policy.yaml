@@ -1,0 +1,32 @@
+apiVersion: policy.open-cluster-management.io/v1beta1
+kind: OperatorPolicy
+metadata:
+  name: openshift-gitops-operator
+  namespace: open-cluster-management-policies
+spec:
+  upgradeApproval: Automatic
+  complianceConfig:
+    catalogSourceUnhealthy: Compliant
+    deploymentsUnavailable: NonCompliant
+    upgradesAvailable: Compliant
+  complianceType: musthave
+  remediationAction: enforce
+  removalBehavior:
+    clusterServiceVersions: Delete
+    customResourceDefinitions: Keep
+    operatorGroups: DeleteIfUnused
+    subscriptions: Delete
+  severity: medium
+  subscription:
+    channel: latest
+    name: openshift-gitops-operator
+    namespace: kuadrant-system
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+    startingCSV: openshift-gitops-operator.v1.20.4
+    config:
+      env:
+      - name: ARGOCD_CLUSTER_CONFIG_NAMESPACES
+        value: openshift-gitops    
+  versions: 
+    - openshift-gitops-operator.v1.20.4

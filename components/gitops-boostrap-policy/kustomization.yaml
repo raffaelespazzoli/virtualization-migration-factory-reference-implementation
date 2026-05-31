@@ -15,6 +15,7 @@ resources:
 - vm-dnsrecord-policy.yaml
 - volume-group-replication-class-policy.yaml
 - soteria-root-ca-policy.yaml
+- policy-add-policy-generator-to-argocd.yaml
 
 generators:
 - policy-generator-config.yaml

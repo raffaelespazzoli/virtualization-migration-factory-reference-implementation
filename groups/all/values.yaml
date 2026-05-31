@@ -20,11 +20,26 @@ applications:
 
 # Basic
 
-  # web-terminal-operator:
-  #   annotations:
-  #     argocd.argoproj.io/sync-wave: '5'
-  #   source:
-  #     path: components/web-terminal-operator 
+  openshift-gitops-operator:
+    annotations:
+      argocd.argoproj.io/sync-wave: '5'
+    source:
+      path: components/openshift-gitops-operator 
+
+  openshift-gitops-configuration:
+    annotations:
+      argocd.argoproj.io/sync-wave: '15'
+    source:         
+      path: components/openshift-gitops-configuration
+    extraFields: |
+      ignoreDifferences:
+        - group: 'argoproj.io/v1beta1'
+          kind: ArgoCD
+          name: openshift-gitops
+          namespace: openshift-gitops       
+          jsonPointers:
+            - /spec/repo/initContainers      
+
 
 # Storage
 

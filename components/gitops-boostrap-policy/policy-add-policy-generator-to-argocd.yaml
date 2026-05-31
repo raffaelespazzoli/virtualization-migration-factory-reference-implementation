@@ -1,0 +1,70 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: add-policy-generator-to-argocd
+  # Must be a recognized policy namespace on the hub
+  namespace: acm-policies
+spec:
+  remediationAction: enforce
+  disabled: false
+  hubTemplateOptions:
+    serviceAccountName: policy-admin
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: add-policy-generator-to-argocd
+        spec:
+          remediationAction: enforce
+          severity: low
+          object-templates-raw: |-
+            - complianceType: mustonlyhave
+              objectDefinition:
+                apiVersion: argoproj.io/v1beta1
+                kind: ArgoCD
+                metadata:
+                  name:  openshift-gitops
+                  namespace:  openshift-gitops
+                spec:
+                  repo:
+                    initContainers:
+                    - args:
+                      - -c
+                      - cp /policy-generator/PolicyGenerator-not-fips-compliant /policy-generator-tmp/PolicyGenerator
+                      command:
+                      - /bin/bash
+                      image: '{{hub (index (lookup "apps/v1" "Deployment" "open-cluster-management" "multicluster-operators-hub-subscription").spec.template.spec.containers 0).image hub}}'
+                      name: policy-generator-install
+                      volumeMounts:
+                      - mountPath: /policy-generator-tmp
+                        name: policy-generator
+                    volumeMounts:
+                    - mountPath: /etc/kustomize/plugin/policy.open-cluster-management.io/v1/policygenerator
+                      name: policy-generator                    
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: add-policy-generator-to-argocd-placement
+  namespace: acm-policies
+spec:
+  predicates: 
+    - requiredClusterSelector:
+        labelSelector:
+          matchLabels:
+            local-cluster: "true"
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: add-policy-generator-to-argocd-binding
+  namespace: acm-policies
+subjects:
+  - kind: Policy
+    apiGroup: policy.open-cluster-management.io
+    name: add-policy-generator-to-argocd
+placementRef:
+  kind: Placement
+  apiGroup: cluster.open-cluster-management.io
+  name: add-policy-generator-to-argocd-placement
