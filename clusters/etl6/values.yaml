@@ -139,13 +139,6 @@ applications:
   #           - /spec/continuousRestoreConfig/continuousRestoreInstances/0/continuousRestorePolicy/resourceVersion
   #           - /spec/continuousRestoreConfig/continuousRestoreInstances/0/continuousRestorePolicy/uid                      
 
-
-  vlan-dhcp:
-    annotations:
-      argocd.argoproj.io/sync-wave: '24'     
-    source:
-      path: clusters/etl6/overlays/vlan-dhcp
-
 # percona demo
 
   # percona-operator:
