@@ -1,5 +1,5 @@
 object-templates-raw: |
-  {{ if not lookup "rbac.authorization.k8s.io/v1" "ClusterRoleBinding" "cluster-admin-gitops-sc" "" }}
+  {{ if not (lookup "rbac.authorization.k8s.io/v1" "ClusterRoleBinding" "cluster-admin-gitops-sc" "") }}
   - complianceType: musthave
     objectDefinition:
       apiVersion: rbac.authorization.k8s.io/v1
