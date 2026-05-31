@@ -484,17 +484,6 @@ object-templates-raw: |
           env:
           - name: KUSTOMIZE_PLUGIN_HOME
             value: /etc/kustomize/plugin
-          initContainers:
-          - args:
-            - -c
-            - cp /policy-generator/PolicyGenerator-not-fips-compliant /policy-generator-tmp/PolicyGenerator
-            command:
-            - /bin/bash
-            image: '{{hub (index (lookup "apps/v1" "Deployment" "open-cluster-management" "multicluster-operators-hub-subscription").spec.template.spec.containers 0).image hub}}'
-            name: policy-generator-install
-            volumeMounts:
-            - mountPath: /policy-generator-tmp
-              name: policy-generator
           volumeMounts:
           - mountPath: /etc/kustomize/plugin/policy.open-cluster-management.io/v1/policygenerator
             name: policy-generator                
