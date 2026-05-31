@@ -1,4 +1,4 @@
-object-templates-raw: |
+object-templates-raw: |+
   {{ if not (lookup "policy.open-cluster-management.io/v1beta1" "OperatorPolicy" "openshift-gitops-operator" "open-cluster-management-policies") }}
   - complianceType: musthave
     objectDefinition:
