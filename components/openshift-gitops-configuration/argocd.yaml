@@ -492,9 +492,9 @@ spec:
     #   volumeMounts:
     #   - mountPath: /policy-generator-tmp
     #     name: policy-generator
-    # volumeMounts:
-    # - mountPath: /etc/kustomize/plugin/policy.open-cluster-management.io/v1/policygenerator
-    #   name: policy-generator                
+    volumeMounts:
+    - mountPath: /etc/kustomize/plugin/policy.open-cluster-management.io/v1/policygenerator
+      name: policy-generator                
     sidecarContainers:
       - name: setenv-plugin
         command: [/var/run/argocd/argocd-cmp-server]
