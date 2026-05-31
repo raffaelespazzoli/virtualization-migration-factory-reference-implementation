@@ -1,5 +1,5 @@
 object-templates-raw: |
-  {{- if not (lookup "v1" "namespace" "" "openshift-gitops") }}
+  {{- if not (lookup "v1" "Namespace" "" "openshift-gitops") }}
   - complianceType: musthave
     objectDefinition:
       apiVersion: v1
@@ -9,7 +9,7 @@ object-templates-raw: |
           openshift.io/cluster-monitoring: "true"
         name: openshift-gitops
   {{- end }}
-  {{- if not (lookup "v1" "namespace" "" "openshift-gitops-operator") }}
+  {{- if not (lookup "v1" "Namespace" "" "openshift-gitops-operator") }}
   - complianceType: musthave
     objectDefinition:
       apiVersion: v1
