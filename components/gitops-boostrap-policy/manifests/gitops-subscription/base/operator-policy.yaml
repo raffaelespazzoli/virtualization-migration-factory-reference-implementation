@@ -24,7 +24,7 @@ object-templates-raw: |
         subscription:
           channel: latest
           name: openshift-gitops-operator
-          namespace: kuadrant-system
+          namespace: openshift-gitops-operator
           source: redhat-operators
           sourceNamespace: openshift-marketplace
           startingCSV: '{{hub (lookup "policy.open-cluster-management.io/v1beta1" "OperatorPolicy" "openshift-gitops-operator" "open-cluster-management-policies").spec.subscription.startingCSV | default "openshift-gitops-operator.v1.20.4" hub}}'

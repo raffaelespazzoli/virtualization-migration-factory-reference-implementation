@@ -20,7 +20,7 @@ spec:
   subscription:
     channel: latest
     name: openshift-gitops-operator
-    namespace: kuadrant-system
+    namespace: openshift-gitops-operator
     source: redhat-operators
     sourceNamespace: openshift-marketplace
     startingCSV: openshift-gitops-operator.v1.20.4
