@@ -28,3 +28,4 @@ clusters/hub/kubeconfig
 components/external-dns-configuration/rfc2136-tsig-secret.yaml
 /pvc-cleanup
 
+components/gitops.zip
