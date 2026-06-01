@@ -32,7 +32,7 @@ object-templates-raw: |+
             env:
             - name: ARGOCD_CLUSTER_CONFIG_NAMESPACES
               value: openshift-gitops
-        versions: 
+        versions:
         - '{{hub (lookup "policy.open-cluster-management.io/v1beta1" "OperatorPolicy" "open-cluster-management-policies" "openshift-gitops-operator").spec.subscription.startingCSV | default "openshift-gitops-operator.v1.20.4" hub}}'
   {{- end }}
 
