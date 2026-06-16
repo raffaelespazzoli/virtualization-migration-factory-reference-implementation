@@ -2,7 +2,8 @@ apiVersion: k8s.cni.cncf.io/v1beta1
 kind: MultiNetworkPolicy
 metadata:
   name: deny-from-192-168-90-4
-  k8s.v1.cni.cncf.io/policy-for: multinetworkpolicy-udn-localnet-test/vlan-2901
+  annotations:
+    k8s.v1.cni.cncf.io/policy-for: multinetworkpolicy-udn-localnet-test/vlan-2901
 spec:
   podSelector: 
     matchLabels:
