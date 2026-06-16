@@ -9,6 +9,7 @@ spec:
   network:
     topology: Localnet
     localnet:
+      physicalNetwork: vlans
       role: Secondary
       ipam:
         mode: Disabled
@@ -29,6 +30,7 @@ spec:
   network:
     topology: Localnet
     localnet:
+      physicalNetwork: vlans
       role: Secondary
       ipam:
         mode: Disabled
