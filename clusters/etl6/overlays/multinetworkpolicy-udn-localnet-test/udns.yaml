@@ -1,0 +1,39 @@
+apiVersion: k8s.ovn.org/v1
+kind: ClusterUserDefinedNetwork
+metadata:
+  name: vlan-2911
+spec:     
+  namespaceSelector:
+    matchLabels:
+      vlan-2911: "true"
+  network:
+    topology: Localnet
+    layer2:
+      role: Secondary
+      ipam:
+        mode: Disabled
+        lifecycle: Persistent
+      vlan:
+        mode: access
+        access:
+           id: 2911
+---
+apiVersion: k8s.ovn.org/v1
+kind: ClusterUserDefinedNetwork
+metadata:
+  name: vlan-2901
+spec:     
+  namespaceSelector:
+    matchLabels:
+      vlan-2901: "true"
+  network:
+    topology: Localnet
+    layer2:
+      role: Secondary
+      ipam:
+        mode: Disabled
+        lifecycle: Persistent
+      vlan:
+        mode: access
+        access:
+           id: 2901                                         

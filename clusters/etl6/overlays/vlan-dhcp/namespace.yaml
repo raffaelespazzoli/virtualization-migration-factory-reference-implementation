@@ -6,3 +6,5 @@ metadata:
     argocd.argoproj.io/sync-options: Delete=false
   labels:
     argocd.argoproj.io/managed-by: openshift-gitops
+    vlan-2901: "true"
+    vlan-2911: "true"

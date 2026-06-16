@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: dhcp-config
-  namespace: dhcp
+  namespace: vlan-dhcp
 data:
   Dhcpfile: |-
     192.168.90.2/24 {

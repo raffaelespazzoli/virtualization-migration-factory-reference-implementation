@@ -51,3 +51,8 @@ spec:
           mode: 420
           overwrite: true
           path: /etc/multipath.conf
+        - contents:
+            source: data:text/plain;charset=utf-8;base64,ZGVmYXVsdHMgewogICAgcmVzZXJ2YXRpb25fa2V5IGZpbGUKfQo=
+          filesystem: root
+          mode: 0644
+          path: /etc/multipath/conf.d/reservation.conf          

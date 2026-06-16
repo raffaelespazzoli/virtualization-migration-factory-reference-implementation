@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+	name: multinetworkpolicy-udn-localnet-test
+	labels:
+		name: multinetworkpolicy-udn-localnet-test
+    vlan-2901: "true"
+    vlan-2911: "true"
+

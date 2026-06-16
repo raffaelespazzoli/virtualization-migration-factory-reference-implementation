@@ -228,4 +228,24 @@ applications:
     annotations:
       argocd.argoproj.io/sync-wave: '25'     
     source:
-      path: clusters/etl6/overlays/soteria-instance                    
+      path: clusters/etl6/overlays/soteria-instance
+
+# vlan-dhcp
+
+  vlan-dhcp:
+    annotations:
+      argocd.argoproj.io/sync-wave: '25'     
+    destination:
+      namespace: vlan-dhcp
+    source:
+      path: clusters/etl6/overlays/vlan-dhcp
+
+# multinetworkpolicy-udn-localnet-test
+
+  multinetworkpolicy-udn-localnet-test:
+    annotations:
+      argocd.argoproj.io/sync-wave: '25'     
+    destination:
+      namespace: multinetworkpolicy-udn-localnet-test
+    source:
+      path: clusters/etl6/overlays/multinetworkpolicy-udn-localnet-test                         

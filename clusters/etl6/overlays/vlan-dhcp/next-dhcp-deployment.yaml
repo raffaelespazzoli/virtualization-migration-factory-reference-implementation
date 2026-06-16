@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: next-dhcp
-  namespace: dhcp
+  namespace: vlan-dhcp
   labels:
     app: next-dhcp
 spec:
@@ -18,12 +18,13 @@ spec:
         k8s.v1.cni.cncf.io/networks: |
          [{
             "name": "vlan-2901",
-            "namespace": "default",
+            "namespace": "vlan-dhcp",
             "ips": ["192.168.90.2/24"],
             "interface": "eth1"
           },{
-            "name": "vlan-2911-iscsi",
+            "name": "vlan-2911",
             "namespace": "vlan-dhcp",
+            "ips": ["192.168.91.2/24"],
             "interface": "eth2"      
           }]        
     spec:
