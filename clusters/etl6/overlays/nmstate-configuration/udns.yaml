@@ -8,7 +8,7 @@ spec:
       vlan-2911: "true"
   network:
     topology: Localnet
-    layer2:
+    localnet:
       role: Secondary
       ipam:
         mode: Disabled
@@ -28,7 +28,7 @@ spec:
       vlan-2901: "true"
   network:
     topology: Localnet
-    layer2:
+    localnet:
       role: Secondary
       ipam:
         mode: Disabled
