@@ -133,12 +133,15 @@ spec:
       - localnet: vlan-1522 
         bridge: ovs-br1 
         state: present
+      - localnet: vlans 
+        bridge: ovs-br1 
+        state: present  
       - localnet: vlan-2901 
         bridge: ovs-br1 
-        state: present
+        state: absent
       - localnet: vlan-2911 
         bridge: ovs-br1 
-        state: present
+        state: absent
 ---        
 apiVersion: nmstate.io/v1
 kind: NodeNetworkConfigurationPolicy
@@ -184,6 +187,9 @@ spec:
       - localnet: vlan-1522 
         bridge: ovs-br1 
         state: present
+      - localnet: vlans 
+        bridge: ovs-br1 
+        state: present  
       - localnet: vlan-2901 
         bridge: ovs-br1 
         state: absent
