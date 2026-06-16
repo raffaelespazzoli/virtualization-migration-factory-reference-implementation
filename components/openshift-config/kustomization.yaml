@@ -15,4 +15,3 @@ resources:
   - ./admin-acks-configmap.yaml
   - ./banner.yaml
   - ./container-runtime-config.yaml
-  - ./network-patch.yaml

@@ -5,6 +5,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-options: Delete=false,ServerSideApply=true  
 spec:
+  useMultiNetworkPolicy: true
   # additionalRoutingCapabilities:
   #   providers:
   #   - FRR
