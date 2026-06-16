@@ -13,5 +13,4 @@ spec:
   ingress:
   - from:
     - ipBlock:
-        cidr: 192.168.90.4/32
-    action: Deny
+        cidr: 192.168.90.5/32
