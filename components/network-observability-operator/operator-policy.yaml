@@ -29,5 +29,6 @@ spec:
     startingCSV: network-observability-operator.v1.3.0
   versions: 
     - network-observability-operator.v1.3.0
-    - network-observability-operator.v1.4.0 
+    - network-observability-operator.v1.4.0
+    - network-observability-operator.v1.4.1 
     - network-observability-operator.v1.12.0 
