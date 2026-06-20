@@ -21,7 +21,7 @@ spec:
     name: netobserv-operator
     namespace: openshift-netobserv-operator
   subscription:
-    channel: v1.0x
+    channel: v1.0.x
     name: netobserv-operator
     namespace: openshift-netobserv-operator
     source: redhat-operators
