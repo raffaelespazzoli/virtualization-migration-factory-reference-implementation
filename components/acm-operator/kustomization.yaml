@@ -5,5 +5,4 @@ namespace: open-cluster-management
 
 resources:
   - ./namespace.yaml
-  - ./operator-group.yaml
-  - ./subscription.yaml
+  - ./operator-policy.yaml
