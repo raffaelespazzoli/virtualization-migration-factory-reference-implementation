@@ -18,4 +18,5 @@ spec:
   #- distributed-tracing-console-plugin
   #- kuadrant-console-plugin
   - soteria-console-plugin
+  - netobserv-plugin
 

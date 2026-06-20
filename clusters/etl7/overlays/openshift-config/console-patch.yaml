@@ -17,3 +17,4 @@ spec:
   #- troubleshooting-panel-console-plugin
   #- distributed-tracing-console-plugin
   - soteria-console-plugin
+  - netobserv-plugin
