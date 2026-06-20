@@ -1,0 +1,31 @@
+apiVersion: policy.open-cluster-management.io/v1beta1
+kind: OperatorPolicy
+metadata:
+  name: advanced-cluster-management
+  namespace: open-cluster-management-policies
+spec:
+  upgradeApproval: Automatic
+  complianceConfig:
+    catalogSourceUnhealthy: Compliant
+    deploymentsUnavailable: NonCompliant
+    upgradesAvailable: Compliant
+  complianceType: musthave
+  remediationAction: enforce
+  removalBehavior:
+    clusterServiceVersions: Delete
+    customResourceDefinitions: Keep
+    operatorGroups: DeleteIfUnused
+    subscriptions: Delete
+  severity: medium
+  operatorGroup: # optional
+    name: advanced-cluster-management
+    namespace: open-cluster-management
+  subscription:
+    channel: release-2.17
+    name: advanced-cluster-management
+    namespace: open-cluster-management
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+    startingCSV: advanced-cluster-management.v2.17.0
+  versions: 
+    - advanced-cluster-management.v2.17.0
