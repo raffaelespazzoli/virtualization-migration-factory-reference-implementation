@@ -5,8 +5,8 @@ metadata:
 spec:
   namespace: netobserv
   deploymentModel: Service
-  networkPolicy:
-    enable: true
+  # networkPolicy:
+  #   enable: true
   agent:
     type: eBPF
     ebpf:
