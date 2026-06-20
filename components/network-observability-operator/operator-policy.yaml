@@ -20,8 +20,6 @@ spec:
   operatorGroup: # optional
     name: netobserv-operator
     namespace: openshift-netobserv-operator
-    targetNamespaces:
-        - netobserv
   subscription:
     channel: stable
     name: netobserv-operator
