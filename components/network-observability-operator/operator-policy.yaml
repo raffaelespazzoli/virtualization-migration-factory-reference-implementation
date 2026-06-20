@@ -21,7 +21,7 @@ spec:
     name: netobserv-operator
     namespace: openshift-netobserv-operator
     targetNamespaces:
-        - openshift-netobserv-operator
+        - netobserv
   subscription:
     channel: stable
     name: netobserv-operator
