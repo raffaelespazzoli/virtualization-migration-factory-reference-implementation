@@ -20,6 +20,8 @@ spec:
   operatorGroup: # optional
     name: advanced-cluster-management
     namespace: open-cluster-management
+    targetNamespaces:
+      - open-cluster-management    
   subscription:
     channel: release-2.17
     name: advanced-cluster-management
