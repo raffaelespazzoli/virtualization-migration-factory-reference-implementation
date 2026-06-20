@@ -18,13 +18,13 @@ spec:
     subscriptions: Delete
   severity: medium
   operatorGroup: # optional
-    name: openshift-netobserv-operator
+    name: netobserv-operator
     namespace: openshift-netobserv-operator
     targetNamespaces:
         - openshift-netobserv-operator
   subscription:
     channel: stable
-    name: network-observability-operator
+    name: netobserv-operator
     namespace: openshift-netobserv-operator
     source: redhat-operators
     sourceNamespace: openshift-marketplace
