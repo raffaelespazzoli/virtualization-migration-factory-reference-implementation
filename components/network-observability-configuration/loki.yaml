@@ -1,0 +1,28 @@
+apiVersion: loki.grafana.com/v1
+kind: LokiStack
+metadata:
+  name: loki 
+spec:
+  size: 1x.small 
+  storage:
+    schemas:
+      - effectiveDate: '2023-10-15'
+        version: v13
+    secret:
+      name: netobserv-loki-s3 
+      type: s3 
+      credentialMode: static
+  storageClassName: ontap-nas
+  tenants:
+    mode: openshift-network
+    openshift:
+      adminGroups:  2 
+      - cluster-admin    
+  limits:
+    global: 
+      retention: 
+        days: 1
+  hashRing:
+    type: memberlist
+    memberlist:
+      instanceAddrType: podIP           

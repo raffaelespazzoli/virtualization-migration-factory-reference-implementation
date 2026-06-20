@@ -1,0 +1,33 @@
+apiVersion: policy.open-cluster-management.io/v1beta1
+kind: OperatorPolicy
+metadata:
+  name: openshift-netobserv-operator
+  namespace: open-cluster-management-policies
+spec:
+  upgradeApproval: Automatic
+  complianceConfig:
+    catalogSourceUnhealthy: Compliant
+    deploymentsUnavailable: NonCompliant
+    upgradesAvailable: Compliant
+  complianceType: musthave
+  remediationAction: enforce
+  removalBehavior:
+    clusterServiceVersions: Delete
+    customResourceDefinitions: Keep
+    operatorGroups: DeleteIfUnused
+    subscriptions: Delete
+  severity: medium
+  operatorGroup: # optional
+    name: openshift-netobserv-operator
+    namespace: openshift-netobserv-operator
+    targetNamespaces:
+        - openshift-netobserv-operator
+  subscription:
+    channel: stable
+    name: network-observability-operator
+    namespace: openshift-netobserv-operator
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace
+    startingCSV: network-observability-operator.v1.3.0
+  versions: 
+    - network-observability-operator.v1.3.0    

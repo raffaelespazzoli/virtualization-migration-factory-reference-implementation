@@ -1,0 +1,40 @@
+apiVersion: flows.netobserv.io/v1beta2
+kind: FlowCollector
+metadata:
+  name: cluster
+spec:
+  namespace: netobserv
+  deploymentModel: Service
+  networkPolicy:
+    enable: true
+  agent:
+    type: eBPF
+    ebpf:
+      sampling: 50
+      privileged: true
+      features:
+      - DNSTracking
+      - PacketDrop
+      - FlowRTT
+      - UDNMapping
+      - NetworkEvents
+      - PacketTranslation
+  processor:
+    addZone: true
+    subnetLabels:
+      openShiftAutoDetect: true
+      customLabels: []
+    consumerReplicas: 3
+    logTypes: All
+    advanced:
+      conversationEndTimeout: 10s
+      conversationHeartbeatInterval: 30s    
+  loki:
+    enable: true
+    mode: LokiStack
+    lokiStack:
+      name: loki
+      namespace: netobserv
+  consolePlugin:
+    enable: true
+  exporters: []
