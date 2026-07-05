@@ -62,11 +62,11 @@ spec:
             - disk:
                 bus: virtio
               name: cloudinitdisk
-            {{ range $index,$element:= .Values.disks -}}
+            {{- range $index,$element:= until (int .Values.disks) }}
             - disk:
                 bus: virtio
               name: disk-rose-chicken-{{$index}}
-            {{ end -}}  
+            {{- end }}  
           interfaces:
             - macAddress: '02:2c:82:51:df:fd'
               masquerade: {}
@@ -102,7 +102,7 @@ spec:
               password: p0e2-u6us-k7o4
               chpasswd: { expire: False }
           name: cloudinitdisk
-        {{ range $index,$element:= .Values.disks -}}  
+        {{ range $index,$element:= until (int .Values.disks) -}}  
         - dataVolume:
             name: fedora-virtio-blk-vm-rose-chicken-{{$index}}
           name: disk-rose-chicken-{{$index}}

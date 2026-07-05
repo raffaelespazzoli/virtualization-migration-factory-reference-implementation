@@ -1,4 +1,5 @@
-{{ range $index,$element:= .Values.disks -}}
+{{ $dot := . }}
+{{ range $index,$element:= until (int .Values.disks) }}
 apiVersion: cdi.kubevirt.io/v1beta1
 kind: DataVolume
 metadata:
@@ -14,7 +15,7 @@ metadata:
       kind: VirtualMachine
       name: fedora-virtio-blk-vm
   labels:
-    {{- include "vm-disk-test.labels" . | nindent 4 }}
+    {{- include "vm-disk-test.labels" $dot | nindent 4 }}
 spec:
   source:
     blank: {}
@@ -26,4 +27,5 @@ spec:
         storage: 10Gi
     storageClassName: ontap-nas
     volumeMode: Filesystem
-{{ end -}}    
+---    
+{{ end }}    
