@@ -1,0 +1,109 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  labels:
+    {{- include "vm-disk-test.labels" . | nindent 4 }}
+  name: fedora-virtio-blk-vm
+  namespace: vm-tests
+spec:
+  dataVolumeTemplates:
+    - apiVersion: cdi.kubevirt.io/v1beta1
+      kind: DataVolume
+      metadata:
+        creationTimestamp: null
+        name: fedora-rose-rhinoceros-68
+      spec:
+        sourceRef:
+          kind: DataSource
+          name: fedora
+          namespace: openshift-virtualization-os-images
+        storage:
+          resources:
+            requests:
+              storage: 30Gi
+    - metadata:
+        creationTimestamp: null
+        name: dv-fedora-rose-rhinoceros-68-disk-rose-chicken-12-iblxt9
+      spec:
+        source:
+          blank: {}
+        storage:
+          accessModes:
+            - ReadWriteMany
+          resources:
+            requests:
+              storage: 30Gi
+          storageClassName: ontap-nas
+          volumeMode: Filesystem
+  runStrategy: RerunOnFailure
+  template:
+    metadata:
+      annotations:
+        kubevirt.io/pci-topology-version: v3
+        vm.kubevirt.io/flavor: small
+        vm.kubevirt.io/os: fedora
+        vm.kubevirt.io/workload: server
+      creationTimestamp: null
+      labels:
+        kubevirt.io/domain: fedora-rose-rhinoceros-68
+        kubevirt.io/size: small
+    spec:
+      architecture: amd64
+      domain:
+        cpu:
+          cores: 1
+          sockets: 6
+          threads: 1
+        devices:
+          disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+            - disk:
+                bus: virtio
+              name: cloudinitdisk
+            {{ range $index,$element:= .Values.disks -}}
+            - disk:
+                bus: virtio
+              name: disk-rose-chicken-{{$index}}
+            {{ end -}}  
+          interfaces:
+            - macAddress: '02:2c:82:51:df:fd'
+              masquerade: {}
+              model: virtio
+              name: default
+          rng: {}
+        features:
+          acpi: {}
+          smm:
+            enabled: true
+        firmware:
+          bootloader:
+            efi: {}
+          serial: 9b43702a-a0ac-4605-9f8e-abdac14b84c1
+          uuid: 775a5172-95e1-43ba-b4c4-6bec4551f8f9
+        machine:
+          type: pc-q35-rhel9.6.0
+        memory:
+          guest: 20Gi
+        resources: {}
+      networks:
+        - name: default
+          pod: {}
+      terminationGracePeriodSeconds: 180
+      volumes:
+        - dataVolume:
+            name: fedora-rose-rhinoceros-68
+          name: rootdisk
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              user: fedora
+              password: p0e2-u6us-k7o4
+              chpasswd: { expire: False }
+          name: cloudinitdisk
+        {{ range $index,$element:= .Values.disks -}}  
+        - dataVolume:
+            name: fedora-virtio-blk-vm-rose-chicken-{{$index}}
+          name: disk-rose-chicken-{{$index}}
+        {{ end -}}  

@@ -1,0 +1,30 @@
+apiVersion: k8s.ovn.org/v1alpha1
+kind: NetworkQoS
+metadata:
+  name: qos-backup-limited
+  namespace: default
+spec:
+  networkSelectors:
+  - networkSelectionType: NetworkAttachmentDefinitions
+    networkAttachmentDefinitionSelector:
+      namespaceSelector: {}  # any namespace
+      networkSelector:
+        matchLabels:
+          nad-type: ovn-kubernetes-nqos
+  podSelector:
+    matchLabels:
+      nqos-app: bw-limited
+  priority: 10              # higher value wins in a tie-break
+  egress:
+  - dscp: 20               
+    bandwidth:
+      burst: 100            # kilobits
+      rate: 20000           # kbps
+    classifier:
+      to:
+      - ipBlock:
+          cidr: 0.0.0.0/0
+          except:
+          - 10.11.12.13/32
+          - 172.16.0.0/12
+          - 192.168.0.0/16

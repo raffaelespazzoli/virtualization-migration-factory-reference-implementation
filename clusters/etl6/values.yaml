@@ -111,6 +111,14 @@ applications:
     source:
       path: clusters/etl6/overlays/vm-tests
 
+  vm-disk-test:
+    annotations:
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: vm-tests
+    source:
+      path: clusters/etl6/overlays/vm-disk-test      
+
   # trilio-vm-tests:
   #   annotations:
   #     argocd.argoproj.io/sync-wave: '15'
