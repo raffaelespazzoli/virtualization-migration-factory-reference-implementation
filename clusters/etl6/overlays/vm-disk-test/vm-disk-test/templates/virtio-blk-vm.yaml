@@ -21,9 +21,10 @@ spec:
           resources:
             requests:
               storage: 30Gi
+    {{- range $index,$element:= until (int .Values.disks) }}         
     - metadata:
         creationTimestamp: null
-        name: dv-fedora-rose-rhinoceros-68-disk-rose-chicken-12-iblxt9
+        name: fedora-virtio-blk-vm-rose-chicken-{{$index}}
       spec:
         source:
           blank: {}
@@ -32,9 +33,10 @@ spec:
             - ReadWriteMany
           resources:
             requests:
-              storage: 30Gi
+              storage: 10Gi
           storageClassName: ontap-nas
           volumeMode: Filesystem
+      {{- end }}    
   runStrategy: RerunOnFailure
   template:
     metadata:
@@ -102,8 +104,8 @@ spec:
               password: p0e2-u6us-k7o4
               chpasswd: { expire: False }
           name: cloudinitdisk
-        {{ range $index,$element:= until (int .Values.disks) -}}  
+        {{- range $index,$element:= until (int .Values.disks) }}  
         - dataVolume:
             name: fedora-virtio-blk-vm-rose-chicken-{{$index}}
           name: disk-rose-chicken-{{$index}}
-        {{ end -}}  
+        {{- end }}  
