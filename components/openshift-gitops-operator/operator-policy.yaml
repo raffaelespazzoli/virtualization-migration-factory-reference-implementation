@@ -30,3 +30,4 @@ spec:
         value: openshift-gitops    
   versions: 
     - openshift-gitops-operator.v1.20.4
+    - openshift-gitops-operator.v1.21.0

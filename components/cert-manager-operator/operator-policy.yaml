@@ -38,3 +38,4 @@ spec:
     - cert-manager-operator.v1.15.0
     - cert-manager-operator.v1.15.1
     - cert-manager-operator.v1.19.0
+    - cert-manager-operator.v1.20.0

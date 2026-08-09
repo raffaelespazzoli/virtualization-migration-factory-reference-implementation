@@ -29,4 +29,5 @@ spec:
     - node-healthcheck-operator.v0.9.1
     - node-healthcheck-operator.v0.10.1
     - node-healthcheck-operator.v0.10.3
-    - node-healthcheck-operator.v0.11.0    
+    - node-healthcheck-operator.v0.11.0
+    - node-healthcheck-operator.v0.12.0    
