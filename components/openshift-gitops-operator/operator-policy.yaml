@@ -31,3 +31,4 @@ spec:
   versions: 
     - openshift-gitops-operator.v1.20.4
     - openshift-gitops-operator.v1.21.0
+    - openshift-gitops-operator.v1.21.1

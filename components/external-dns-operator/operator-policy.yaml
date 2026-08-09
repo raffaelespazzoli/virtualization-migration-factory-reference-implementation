@@ -37,4 +37,5 @@ spec:
     - external-dns-operator.v1.3.4    
     - external-dns-operator.v1.3.5
     - external-dns-operator.v1.3.6
-    - external-dns-operator.v1.3.7        
+    - external-dns-operator.v1.3.7
+    - external-dns-operator.v1.3.8        
