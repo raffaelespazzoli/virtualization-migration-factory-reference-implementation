@@ -1,0 +1,155 @@
+/* LLD document stylesheet for pandoc + weasyprint export. */
+
+@page {
+  size: A4;
+  margin: 2cm;
+
+  @bottom-center {
+    content: counter(page) " / " counter(pages);
+    font-family: serif;
+    font-size: 9pt;
+    color: #666;
+  }
+}
+
+body {
+  font-family: "Liberation Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Helvetica Neue", Arial, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.5;
+  color: #222;
+}
+
+h1 {
+  font-size: 20pt;
+  margin: 0 0 0.5em 0;
+  page-break-after: avoid;
+  border-bottom: 2px solid #1d4ed8;
+  padding-bottom: 0.2em;
+  color: #1e3a5f;
+}
+
+h2 {
+  font-size: 15pt;
+  margin: 1.2em 0 0.4em 0;
+  page-break-after: avoid;
+  color: #1e3a5f;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.15em;
+}
+
+h3 {
+  font-size: 12pt;
+  margin: 1em 0 0.3em 0;
+  page-break-after: avoid;
+  color: #374151;
+}
+
+h4, h5, h6 {
+  margin: 0.8em 0 0.3em 0;
+  page-break-after: avoid;
+}
+
+p {
+  margin: 0 0 0.6em 0;
+}
+
+a {
+  color: #1d4ed8;
+  text-decoration: none;
+}
+
+code {
+  font-family: "Liberation Mono", "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.88em;
+  background: #f3f4f6;
+  padding: 0.1em 0.25em;
+  border-radius: 2px;
+}
+
+pre {
+  background: #f8f9fa;
+  border: 1px solid #e5e7eb;
+  border-radius: 3px;
+  padding: 0.6em;
+  font-size: 8.5pt;
+  line-height: 1.35;
+  page-break-inside: avoid;
+}
+
+pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+blockquote {
+  border-left: 3px solid #1d4ed8;
+  margin: 0.5em 0;
+  padding: 0.1em 0 0.1em 0.8em;
+  color: #475569;
+}
+
+ul, ol {
+  margin: 0 0 0.6em 1.5em;
+  padding: 0;
+}
+
+li {
+  margin: 0.12em 0;
+}
+
+table {
+  border-collapse: collapse;
+  margin: 0.5em 0;
+  width: 100%;
+  page-break-inside: avoid;
+  font-size: 9.5pt;
+}
+
+th, td {
+  border: 1px solid #d1d5db;
+  padding: 0.3em 0.5em;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #1e3a5f;
+  color: white;
+  font-weight: 600;
+}
+
+tr:nth-child(even) {
+  background: #f8f9fa;
+}
+
+img {
+  max-width: 100%;
+  page-break-inside: avoid;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid #e5e7eb;
+  margin: 1em 0;
+}
+
+/* TOC styling */
+nav#TOC {
+  page-break-after: always;
+  margin-bottom: 1em;
+}
+
+nav#TOC ul {
+  list-style: none;
+  padding-left: 1em;
+}
+
+nav#TOC > ul {
+  padding-left: 0;
+}
+
+nav#TOC a {
+  color: #1e3a5f;
+}

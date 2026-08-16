@@ -29,3 +29,7 @@ components/external-dns-configuration/rfc2136-tsig-secret.yaml
 /pvc-cleanup
 
 components/gitops.zip
+.bmad-loop/runs/
+.bmad-loop/cache/
+.bmad-loop/policy.toml
+_bmad/render/

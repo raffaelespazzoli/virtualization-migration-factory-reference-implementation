@@ -1,0 +1,248 @@
+{
+  "schema_version": 2,
+  "subject": ".skills/fleet-explain-component",
+  "generated": "2026-08-15",
+  "verdict": "Lean, well-structured one-shot utility with strong script/prompt separation; the primary gap is no headless mode for batch automation and no graceful degradation when dependencies are absent.",
+  "grade": "fair",
+  "summary": "The skill is impressively lean at 1212 tokens with clear outcome-driven structure and excellent delegation of deterministic parsing to shared scripts. Its primary weakness is that it was built interactive-only — no headless path for batch readme generation across all components, no fallback when web search or scripts are unavailable, and repo-specific product mappings hardcoded rather than externalized.",
+  "standards": {
+    "canon": "/home/rspazzol/git/virtualization-migration-factory-reference-implementation/.agents/skills/bmad-workflow-builder/references/prompt-quality-canon.md",
+    "principles": "/home/rspazzol/git/virtualization-migration-factory-reference-implementation/.agents/skills/bmad-workflow-builder/references/skill-quality-principles.md",
+    "scripts": "/home/rspazzol/git/virtualization-migration-factory-reference-implementation/.agents/skills/bmad-workflow-builder/references/script-standards.md"
+  },
+  "themes": [
+    {
+      "title": "No automation path",
+      "root_cause": "The skill was built interactive-only without considering that batch readme generation across all 52 components is a natural use case for one of five fleet workflows sharing common scripts.",
+      "finding_ids": ["enhancement-1", "customization-5", "enhancement-5"],
+      "action": "Add three-mode architecture: Guided (current), Yolo (auto-approve readme writes), Headless (suppress chat, emit structured output, exit). Make readme generation opt-in in guided mode, automatic in yolo/headless."
+    },
+    {
+      "title": "Hardcoded repo-specific data without customization surface",
+      "root_cause": "Product mappings, template path, and web-search behavior are baked into the skill body. This forces a fork for any repo that uses a different readme format, has different component-to-product mappings, or operates in an air-gapped environment.",
+      "finding_ids": ["customization-1", "customization-2", "customization-4", "determinism-2"],
+      "action": "Add a customize.toml with: product_mappings path (externalize the 5-entry table to a CSV/JSON data file), readme_template path, web_search boolean default true. SKILL.md reads these as {workflow.<name>}."
+    },
+    {
+      "title": "No graceful degradation",
+      "root_cause": "Every dependency (Python scripts, web search, fleet-common references) is treated as mandatory with no fallback. A hostile environment (air-gapped, missing fleet-common, script error) produces unhandled failures.",
+      "finding_ids": ["enhancement-2", "enhancement-6"],
+      "action": "Add a Graceful degradation clause: script failures fall back to manual file listing; web search failures fall back to manifest-only analysis with a 'locally-derived' marker; missing references proceed without architectural context and note the gap."
+    },
+    {
+      "title": "Structural compliance nits",
+      "root_cause": "Minor heading-level violation and an unused resolution-rule entry from the build process.",
+      "finding_ids": ["architecture-1", "architecture-2", "leanness-5"],
+      "action": "Change `# Overview` to `## Overview`, remove unused `{skill-root}` resolution rule, unnumber step 4 (fleet-repo-structure.md load is order-independent)."
+    }
+  ],
+  "strengths": [
+    "Excellent script/prompt boundary — all deterministic parsing delegated to shared Python scripts that return structured JSON",
+    "Lean at 1212 tokens (well under 1500 desired budget) with no waste patterns or back-references",
+    "Institutional knowledge (Gotchas section) captures the non-derivable repo-specific edge cases a bare model would miss",
+    "Domain-specific Mermaid examples calibrate diagram output for this repo's relationship types",
+    "Outcome-driven structure — tells the model what to produce, not a step-by-step march"
+  ],
+  "recommendations": [
+    { "rank": 1, "action": "Add three-mode architecture (guided/yolo/headless) with structured output in headless mode", "resolves": ["enhancement-1", "customization-5", "enhancement-5"] },
+    { "rank": 2, "action": "Add customize.toml with product_mappings, readme_template, and web_search scalars; externalize product mappings to a data file", "resolves": ["customization-1", "customization-2", "customization-4", "determinism-2"] },
+    { "rank": 3, "action": "Add graceful degradation for each dependency (scripts, web search, references)", "resolves": ["enhancement-2", "enhancement-6"] },
+    { "rank": 4, "action": "Fix heading level (# → ##), remove unused {skill-root}, unnumber step 4", "resolves": ["architecture-1", "architecture-2", "leanness-5"] },
+    { "rank": 5, "action": "Add a list_component_resources.py script to fleet-common that enumerates manifests and extracts resource metadata as JSON", "resolves": ["determinism-1"] }
+  ],
+  "experience": {
+    "journeys": [
+      { "name": "Expert with clear intent", "steps": "Invokes with component name → gets full explanation + readme proposal → approves or declines. Works well." },
+      { "name": "First-timer", "steps": "Invokes → gets dense technical output with repo-specific terminology and no orientation. Workable but could be smoother." },
+      { "name": "Automator (batch)", "steps": "Cannot invoke headless. Blocked entirely by approval gate and chat-only output." },
+      { "name": "Air-gapped environment", "steps": "Web search fails with no fallback. Partial explanation produced but product identification is weak." }
+    ],
+    "headless": "Not supported. Adding headless mode is the single highest-leverage enhancement given the batch-orchestration context."
+  },
+  "findings": [
+    {
+      "id": "enhancement-1",
+      "severity": "critical",
+      "title": "No headless mode — blocks automation entirely",
+      "location": "SKILL.md:Readme Generation",
+      "evidence": "The skill mandates 'ask for approval before writing' with no way to bypass it. An automator wanting to batch-generate readmes for all components hits a blocking prompt on every invocation. There is no --headless or --auto-approve path, and no structured output contract.",
+      "recommendation": "Add Three-mode architecture. Guided (current behavior), Yolo (skip approval, write readme directly), Headless (suppress chat explanation, emit only the readme as a structured artifact to a known path, exit zero/non-zero)."
+    },
+    {
+      "id": "enhancement-2",
+      "severity": "high",
+      "title": "No graceful degradation for dependency failures",
+      "location": "SKILL.md:On Activation",
+      "evidence": "Step 1 handles 'component not found' but nothing else. If Python isn't available, if find_component_siblings.py has a runtime error, if fleet-common/references/fleet-repo-structure.md is missing, or if the web search returns nothing, the skill has no fallback path.",
+      "recommendation": "Add a Graceful degradation section. For each dependency name the fallback: script failures → manual directory listing; missing references → proceed without; web search failure → manifest-only analysis marked as 'locally-derived'."
+    },
+    {
+      "id": "enhancement-3",
+      "severity": "high",
+      "title": "No intent-before-ingestion — wrong-intent user gets a wall of output",
+      "location": "SKILL.md:On Activation → Explanation",
+      "evidence": "The skill goes from activation straight to running scripts, reading all YAML manifests, and web-searching before producing any output. A user who says 'what does metallb do' wanting a two-sentence answer gets a multi-section explanation with Mermaid diagrams and a readme proposal.",
+      "recommendation": "Add a single soft gate after resolving the lifecycle group: 'Found <N> parts in the <name> lifecycle group. I'll produce a full explanation with diagrams and a readme. Want the full treatment, or just a quick summary?'"
+    },
+    {
+      "id": "architecture-1",
+      "severity": "high",
+      "title": "Overview uses h1 instead of h2",
+      "location": "SKILL.md:line 6",
+      "evidence": "Skill begins with `# Overview` (h1). Pre-pass flagged 'Missing ## Overview section'. In BMad skill structure the frontmatter name serves as the implicit h1; body sections must start at h2.",
+      "recommendation": "Change `# Overview` to `## Overview`."
+    },
+    {
+      "id": "customization-1",
+      "severity": "high",
+      "title": "Product-mapping table hardcoded in skill body",
+      "location": "SKILL.md:Product Identification",
+      "evidence": "Five component-to-product mappings are embedded as prose in the skill. Every new component requires editing SKILL.md itself.",
+      "recommendation": "Extract mappings to a data file (CSV or JSON) referenced via customize.toml. The skill reads the file at runtime; repos extend it without touching the skill."
+    },
+    {
+      "id": "enhancement-4",
+      "severity": "medium",
+      "title": "No plan-validate-execute — user can't course-correct before heavy work",
+      "location": "SKILL.md:On Activation → Explanation",
+      "evidence": "The skill reads all YAML manifests, loads architectural context, does web searches, generates diagrams, and generates a readme — all before the user sees anything. If the sibling resolution pulled in the wrong group, all that work is wasted.",
+      "recommendation": "After step 2, emit a brief plan showing the resolved group and intended outputs. One confirmation before the expensive steps."
+    },
+    {
+      "id": "enhancement-5",
+      "severity": "medium",
+      "title": "Dual-output is unconditional — readme generation is forced",
+      "location": "SKILL.md:Readme Generation",
+      "evidence": "The Readme Generation section always fires. An expert who just wants to understand a component before debugging doesn't want a readme proposal.",
+      "recommendation": "Make readme generation opt-in in guided mode. After the explanation, ask: 'Want me to generate/update the readme?' In headless mode, always generate."
+    },
+    {
+      "id": "enhancement-6",
+      "severity": "medium",
+      "title": "Web search is mandated with no offline fallback",
+      "location": "SKILL.md:Product Identification",
+      "evidence": "'Web-search for the upstream project documentation' is an imperative with no fallback. In a disconnected environment the skill stalls or produces an error.",
+      "recommendation": "Reframe as best-effort: 'Web-search if available. If unavailable, use known-mappings and manifest analysis. Mark product identification as locally-derived when web sources weren't consulted.'"
+    },
+    {
+      "id": "customization-2",
+      "severity": "medium",
+      "title": "Readme template path hardcoded",
+      "location": "SKILL.md:Readme Generation",
+      "evidence": "Template fixed to `{fleet-common}/references/readme-template.md`. A repo wanting a different format must fork.",
+      "recommendation": "Add customize.toml [paths].readme_template defaulting to the current path."
+    },
+    {
+      "id": "customization-3",
+      "severity": "medium",
+      "title": "No on_complete hook after readme write",
+      "location": "SKILL.md:Readme Generation (end)",
+      "evidence": "After readme is written, no mechanism to chain follow-up actions (lint, git stage, update index).",
+      "recommendation": "Add customize.toml [hooks].on_complete supporting a post-write action."
+    },
+    {
+      "id": "customization-4",
+      "severity": "medium",
+      "title": "Web-search behavior not toggleable",
+      "location": "SKILL.md:Product Identification",
+      "evidence": "Unconditional web search. Air-gapped or policy-restricted environments fail.",
+      "recommendation": "Add customize.toml [workflow].web_search = true (default). When false, skip search and rely on manifest analysis and product-mapping data file."
+    },
+    {
+      "id": "determinism-1",
+      "severity": "medium",
+      "title": "Prompt enumerates and parses YAML manifests",
+      "location": "SKILL.md:Step 3 (On Activation)",
+      "evidence": "Step 3 instructs the prompt to 'Read all YAML manifests in each part directory' and 'Understand what Kubernetes resources are created.' Enumerating files and extracting resource kind/apiVersion/name is deterministic plumbing.",
+      "recommendation": "Add a list_component_resources.py script that walks part dirs, parses YAML, and returns JSON [{file, kind, apiVersion, name, namespace, annotations}]. The prompt interprets meaning; the script handles fetch-and-parse."
+    },
+    {
+      "id": "leanness-1",
+      "severity": "medium",
+      "title": "Sequence diagram example is calibration weight without proportional return",
+      "location": "SKILL.md:Diagrams",
+      "evidence": "Two full Mermaid examples (~150 tokens). The architecture diagram concretely calibrates the expected style. The sequence diagram demonstrates a standard Mermaid pattern models produce correctly without demonstration.",
+      "recommendation": "Cut the sequence diagram example. Keep the architecture diagram example and append: 'Also generate a sequence diagram when multi-part sync-wave ordering is non-obvious.'"
+    },
+    {
+      "id": "leanness-2",
+      "severity": "low",
+      "title": "Product Identification sources bullets teach what model would naturally do",
+      "location": "SKILL.md:Product Identification",
+      "evidence": "First two bullets describe inference steps a capable model would take automatically after reading operator-policy.yaml.",
+      "recommendation": "Collapse into lead-in: 'Map the component to its upstream project using OperatorPolicy metadata and these repo-specific mappings:'"
+    },
+    {
+      "id": "leanness-3",
+      "severity": "low",
+      "title": "Component Description first bullet fails core test",
+      "location": "SKILL.md:Component Description",
+      "evidence": "'What the product/project does (from upstream docs, 2-3 sentences)' instructs what a model asked to 'explain a component' would do without prompting.",
+      "recommendation": "Remove the bullet. The product description is implied by the overall instruction."
+    },
+    {
+      "id": "leanness-4",
+      "severity": "low",
+      "title": "Gotcha duplicates AGENTS.md workspace rule",
+      "location": "SKILL.md:Gotchas bullet 2",
+      "evidence": "The gitops-boostrap-policy typo gotcha is identical to the always-applied workspace rule in AGENTS.md.",
+      "recommendation": "Delete the bullet. The workspace rule covers it unconditionally."
+    },
+    {
+      "id": "leanness-5",
+      "severity": "low",
+      "title": "On Activation step 4 is not sequentially dependent",
+      "location": "SKILL.md:On Activation step 4",
+      "evidence": "Step 4 ('Load fleet-repo-structure.md') has no dependency on steps 1-3. Placing it in a numbered sequence implies a dependency that doesn't exist.",
+      "recommendation": "Move to Overview or a context note. Reserve numbering for truly ordered steps 1-3."
+    },
+    {
+      "id": "architecture-2",
+      "severity": "low",
+      "title": "Unused resolution-rule entry {skill-root}",
+      "location": "SKILL.md:Resolution rules",
+      "evidence": "`{skill-root}` is defined but never referenced anywhere in the skill body.",
+      "recommendation": "Remove or add a reference that uses it."
+    },
+    {
+      "id": "determinism-2",
+      "severity": "low",
+      "title": "Hardcoded product-mapping lookup table in prompt",
+      "location": "SKILL.md:Product Identification",
+      "evidence": "Five key→value mappings embedded as prose. This is a deterministic lookup that should be a data file.",
+      "recommendation": "Move to a data file (fleet-common/references/product-mappings.json). Have the skill load it at runtime."
+    },
+    {
+      "id": "determinism-3",
+      "severity": "low",
+      "title": "Readme existence re-checked when script already returns it",
+      "location": "SKILL.md:Readme Generation",
+      "evidence": "find_component_siblings.py already returns readme_path. The Readme Generation section tells the prompt to 'check if the component has a readme.md' — repeating a deterministic check the script already performed.",
+      "recommendation": "Reword to reference the script output: 'Using the readme_path from the siblings output, determine whether a readme exists.'"
+    },
+    {
+      "id": "customization-5",
+      "severity": "low",
+      "title": "Approval gate not bypassable for automation",
+      "location": "SKILL.md:Readme Generation",
+      "evidence": "Mandates 'ask for approval before writing.' In headless or batch-mode invocations, blocks on interactive confirmation.",
+      "recommendation": "Add customize.toml [workflow].auto_approve = false (default). When true, write readme immediately."
+    },
+    {
+      "id": "enhancement-7",
+      "severity": "low",
+      "title": "No open-floor orientation for first-timers",
+      "location": "SKILL.md:Overview",
+      "evidence": "First-timer receives dense technical explanation using repo-specific terminology (lifecycle groups, sync-waves) without introduction.",
+      "recommendation": "Add a brief orientation block at the start of Explanation output: 'This repo organizes components into lifecycle groups...'"
+    },
+    {
+      "id": "enhancement-8",
+      "severity": "low",
+      "title": "Capture-don't-interrupt opportunity missed",
+      "location": "SKILL.md:Explanation → Gotchas",
+      "evidence": "During manifest analysis, the skill may encounter anomalies (missing CRDs, uncommented blocks, namespace mismatches). Currently no mechanism to capture and present these separately from the main explanation.",
+      "recommendation": "Add an 'observations' capture: anomalies collected during analysis get presented in a separate section after the explanation rather than interrupting the narrative."
+    }
+  ]
+}

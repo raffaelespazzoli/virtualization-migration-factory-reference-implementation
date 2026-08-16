@@ -1,0 +1,15 @@
+# fleet-cluster-lld customization surface
+# Override template files for org-specific LLD structure or branding.
+
+[templates]
+# Section guidance — defines what each LLD section covers and how to write it.
+# Replace to change which sections appear, their order, or tone/depth.
+lld_sections = "references/lld-sections.md"
+
+# Document scaffold — structural skeleton with placeholders.
+# Replace to change the markdown layout, table formats, or diagram placements.
+lld_template = "assets/lld-template.md"
+
+# PDF stylesheet — controls PDF export appearance (fonts, colors, page size).
+# Replace to apply org branding to the PDF deliverable.
+pdf_style = "assets/style.css"

@@ -1,0 +1,91 @@
+{
+  "schema_version": 2,
+  "subject": ".skills/fleet-explain-cluster",
+  "generated": "2026-08-15",
+  "verdict": "Good skill — lean and well-structured, with two medium findings on reducible ceremony (Mermaid example) and a determinism leak in live validation.",
+  "grade": "good",
+  "summary": "The skill delegates its core repo-parsing work to a shared script, stays well under token budget (1311 tokens), and carries genuine institutional knowledge in its Gotchas. Two medium findings share a common root: the skill does work the model already knows (teaching Mermaid syntax) or that a script could handle deterministically (parsing oc get JSON). One enhancement opportunity for headless readiness.",
+  "standards": {
+    "canon": "/home/rspazzol/git/virtualization-migration-factory-reference-implementation/.agents/skills/bmad-workflow-builder/references/prompt-quality-canon.md",
+    "principles": "/home/rspazzol/git/virtualization-migration-factory-reference-implementation/.agents/skills/bmad-workflow-builder/references/skill-quality-principles.md",
+    "scripts": "/home/rspazzol/git/virtualization-migration-factory-reference-implementation/.agents/skills/bmad-workflow-builder/references/script-standards.md"
+  },
+  "themes": [
+    {
+      "title": "Reducible ceremony in output guidance",
+      "root_cause": "The skill teaches the model things it already knows (Mermaid syntax) and numbers steps that have no ordering dependency — both add tokens without changing behavior.",
+      "finding_ids": ["leanness-1", "leanness-2"],
+      "action": "Cut the Mermaid example block and replace with a one-clause participant-naming convention. Convert On Activation steps 2–3 to bullets since only step 1 gates on error."
+    },
+    {
+      "title": "Live validation determinism leak",
+      "root_cause": "The optional --context path asks the model to parse raw oc JSON, count statuses, and diff lists — all deterministic operations that belong in a script.",
+      "finding_ids": ["determinism-1"],
+      "action": "Extract a validate_live_cluster.py script that consumes oc output and the expected component list, returning compact JSON the model reasons over instead of raw API output."
+    }
+  ],
+  "strengths": [
+    "Core repo parsing fully delegated to resolve_repo_structure.py with the new --cluster flag — clean intelligence placement",
+    "Well under token budget at 1311 tokens with room to spare",
+    "Gotchas carry genuine institutional knowledge (hub dual role, gitops-boostrap-policy typo, name-path mismatches)",
+    "Clean composability with fleet-explain-component for drill-down",
+    "Graceful degradation on live validation failure"
+  ],
+  "recommendations": [
+    {
+      "rank": 1,
+      "action": "Cut the 15-line Mermaid example block and replace with a one-clause naming convention. Convert On Activation steps 2–3 to bullets.",
+      "resolves": ["leanness-1", "leanness-2"]
+    },
+    {
+      "rank": 2,
+      "action": "Extract a validate_live_cluster.py script for the --context path that parses oc JSON and returns compact status summary.",
+      "resolves": ["determinism-1"]
+    },
+    {
+      "rank": 3,
+      "action": "Add --write-readme flag for headless invocation, with a JSON return contract.",
+      "resolves": ["enhancement-1"]
+    }
+  ],
+  "findings": [
+    {
+      "id": "leanness-1",
+      "lens": "leanness",
+      "severity": "medium",
+      "title": "Mermaid example block is format teaching",
+      "location": "SKILL.md:Sequence Diagram (lines 58–74)",
+      "evidence": "A 15-line fenced Mermaid example teaches the model how to compose a sequence diagram — syntax it already drives fluently. The surrounding prose already specifies the outcome: a sequence diagram with wave-grouped participants, component names in messages, and the dependency chain visible.",
+      "recommendation": "Cut the fenced example block. The prose instructions are sufficient. Add at most one clause clarifying the desired participant-alias style.",
+      "proposed_smallest": "Generate a Mermaid sequence diagram with one participant per distinct sync-wave present in the cluster. Messages from ArgoCD list the components deployed in that wave (abbreviate with '...' above five). Use `Note over` blocks to mark readiness gates between tiers. Adapt participants to the actual waves — include non-standard waves (7, 16) as distinct participants when they appear.",
+      "predicted_delta": "Minimal. The model knows Mermaid syntax and will produce a structurally equivalent diagram from the prose description alone. The only unique signal the example carries — the participant alias naming convention — can be conveyed in a phrase."
+    },
+    {
+      "id": "leanness-2",
+      "lens": "leanness",
+      "severity": "low",
+      "title": "On Activation steps 2–3 are a false sequence",
+      "location": "SKILL.md:On Activation (lines 20–24)",
+      "evidence": "Steps 2 and 3 are independent loads with no data dependency. Only step 1 must be first because it may error and halt. Numbering implies a strict order that does not exist.",
+      "recommendation": "Keep step 1 numbered. Convert steps 2–3 to bullets or fold into one line."
+    },
+    {
+      "id": "determinism-1",
+      "lens": "determinism",
+      "severity": "medium",
+      "title": "Live validation JSON parsing and comparison is deterministic work",
+      "location": "SKILL.md:Live Validation",
+      "evidence": "The model is instructed to run oc get applications JSON, then count totals, tally by sync status, filter degraded, and diff against the repo list. Signal-verb scan hits: count, compare, extract, check structure.",
+      "recommendation": "Extract a validate_live_cluster.py script that consumes raw oc JSON plus the expected component list and emits compact JSON: {total, synced_healthy, degraded: [{name, status, message}], extra_in_cluster, missing_from_cluster}."
+    },
+    {
+      "id": "enhancement-1",
+      "lens": "enhancement",
+      "severity": "medium",
+      "title": "Add --write-readme flag for headless readiness",
+      "location": "SKILL.md:Readme Output",
+      "evidence": "The skill has exactly one interaction point: the readme write approval. Every other input is already a parameter. This single confirmation is the only gate between the current skill and full headless invocation.",
+      "recommendation": "Add a --write-readme flag to Args (default false). When set, skip the offer and write directly. Define a headless JSON return: {status: 'complete', readme: 'clusters/<name>/readme.md'}."
+    }
+  ]
+}

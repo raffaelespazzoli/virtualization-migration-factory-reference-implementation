@@ -1,0 +1,279 @@
+{
+  "schema_version": 2,
+  "subject": ".skills/fleet-cluster-lld",
+  "generated": "2026-08-16",
+  "verdict": "Solid data-gathering architecture; main gaps are missing headless mode, unreferenced template asset, and no validation gate before composing a customer-facing deliverable.",
+  "grade": "fair",
+  "summary": "The skill is impressively lean at 892 tokens with a well-drawn intelligence-placement boundary — scripts handle extraction, the model owns synthesis. However, three high-severity issues (structural H1/H2 error, missing headless mode, missing data-sufficiency validation) and a pattern of duplicated/disconnected content (inline section list, unreferenced template, hardcoded branding) prevent a higher grade.",
+  "standards": {
+    "canon": "/home/rspazzol/git/virtualization-migration-factory-reference-implementation/.agents/skills/bmad-workflow-builder/references/prompt-quality-canon.md",
+    "principles": "/home/rspazzol/git/virtualization-migration-factory-reference-implementation/.agents/skills/bmad-workflow-builder/references/skill-quality-principles.md",
+    "scripts": "/home/rspazzol/git/virtualization-migration-factory-reference-implementation/.agents/skills/bmad-workflow-builder/references/script-standards.md"
+  },
+  "themes": [
+    {
+      "title": "Disconnected template and duplicated section enumeration",
+      "root_cause": "lld-template.md exists but is never loaded; the 15-item section list in SKILL.md duplicates the authoritative ordering in references/lld-sections.md, wasting tokens and creating a shadow that would block future customization overrides.",
+      "finding_ids": ["architecture-2", "enhancement-3", "leanness-1", "customization-3"],
+      "action": "Wire assets/lld-template.md as the structural scaffold in Document Composition; remove the inline section enumeration (lines 37–52) and let lld-sections.md be authoritative."
+    },
+    {
+      "title": "No quality gates for customer-facing output",
+      "root_cause": "A customer-facing LLD can ship with empty sections, stale placeholders, or mismatched table counts because there's no validation between gather and compose, and no self-review after composition.",
+      "finding_ids": ["enhancement-2", "enhancement-6"],
+      "action": "Add a data-sufficiency check after gather (report which sections lack data) and a completeness scan after composition (no placeholders, section count matches, table rows match JSON)."
+    },
+    {
+      "title": "Missing headless and composability mode",
+      "root_cause": "The skill is fully scriptable but lacks headless invocation, JSON persistence, and writes only after an unnecessary confirmation round-trip.",
+      "finding_ids": ["enhancement-1", "enhancement-4", "enhancement-5"],
+      "action": "Add a --headless flag that writes directly and returns a status JSON; persist gathered data as <cluster>-lld.json for downstream consumption; default to writing immediately in interactive mode too."
+    },
+    {
+      "title": "Gather script coverage gap forces model into extraction work",
+      "root_cause": "gather_lld_data.py doesn't extract metallb-configuration data, forcing the model to read raw YAML overlays and compute which files the script missed — both deterministic operations.",
+      "finding_ids": ["determinism-1", "determinism-2"],
+      "action": "Extend gather_lld_data.py to cover metallb-configuration and emit a files_read manifest so the model never needs to diff coverage."
+    },
+    {
+      "title": "Hardcoded templates with no customization surface",
+      "root_cause": "references/lld-sections.md and assets/style.css contain org-specific content (section structure, brand colors/fonts) with no customize.toml entry point for override.",
+      "finding_ids": ["customization-1", "customization-2"],
+      "action": "Create customize.toml with lld_sections_template and pdf_style_template override points. Document the contract each template must satisfy."
+    }
+  ],
+  "strengths": [
+    "Well-drawn intelligence-placement boundary: scripts own extraction (YAML parsing, structured data), model owns synthesis and writing.",
+    "Extremely lean SKILL.md at 892 tokens — well under the 1500-token desired budget with no waste patterns or decorative formatting.",
+    "Robust gotchas section captures genuine institutional knowledge (typo preservation, secret handling, NMState summarization).",
+    "Clean path standards — no bare-bmad references, no absolute paths, no cross-dir dot-slash patterns.",
+    "gather_lld_data.py has unit tests and produces clean structured JSON with stderr-only diagnostics."
+  ],
+  "recommendations": [
+    { "rank": 1, "action": "Fix H1 Overview to H2 and wire lld-template.md into the Document Composition section; remove inline section list.", "resolves": ["architecture-1", "architecture-2", "enhancement-3", "leanness-1", "customization-3"] },
+    { "rank": 2, "action": "Add headless mode (--headless flag), persist JSON dual-output, remove interactive confirmation gate for default flow.", "resolves": ["enhancement-1", "enhancement-4", "enhancement-5"] },
+    { "rank": 3, "action": "Add data-sufficiency validation after gather and a completeness self-review scan after composition.", "resolves": ["enhancement-2", "enhancement-6"] },
+    { "rank": 4, "action": "Extend gather_lld_data.py to extract metallb-configuration and emit a files_read manifest.", "resolves": ["determinism-1", "determinism-2"] },
+    { "rank": 5, "action": "Create customize.toml with lld_sections_template and pdf_style_template points.", "resolves": ["customization-1", "customization-2"] },
+    { "rank": 6, "action": "Fix {fleet-common} resolution to use {project-root}/.skills/fleet-common and add bare-path preamble to resolution rules.", "resolves": ["architecture-3", "architecture-4"] }
+  ],
+  "experience": {
+    "journeys": [
+      { "name": "Interactive LLD generation", "steps": "User says 'generate LLD for etl7' → skill gathers data → composes document → writes to file → optionally exports PDF" },
+      { "name": "PDF export", "steps": "User says 'export as PDF' after generation → skill runs export_pdf.sh → mermaid diagrams rendered → PDF delivered" }
+    ],
+    "headless": "Not wired — skill is trivially adaptable (accepts all args, deterministic script) but currently lacks the --headless flag and status JSON contract."
+  },
+  "findings": [
+    {
+      "id": "architecture-1",
+      "lens": "architecture",
+      "severity": "high",
+      "file": "SKILL.md",
+      "line": 6,
+      "title": "Overview uses H1 instead of H2",
+      "evidence": "Line 6 is `# Overview` (H1) while all other sections use `## …` (H2). Tooling and compaction logic key on `## Overview` specifically.",
+      "recommendation": "Change `# Overview` to `## Overview`."
+    },
+    {
+      "id": "enhancement-1",
+      "lens": "enhancement",
+      "severity": "high",
+      "file": "SKILL.md",
+      "line": 10,
+      "title": "Missing headless mode — skill is trivially adaptable but unwired",
+      "evidence": "The skill accepts fully-specified args and runs a deterministic script, yet no headless invocation path exists.",
+      "recommendation": "Add a --headless flag. When set, skip confirmation and return {\"status\":\"complete\",\"path\":\"<output>\"} as the headless JSON contract."
+    },
+    {
+      "id": "enhancement-2",
+      "lens": "enhancement",
+      "severity": "high",
+      "file": "SKILL.md",
+      "line": 30,
+      "title": "Missing data-sufficiency validation between gather and compose",
+      "evidence": "The skill transitions from script output directly to document composition with no check that the JSON covers all 15 sections.",
+      "recommendation": "After gather, validate minimum required fields per section. Report missing data and ask user whether to proceed with reduced document."
+    },
+    {
+      "id": "architecture-2",
+      "lens": "architecture",
+      "severity": "medium",
+      "file": "assets/lld-template.md",
+      "line": 1,
+      "title": "Template asset exists but is never loaded",
+      "evidence": "No reference to assets/lld-template.md appears in SKILL.md, references, or scripts.",
+      "recommendation": "Route to it from Document Composition as the structural skeleton, or delete it."
+    },
+    {
+      "id": "architecture-3",
+      "lens": "architecture",
+      "severity": "medium",
+      "file": "SKILL.md",
+      "line": 14,
+      "title": "{fleet-common} resolves to ambiguous bare relative path",
+      "evidence": "Resolution rules define {fleet-common} → .skills/fleet-common. Bare paths resolve from the skill's installed directory, making this resolve to a non-existent nested path.",
+      "recommendation": "Change to {fleet-common} → {project-root}/.skills/fleet-common."
+    },
+    {
+      "id": "leanness-1",
+      "lens": "leanness",
+      "severity": "medium",
+      "file": "SKILL.md",
+      "line": 37,
+      "title": "Inline section list duplicates reference file ordering",
+      "evidence": "The 15-item section list on lines 37–52 is a verbatim copy of what's already in references/lld-sections.md, which line 30 already routes to.",
+      "recommendation": "Remove the inline enumeration; let references/lld-sections.md be authoritative for section order."
+    },
+    {
+      "id": "enhancement-3",
+      "lens": "enhancement",
+      "severity": "medium",
+      "file": "assets/lld-template.md",
+      "line": 1,
+      "title": "Unreferenced template — same as architecture-2",
+      "evidence": "Duplicate of architecture-2: lld-template.md exists but is never loaded by any skill file.",
+      "recommendation": "Wire as structural scaffold or delete."
+    },
+    {
+      "id": "enhancement-4",
+      "lens": "enhancement",
+      "severity": "medium",
+      "file": "SKILL.md",
+      "line": 54,
+      "title": "Missing composability hook — gathered JSON is not persisted",
+      "evidence": "The gather script produces structured JSON consumed once by the model and then lost. Downstream skills would need to re-run the script.",
+      "recommendation": "Save the script JSON alongside the markdown as <cluster-name>-lld.json."
+    },
+    {
+      "id": "enhancement-5",
+      "lens": "enhancement",
+      "severity": "medium",
+      "file": "SKILL.md",
+      "line": 56,
+      "title": "Interactive confirmation gate is over-applied",
+      "evidence": "The user already asked for the LLD explicitly. Forcing a confirmation adds a round-trip with no gain.",
+      "recommendation": "Default to writing immediately; present summary with path and offer adjustments."
+    },
+    {
+      "id": "enhancement-6",
+      "lens": "enhancement",
+      "severity": "medium",
+      "file": "SKILL.md",
+      "line": 30,
+      "title": "Missing lightweight reviewer gate for customer-facing output",
+      "evidence": "15 sections composed with no self-review step. Placeholders or miscounted tables could ship to customer.",
+      "recommendation": "Add a post-composition scan: verify sections populated, no placeholders remain, table counts match JSON."
+    },
+    {
+      "id": "determinism-1",
+      "lens": "determinism",
+      "severity": "medium",
+      "file": "SKILL.md",
+      "line": 26,
+      "title": "MetalLB overlay not extracted by gather script",
+      "evidence": "Step 4 asks the model to read metallb-configuration/ overlays — the same deterministic extraction work the script does for trident/nmstate.",
+      "recommendation": "Extend gather_lld_data.py to extract metallb-configuration data."
+    },
+    {
+      "id": "determinism-2",
+      "lens": "determinism",
+      "severity": "medium",
+      "file": "SKILL.md",
+      "line": 26,
+      "title": "Model must diff script coverage vs filesystem",
+      "evidence": "Step 4 says 'Only read files not already captured by the script' — the model must compute what the script missed, a deterministic operation.",
+      "recommendation": "Have gather script emit a files_read manifest so the model knows exactly what remains."
+    },
+    {
+      "id": "customization-1",
+      "lens": "customization",
+      "severity": "medium",
+      "file": "references/lld-sections.md",
+      "line": 1,
+      "title": "Section template hardcoded with no customize.toml override",
+      "evidence": "Orgs needing different LLD sections (Compliance, Security Posture, SLA) must fork the skill.",
+      "recommendation": "Lift to a lld_sections_template customization point in customize.toml."
+    },
+    {
+      "id": "customization-2",
+      "lens": "customization",
+      "severity": "medium",
+      "file": "assets/style.css",
+      "line": 1,
+      "title": "PDF style hardcoded with org-specific brand colors",
+      "evidence": "Colors #1e3a5f, #1d4ed8, fonts Liberation Sans, and A4 page size are baked in with no override mechanism.",
+      "recommendation": "Add a pdf_style_template customization point in customize.toml."
+    },
+    {
+      "id": "leanness-2",
+      "lens": "leanness",
+      "severity": "low",
+      "file": "SKILL.md",
+      "line": 33,
+      "title": "Three composition bullets restate writing rules from reference",
+      "evidence": "Tone, tables, and Mermaid bullets duplicate the General Writing Rules block in references/lld-sections.md.",
+      "recommendation": "Keep only the web-search bullet; the others are covered by the reference."
+    },
+    {
+      "id": "architecture-4",
+      "lens": "architecture",
+      "severity": "low",
+      "file": "SKILL.md",
+      "line": 12,
+      "title": "Resolution rules omit bare-path convention preamble",
+      "evidence": "Bare paths like references/lld-sections.md appear in the body but resolution rules don't state they resolve from the skill root.",
+      "recommendation": "Add: 'Bare paths (e.g. references/lld-sections.md) resolve from this skill's installed directory.'"
+    },
+    {
+      "id": "customization-3",
+      "lens": "customization",
+      "severity": "low",
+      "file": "SKILL.md",
+      "line": 37,
+      "title": "Inline section list would shadow template override",
+      "evidence": "If the template were made configurable, the hardcoded list on lines 37–52 would silently override it.",
+      "recommendation": "Remove inline enumeration; let the template be authoritative."
+    },
+    {
+      "id": "determinism-3",
+      "lens": "determinism",
+      "severity": "low",
+      "file": "SKILL.md",
+      "line": 24,
+      "title": "Readme bulk-read partially deterministic",
+      "evidence": "Step 3 reads every component readme with has_readme=true. The list is deterministic from the JSON but the model chooses how many to read.",
+      "recommendation": "Consider having gather script extract readme summaries for smaller components."
+    },
+    {
+      "id": "determinism-4",
+      "lens": "determinism",
+      "severity": "low",
+      "file": "scripts/render_mermaid.py",
+      "line": 1,
+      "title": "Mermaid regex pattern has no unit test",
+      "evidence": "The MERMAID_BLOCK_RE regex is untested — edge cases (nested fences, empty blocks) could silently pass through.",
+      "recommendation": "Add test cases for edge-case Mermaid blocks in scripts/tests/."
+    },
+    {
+      "id": "determinism-5",
+      "lens": "determinism",
+      "severity": "low",
+      "file": "scripts/render_mermaid.py",
+      "line": 10,
+      "title": "SVG URL constant defined but unused after PNG switch",
+      "evidence": "MERMAID_INK_SVG_URL is still defined but the script only uses the PNG endpoint. Dead code.",
+      "recommendation": "Remove the unused MERMAID_INK_SVG_URL constant."
+    },
+    {
+      "id": "enhancement-7",
+      "lens": "enhancement",
+      "severity": "low",
+      "file": "scripts/render_mermaid.py",
+      "line": 28,
+      "title": "No graceful degradation when mermaid.ink is unreachable",
+      "evidence": "Individual failures are handled (kept as code block) but no pre-flight check or offline fallback guidance.",
+      "recommendation": "Add a connectivity pre-check and mention mmdc as an offline alternative in Gotchas."
+    }
+  ]
+}

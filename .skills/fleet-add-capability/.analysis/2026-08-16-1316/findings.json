@@ -1,0 +1,168 @@
+{
+  "schema_version": 2,
+  "subject": ".skills/fleet-add-capability",
+  "generated": "2026-08-16T13:20:00+00:00",
+  "verdict": "Lean, well-structured skill with clean architecture and determinism boundaries, but missing working-state and degradation paths expected of a multi-turn file-producing workflow.",
+  "grade": "fair",
+  "summary": "The skill's primary strength is its concise encoding of repo-specific conventions (sync-wave contract, OperatorPolicy pattern, lifecycle-group decomposition, env-var-vs-overlay decision criteria) in under 1500 tokens. Its primary opportunity is adding the multi-turn patterns its sibling skills already carry: a memlog for decision persistence, a fast path for experts, and fallback routes when scripts or web search fail.",
+  "standards": {
+    "canon": "/home/rspazzol/git/virtualization-migration-factory-reference-implementation/.claude/skills/bmad-workflow-builder/references/prompt-quality-canon.md",
+    "principles": "/home/rspazzol/git/virtualization-migration-factory-reference-implementation/.claude/skills/bmad-workflow-builder/references/skill-quality-principles.md",
+    "scripts": "/home/rspazzol/git/virtualization-migration-factory-reference-implementation/.claude/skills/bmad-workflow-builder/references/script-standards.md"
+  },
+  "themes": [
+    {
+      "title": "Multi-turn resilience",
+      "root_cause": "The skill accumulates decisions across turns (capability name, method, parts, waves, targets) but has no mechanism to persist them — if context compacts or the session resumes, earlier decisions are lost.",
+      "finding_ids": ["enhancement-1"],
+      "action": "Add a memlog (matching sibling skills fleet-add-cluster and fleet-add-node) that captures each decision as it lands, enabling resume and audit."
+    },
+    {
+      "title": "Expert and automation paths",
+      "root_cause": "The skill forces all users through the same linear flow regardless of how much information they already have. An expert who provides all inputs upfront still waits through research; an automator cannot invoke it headlessly at all.",
+      "finding_ids": ["enhancement-2", "enhancement-6"],
+      "action": "Gate on input completeness: if the user supplies method + parts + target in the invocation, skip research and confirm; if a structured block is provided with --headless, produce files without interaction."
+    },
+    {
+      "title": "Failure path coverage",
+      "root_cause": "Two hard dependencies (resolve_repo_structure.py, web search) have no fallback. The skill dead-ends if either fails rather than asking the user to supply what the tool could not.",
+      "finding_ids": ["enhancement-3", "enhancement-4"],
+      "action": "Add graceful degradation: fall back to manual component listing if the script fails; ask the user to paste docs or describe the method if web search returns nothing; confirm product identity before committing to research."
+    },
+    {
+      "title": "Natural-behavior ceremony",
+      "root_cause": "A few instructions describe behaviors a capable model would perform unprompted (showing summaries, reminding about .gitignore, awaiting confirmation before multi-file writes).",
+      "finding_ids": ["leanness-1", "leanness-2", "leanness-3"],
+      "action": "Trim Post-Generation to the fleet-explain-component cross-reference; collapse Research bullets to a single sentence naming the key dimensions."
+    }
+  ],
+  "strengths": [
+    "Excellent token efficiency — 1411 tokens encoding deep repo-specific knowledge that a model cannot infer",
+    "Clean intelligence-placement boundary: deterministic parsing in scripts, judgment in the prompt",
+    "Sound progressive disclosure — everything inline, nothing carved unnecessarily, all paths resolve",
+    "Installation-method classification table is the highest-leverage content: it prevents the most common error (wrong component pattern for the deployment mechanism)",
+    "Gotchas section encodes institutional knowledge with real consequences (OperatorPolicy not Subscription, wave 6 reservation, namespace placement)"
+  ],
+  "recommendations": [
+    { "rank": 1, "action": "Add a memlog strategy matching the sibling skills — init on activation, append decisions at each phase gate (research confirmed, structure proposed, files generated, wiring applied)", "resolves": ["enhancement-1"] },
+    { "rank": 2, "action": "Add input-completeness gate: if method + lifecycle + target are present in invocation, skip research and jump to structure proposal confirmation", "resolves": ["enhancement-2", "enhancement-6"] },
+    { "rank": 3, "action": "Add fallback paths for script failure (manual ls + user listing) and web-search failure (user pastes docs or describes method)", "resolves": ["enhancement-3"] },
+    { "rank": 4, "action": "Add product-identity confirmation before committing to web research, and orientation context when invoked without args", "resolves": ["enhancement-4", "enhancement-5"] },
+    { "rank": 5, "action": "Trim Post-Generation to the fleet-explain-component offer; collapse Research sub-bullets to one sentence", "resolves": ["leanness-1", "leanness-2", "leanness-3"] }
+  ],
+  "experience": {
+    "journeys": [
+      { "name": "First-timer without args", "steps": "Gets blank prompt with no guidance — needs orientation (enhancement-5)" },
+      { "name": "Expert with full spec", "steps": "Forced through redundant web research — needs fast path (enhancement-2, enhancement-6)" },
+      { "name": "Air-gapped environment", "steps": "Web search fails with no fallback — needs degradation path (enhancement-3)" }
+    ],
+    "headless": "Not currently supported — blocks automation use cases (enhancement-2)"
+  },
+  "findings": [
+    {
+      "id": "leanness-1",
+      "lens": "leanness",
+      "severity": "medium",
+      "title": "Post-Generation section is mostly natural model behavior",
+      "location": "SKILL.md:Post-Generation",
+      "evidence": "\"Show a summary of everything created\" and \"Remind the user to add secrets to .gitignore\" are default behaviors a capable model would perform after generating multiple files. Only the fleet-explain-component offer is novel.",
+      "recommendation": "Collapse to: 'After generation, offer to run `fleet-explain-component <name>` for verification.'",
+      "proposed_smallest": "Offer to run `fleet-explain-component <name>` to verify the generated readme matches reality.",
+      "predicted_delta": "Saves ~60 tokens. The summary and .gitignore reminders would still happen naturally."
+    },
+    {
+      "id": "leanness-2",
+      "lens": "leanness",
+      "severity": "low",
+      "title": "Research bullet list partially redundant",
+      "location": "SKILL.md:Collect Requirements > step 1",
+      "evidence": "Bullets for namespaces, CRDs, and dependencies are standard items any model researching an operator install would surface. The guiding bullet is the installation method classification.",
+      "recommendation": "Trim to one sentence: 'Research the product's OpenShift installation method (OLM, helm, raw manifests), namespace requirements, and dependencies.'",
+      "proposed_smallest": "Research the product's OpenShift install method and dependencies.",
+      "predicted_delta": "Saves ~40 tokens. Marginal risk."
+    },
+    {
+      "id": "leanness-3",
+      "lens": "leanness",
+      "severity": "low",
+      "title": "Explicit confirmation gate is natural multi-file behavior",
+      "location": "SKILL.md:Collect Requirements (final sentence)",
+      "evidence": "'Present the proposed structure to the user for confirmation before generating any files.' — models already gate multi-file creation behind user approval.",
+      "recommendation": "Could be cut; ~15 tokens saved with virtually zero quality difference.",
+      "proposed_smallest": "(omit entirely)",
+      "predicted_delta": "~15 tokens. Zero output quality difference."
+    },
+    {
+      "id": "customization-1",
+      "lens": "customization",
+      "severity": "low",
+      "title": "Hardcoded readme template path could be a scalar",
+      "location": "SKILL.md:Generate Files section",
+      "evidence": "The skill references `{fleet-common}/references/readme-template.md` as the template. An org with different doc standards would need to fork the skill.",
+      "recommendation": "If customize.toml is ever added, expose as `readme_template` scalar. Not urgent — the template lives in fleet-common and can be edited directly."
+    },
+    {
+      "id": "customization-2",
+      "lens": "customization",
+      "severity": "low",
+      "title": "Post-generation is an on_complete hook candidate",
+      "location": "SKILL.md:Post-Generation",
+      "evidence": "The skill produces files then suggests follow-ups — the classic 'produces artifact and stops' pattern for on_complete.",
+      "recommendation": "If customize.toml is added, consider `on_complete = \"fleet-explain-component\"`. Low priority."
+    },
+    {
+      "id": "enhancement-1",
+      "lens": "enhancement",
+      "severity": "high",
+      "title": "Add Working-state-across-turns",
+      "location": "SKILL.md:entire file",
+      "evidence": "Multi-turn skill accumulating decisions (name, method, parts, waves, targets) with no persistence mechanism. Sibling skills use memlogs.",
+      "recommendation": "Add memlog init on activation and append at each phase gate (research, proposal, generation, wiring)."
+    },
+    {
+      "id": "enhancement-2",
+      "lens": "enhancement",
+      "severity": "high",
+      "title": "Add Three-mode-architecture",
+      "location": "SKILL.md:entire file",
+      "evidence": "Only supports Guided mode. No Headless for CI/automation, no fast-path for experts who already know the classification.",
+      "recommendation": "Add input-completeness gate: if all fields present, skip to generation; if --headless flag, produce files without interaction."
+    },
+    {
+      "id": "enhancement-3",
+      "lens": "enhancement",
+      "severity": "high",
+      "title": "Add Graceful-degradation",
+      "location": "SKILL.md:On Activation + Collect Requirements",
+      "evidence": "Two hard dependencies (resolve_repo_structure.py, web search) have no fallback path.",
+      "recommendation": "Fall back to manual ls for script failure; ask user to paste docs for search failure."
+    },
+    {
+      "id": "enhancement-4",
+      "lens": "enhancement",
+      "severity": "medium",
+      "title": "Strengthen Intent-before-ingestion",
+      "location": "SKILL.md:Collect Requirements",
+      "evidence": "'add vault' could mean HashiCorp Vault, Vault Secrets Operator, or External Secrets with Vault backend. Research starts before confirming which product.",
+      "recommendation": "Add brief product-identity confirmation before web research."
+    },
+    {
+      "id": "enhancement-5",
+      "lens": "enhancement",
+      "severity": "medium",
+      "title": "Add Soft-gate-elicitation for arg-less activation",
+      "location": "SKILL.md:Collect Requirements (first line)",
+      "evidence": "When invoked without args, the user gets a blank prompt with no context about existing components or common additions.",
+      "recommendation": "Present orientation: categories of capabilities, component count, and offer to suggest gaps."
+    },
+    {
+      "id": "enhancement-6",
+      "lens": "enhancement",
+      "severity": "low",
+      "title": "Remove over-applied forced research",
+      "location": "SKILL.md:Collect Requirements step 1",
+      "evidence": "Research is mandatory even when the expert user has already provided all classification info.",
+      "recommendation": "Make research conditional on whether user input already specifies method + lifecycle + target."
+    }
+  ]
+}
