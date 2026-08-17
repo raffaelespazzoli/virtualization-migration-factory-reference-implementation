@@ -1,0 +1,130 @@
+{
+  "component": "metallb",
+  "title": "MetalLB Load Balancer",
+  "generated": "2026-08-17T12:47:00Z",
+  "upstream": {
+    "product": "Red Hat OpenShift MetalLB Operator",
+    "docs_url": "https://docs.redhat.com/en/documentation/openshift_container_platform/4.19/html/networking_operators/metallb-operator",
+    "operator": "metallb-operator",
+    "channel": "stable",
+    "source": "redhat-operators"
+  },
+  "lifecycle_parts": [
+    {
+      "name": "metallb-operator",
+      "wave": 5,
+      "purpose": "Deploys the MetalLB Operator via OperatorPolicy into the metallb-system namespace"
+    },
+    {
+      "name": "metallb-configuration",
+      "wave": 6,
+      "purpose": "Creates the MetalLB instance CR and L2Advertisement; cluster overlays add per-cluster IPAddressPool definitions"
+    }
+  ],
+  "clusters": ["etl4", "etl6", "etl7", "hub"],
+  "sections": [
+    {
+      "type": "text",
+      "title": "Overview",
+      "body": "MetalLB provides a platform-native load balancer for bare-metal OpenShift clusters that lack a cloud provider's load balancing service. When a Service of type LoadBalancer is created, MetalLB assigns it an external IP address from a configured pool and advertises that address on the host network so external clients can reach the service.\n\nThe fleet deploys MetalLB across all clusters (hub and managed) using a two-part lifecycle: the operator is installed fleet-wide through the 'all' group, while the configuration — including the cluster-specific IP address pool — is applied per-cluster through overlays. This split is necessary because each cluster sits on a different network segment and needs its own dedicated IP range."
+    },
+    {
+      "type": "text",
+      "title": "How It Works",
+      "body": "MetalLB runs two components inside each cluster:\n\n- **Controller** — a Deployment that watches for LoadBalancer Services and assigns them IP addresses from configured IPAddressPool resources.\n- **Speaker** — a DaemonSet running on every node that advertises assigned IPs to the local network. In this fleet, speakers use Layer 2 mode (ARP/NDP), meaning the speaker on the node holding a given IP responds to ARP requests for it.\n\nLayer 2 mode is the simplest to deploy — it requires no router peering or BGP configuration — but it does mean that all traffic for a given VIP flows through a single node at a time. If that node fails, MetalLB performs a failover by having a speaker on another node take over the IP advertisement, typically within seconds."
+    },
+    {
+      "type": "diagram",
+      "title": "Infrastructure Architecture",
+      "mermaid": "graph TD\n    subgraph metallb-system namespace\n        OP[MetalLB Operator]\n        CTRL[Controller Deployment]\n        SPK[Speaker DaemonSet]\n        MLBcr[MetalLB CR]\n    end\n\n    subgraph Configuration\n        POOL[IPAddressPool\\nmain-pool\\ncluster-specific CIDR /28]\n        L2AD[L2Advertisement\\nmain-ad]\n    end\n\n    subgraph Consumers\n        SVC1[Service type: LoadBalancer]\n        SVC2[Service type: LoadBalancer]\n    end\n\n    OP -->|manages| CTRL\n    OP -->|manages| SPK\n    MLBcr -->|triggers| OP\n    L2AD -->|announces IPs from| POOL\n    CTRL -->|assigns IPs from| POOL\n    CTRL -->|watches| SVC1\n    CTRL -->|watches| SVC2\n    SPK -->|ARP/NDP for| SVC1\n    SPK -->|ARP/NDP for| SVC2"
+    },
+    {
+      "type": "diagram",
+      "title": "Deployment Sequence",
+      "mermaid": "graph LR\n    subgraph Wave 5\n        MOP[metallb-operator\\nOperatorPolicy + Namespace]\n    end\n\n    subgraph Wave 6\n        MCFG[metallb-configuration\\nMetalLB CR + L2Advertisement\\n+ IPAddressPool overlay]\n    end\n\n    subgraph Wave 15+\n        CONSUMERS[Components creating\\nLoadBalancer Services]\n    end\n\n    MOP --> MCFG\n    MCFG --> CONSUMERS"
+    },
+    {
+      "type": "config-summary",
+      "title": "Operator Configuration",
+      "body": "The operator is deployed via an ACM OperatorPolicy, giving centralized lifecycle management across the fleet.",
+      "values": [
+        {
+          "resource": "OperatorPolicy/metallb-operator",
+          "field": "spec.subscription.channel",
+          "value": "stable",
+          "rationale": "The 'stable' channel provides production-grade releases that have passed Red Hat's full QE cycle. This is the recommended channel for production bare-metal clusters."
+        },
+        {
+          "resource": "OperatorPolicy/metallb-operator",
+          "field": "spec.subscription.source",
+          "value": "redhat-operators",
+          "rationale": "Sources the operator from Red Hat's certified catalog, ensuring it is the supported, signed build rather than the upstream community MetalLB."
+        },
+        {
+          "resource": "OperatorPolicy/metallb-operator",
+          "field": "spec.subscription.namespace",
+          "value": "metallb-system",
+          "rationale": "Red Hat recommends installing the MetalLB Operator in the metallb-system namespace when using the CLI. This keeps operator resources isolated from other workloads."
+        },
+        {
+          "resource": "OperatorPolicy/metallb-operator",
+          "field": "spec.subscription.startingCSV",
+          "value": "metallb-operator.v4.20.0-202512081818",
+          "rationale": "Pins the initial install to a known-good 4.20 build. The versions list includes 19 approved releases from 4.18 through 4.22, allowing automatic upgrades within that approved range."
+        },
+        {
+          "resource": "OperatorPolicy/metallb-operator",
+          "field": "spec.upgradeApproval",
+          "value": "Automatic",
+          "rationale": "Combined with the versions allow-list, this enables automatic upgrades to any pre-approved version without manual InstallPlan approval, balancing convenience with controlled rollout."
+        },
+        {
+          "resource": "Namespace/metallb-system",
+          "field": "metadata.labels.openshift.io/cluster-monitoring",
+          "value": "true",
+          "rationale": "Enables the OpenShift in-cluster monitoring stack to scrape MetalLB metrics from this namespace, providing visibility into speaker health, IP allocation, and failover events."
+        }
+      ]
+    },
+    {
+      "type": "config-summary",
+      "title": "Instance & Advertisement Configuration",
+      "body": "The configuration part creates the MetalLB operand and sets up L2 advertisement. The MetalLB CR uses defaults (no custom speaker or controller tuning), and a single L2Advertisement binds to the cluster's IP pool.",
+      "values": [
+        {
+          "resource": "MetalLB/metallb",
+          "field": "(default CR)",
+          "value": "name: metallb",
+          "rationale": "A single MetalLB CR with default settings is sufficient to start the controller and speaker pods. Per Red Hat docs, only one MetalLB instance per cluster is supported."
+        },
+        {
+          "resource": "L2Advertisement/main-ad",
+          "field": "spec.ipAddressPools",
+          "value": ["main-pool"],
+          "rationale": "Binds this L2 advertisement to the 'main-pool' IPAddressPool. By scoping the advertisement, only IPs from this pool are announced via ARP/NDP. If no pools were specified, all pools would be advertised."
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Per-Cluster IP Address Pools",
+      "columns": ["Cluster", "Pool Name", "CIDR", "Usable IPs"],
+      "rows": [
+        ["hub", "main-pool", "10.9.49.80/28", "14 (10.9.49.81–10.9.49.94)"],
+        ["etl4", "main-pool", "10.9.51.160/28", "14 (10.9.51.161–10.9.51.174)"],
+        ["etl6", "main-pool", "10.9.52.150/28", "14 (10.9.52.151–10.9.52.164)"],
+        ["etl7", "main-pool", "10.9.53.32/28", "14 (10.9.53.33–10.9.53.46)"]
+      ]
+    },
+    {
+      "type": "text",
+      "title": "Dependencies",
+      "body": "- **ACM / Governance** — The operator is deployed via OperatorPolicy, which requires the ACM policy framework (governance controller) to be running on target clusters.\n- **NMState** (optional) — While MetalLB itself has no direct dependency on NMState, both are deployed at the same early wave (operator at 5, configuration at 6) because network infrastructure needs to be ready before higher-wave components create LoadBalancer Services.\n- **Consumers** — Any component that creates a Service of type LoadBalancer depends on MetalLB being operational. This includes the OpenShift Router (if configured for LoadBalancer), ingress gateways, and application workloads."
+    },
+    {
+      "type": "text",
+      "title": "Customization Points",
+      "body": "**Adding a new cluster's IP pool:** Create `clusters/<name>/overlays/metallb-configuration/` with:\n1. A `kustomization.yaml` referencing the base component and a local `ippool.yaml`\n2. An `ippool.yaml` defining an `IPAddressPool` named `main-pool` with the cluster's allocated CIDR\n3. An entry in the cluster's `values.yaml` pointing `metallb-configuration` to the overlay path\n\n**BGP mode:** The current configuration uses L2 only. To switch to BGP, you would add `BGPPeer` and `BGPAdvertisement` resources to the configuration component or overlay and remove the `L2Advertisement`. This requires router peering configuration on the network side.\n\n**Multiple pools:** Additional `IPAddressPool` resources can be added to the overlay for use cases like separating ingress traffic from application VIPs. Each pool can have its own advertisement.\n\n**Speaker node selection:** The MetalLB CR supports `spec.speakerNodeSelector` to restrict which nodes run speaker pods. This is useful when only a subset of nodes has L2 adjacency to the external network."
+    }
+  ]
+}

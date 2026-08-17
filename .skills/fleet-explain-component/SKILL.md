@@ -5,7 +5,7 @@ description: "Explain a GitOps fleet component. Use when user says 'explain comp
 
 # Overview
 
-Produce a clear explanation of what a fleet component does, how it's configured, and how it relates to sibling components. Act as a senior platform engineer who knows this GitOps repo's architecture deeply. The output is an explanation in chat plus a `readme.md` conforming to the canonical template, offered for approval before writing.
+Produce a structured JSON explanation of what a fleet component does, how it's configured, and how it relates to sibling components. Act as a senior platform engineer who knows this GitOps repo's architecture deeply. The output is a JSON file conforming to the component documentation schema, viewable through the fleet component viewer.
 
 **Args:** `<component-name>` — any part of a lifecycle group (e.g. `metallb`, `metallb-operator`, or `metallb-configuration` all resolve to the same group).
 
@@ -25,73 +25,56 @@ Produce a clear explanation of what a fleet component does, how it's configured,
 
 4. Load `{fleet-common}/references/fleet-repo-structure.md` as architectural context.
 
-## Explanation
+## Research
 
-With the script outputs and manifest contents, produce:
+Map the component to its upstream project using:
+- OperatorPolicy `subscription.name` and `subscription.source`
+- Namespace naming and CRD groups
+- Known mappings: `nmstate-operator` → Kubernetes NMState, `mtv-operator` → Migration Toolkit for Virtualization, `acm-operator` → Red Hat Advanced Cluster Management, `trident-operator` → NetApp Astra Trident, `odf-operator` → OpenShift Data Foundation
 
-### Product Identification
+Web-search for the upstream project documentation and Red Hat product docs. Use these to ground the configuration summary — explain not just what values are set but why, based on official documentation.
 
-Map the component to its upstream project. Sources for the mapping:
-- OperatorPolicy `subscription.name` and `subscription.source` identify the operator package
-- Namespace naming and CRD groups identify the product family
-- Known mappings for this repo: `nmstate-operator` → Kubernetes NMState, `mtv-operator` → Migration Toolkit for Virtualization, `acm-operator` → Red Hat Advanced Cluster Management, `trident-operator` → NetApp Astra Trident, `odf-operator` → OpenShift Data Foundation
+## Build the JSON Output
 
-Web-search for the upstream project documentation and Red Hat product docs to ground the explanation in authoritative sources.
+Produce a JSON file at `{project-root}/components/<primary-part>/<base-name>.json` conforming to the schema at `{fleet-common}/assets/component-schema.json`. Place the JSON in the part with the most configuration context (typically `-configuration` or `-instance`, or the base component if standalone). The structure has:
 
-### Component Description
+- **Metadata:** component name, title, generation timestamp, upstream info (product, docs URL, operator, channel, source), lifecycle parts with sync-waves, and target clusters.
+- **Sections** (array, rendered in order):
+  - `type: "text"` — titled prose paragraphs (overview, dependencies, customization points)
+  - `type: "config-summary"` — ties actual repo configuration values to upstream documentation. Each value entry names the resource, field, current value, and a rationale drawn from the docs explaining why that value matters.
+  - `type: "diagram"` — Mermaid source string rendered client-side. Produce two when they add clarity:
+    - **Infrastructure architecture** — what the configured infrastructure looks like (topology, resources created, relationships to other components and consumers)
+    - **Deployment sequence** — sync-wave ordering and dependencies
+  - `type: "table"` — structured data (lifecycle parts, cluster deployment)
 
-Explain:
-- What the product/project does (from upstream docs, 2-3 sentences)
-- Which lifecycle parts are deployed and what each contributes
-- Key configuration choices: what CRs are created, significant values set, what's commented-out as available options
-- Which clusters use this component (from the siblings script output)
-- Sync-wave placement and its rationale (why this wave, what depends on it)
-
-### Diagrams
-
-Generate Mermaid diagrams when they add clarity:
-
-**Architecture diagram** — show the component's lifecycle parts, the Kubernetes resources each creates, and relationships to other components:
-
-```mermaid
-graph TD
-    subgraph "metallb lifecycle"
-        A[metallb-operator<br/>wave 5] --> B[metallb-configuration<br/>wave 15]
-    end
-    B --> C[IPAddressPool]
-    B --> D[L2Advertisement]
-    E[nmstate-instance] -.->|provides NIC config| A
-```
-
-**Sequence diagram** — when the component has multiple parts or meaningful ordering dependencies, show the sync-wave deployment sequence:
-
-```mermaid
-sequenceDiagram
-    participant ArgoCD
-    participant Wave5
-    participant Wave6
-    participant Wave15
-    ArgoCD->>Wave5: Deploy cert-manager-operator
-    Wave5-->>Wave6: Operator ready
-    ArgoCD->>Wave6: Deploy cert-manager-configuration
-    Note over Wave6: ClusterIssuer + certs created
-    ArgoCD->>Wave15: Other components can now request certs
-```
+Place diagrams immediately after the introductory text sections (Overview, How It Works) so the reader gets the visual architecture before detailed configuration summaries and tables.
 
 Only produce diagrams that illuminate non-obvious relationships. A single-part component with no dependencies needs no diagram.
 
-### Readme Generation
+## Validate and Write
 
-After presenting the explanation, check if the component has a `readme.md`:
-- If it exists, compare your findings against it. If outdated or incomplete, propose an update showing the diff.
-- If none exists, generate one following the template at `{fleet-common}/references/readme-template.md`.
+1. Validate the JSON with `python {fleet-common}/scripts/validate_component_json.py {project-root}/components/<primary-part>/<base-name>.json`. Fix any schema violations before proceeding.
 
-Include the Mermaid diagrams in the readme itself (not only in chat) — they are documentation, not ephemeral explanation. Present the proposed readme and ask for approval before writing to `components/<part>/readme.md` (place it in the part that has the most configuration context — typically the `-configuration` or `-instance` part, or the base component if standalone).
+2. Write or update `components/<primary-part>/readme.md` — keep it minimal:
+
+```markdown
+# {Component Title}
+
+{One-sentence description.}
+
+**Documentation:** Open [component-viewer.html]({fleet-common}/assets/component-viewer.html) and load `components/<primary-part>/{base-name}.json`.
+
+**Upstream:** {link to official docs}
+```
+
+Place the readme in the part with the most configuration context (typically `-configuration` or `-instance`, or the base component if standalone).
+
+3. Tell the user the JSON is ready and where to find it.
 
 ## Gotchas
 
 - Some components exist in `components/` but aren't referenced by any active values.yaml entry — they're available inventory. Report this rather than assuming it's an error.
 - The `gitops-boostrap-policy` name is a known typo — don't flag it.
-- Components with `acm-` prefix: `acm-operator` and `acm-instance` are the core ACM deployment; `acm-configuration` is provisioning config; `acm-observability` is a separate concern (multi-cluster monitoring); `acm-fusion-dr` is disaster recovery. Don't conflate them.
-- `openshift-virtualization-operator` creates the operator, but the instance part is named `openshift-virtualization-instance` and deploys a `HyperConverged` CR — the naming is misleading without context.
-- Trident has three tiers: `trident-operator`, `trident-instance`, `trident-configuration` — plus separate `trident-protect-*` components that are a different product (Trident Protect, not Astra Trident).
+- Components with `acm-` prefix: `acm-operator` and `acm-instance` are core ACM; `acm-configuration` is provisioning config; `acm-observability` is multi-cluster monitoring; `acm-fusion-dr` is disaster recovery. Don't conflate them.
+- `openshift-virtualization-operator` creates the operator, but the instance part deploys a `HyperConverged` CR — the naming is misleading without context.
+- Trident has three tiers: `trident-operator`, `trident-instance`, `trident-configuration` — plus separate `trident-protect-*` components (a different product).

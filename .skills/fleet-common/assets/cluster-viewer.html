@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fleet Cluster Documentation</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+:root {
+  --bg: #0f1419;
+  --surface: #1a2028;
+  --surface-alt: #222d38;
+  --border: #2d3a47;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #58a6ff;
+  --accent-dim: #1f6feb33;
+  --success: #3fb950;
+  --warn: #d29922;
+  --error: #f85149;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --radius: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  padding: 2rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+h1 { font-size: 2rem; margin-bottom: 0.25rem; }
+h2 { font-size: 1.4rem; margin: 2rem 0 0.75rem; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; }
+h3 { font-size: 1.1rem; margin: 1.25rem 0 0.5rem; color: var(--text); }
+p { margin-bottom: 0.75rem; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.meta-bar {
+  display: flex; flex-wrap: wrap; gap: 0.75rem;
+  margin: 0.75rem 0 1.5rem;
+  font-size: 0.85rem; color: var(--text-muted);
+}
+.meta-bar .chip {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.2rem 0.6rem;
+}
+.meta-bar .chip.role-hub { border-color: var(--warn); color: var(--warn); }
+.meta-bar .chip.role-managed { border-color: var(--success); color: var(--success); }
+
+.node-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem; margin-top: 0.75rem;
+}
+.node-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+.node-card .hostname { font-family: var(--mono); font-size: 0.9rem; color: var(--accent); }
+.node-card .role { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+.groups-list { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+.groups-list .group {
+  background: var(--accent-dim);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.8rem;
+  font-family: var(--mono);
+}
+
+.managed-list { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; }
+.managed-list .cluster {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.8rem;
+  font-family: var(--mono);
+}
+
+.section { margin-bottom: 2rem; }
+.section-text p { margin-bottom: 0.75rem; }
+.section-text ul { list-style: none; padding: 0; margin: 0.5rem 0; }
+.section-text ul li { padding: 0.3rem 0 0.3rem 1.2em; position: relative; }
+.section-text ul li::before { content: '•'; position: absolute; left: 0; color: var(--accent); }
+
+.config-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.9rem; }
+.config-table th, .config-table td {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+.config-table th { background: var(--surface-alt); color: var(--text-muted); font-weight: 600; }
+.config-table td { background: var(--surface); }
+.config-table code { font-family: var(--mono); font-size: 0.8rem; color: var(--success); }
+
+table.data-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.9rem; }
+table.data-table th, table.data-table td {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+table.data-table th { background: var(--surface-alt); font-weight: 600; }
+table.data-table td { background: var(--surface); }
+table.data-table tr:hover td { background: var(--surface-alt); }
+table.data-table td.wave { font-family: var(--mono); font-size: 0.85rem; color: var(--warn); text-align: center; }
+table.data-table td.yes { color: var(--success); }
+table.data-table td.no { color: var(--text-muted); }
+
+.table-filter {
+  display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem;
+}
+.table-filter button {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.3rem 0.7rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.table-filter button:hover { border-color: var(--accent); color: var(--text); }
+.table-filter button.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+.diagram-container {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-top: 0.75rem;
+  overflow-x: auto;
+}
+.diagram-container svg { max-width: 100%; height: auto; }
+
+.stats-bar {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem; margin: 1.5rem 0;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  text-align: center;
+}
+.stat-card .value { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+.stat-card .label { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem; }
+
+#drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 3rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+#drop-zone:hover, #drop-zone.dragover { border-color: var(--accent); }
+#drop-zone p { color: var(--text-muted); margin-bottom: 0.5rem; }
+#file-input { display: none; }
+#content { display: none; }
+</style>
+</head>
+<body>
+
+<div id="drop-zone">
+  <p>Drop a cluster JSON file here or click to browse</p>
+  <p style="font-size:0.8rem">Supports files generated by fleet-explain-cluster</p>
+  <input type="file" id="file-input" accept=".json">
+</div>
+
+<div id="content"></div>
+
+<script>
+mermaid.initialize({ startOnLoad: false, theme: 'dark', themeVariables: { primaryColor: '#1f6feb', primaryTextColor: '#e6edf3', lineColor: '#58a6ff', secondaryColor: '#222d38' }});
+
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+const content = document.getElementById('content');
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) loadFile(file);
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+
+const params = new URLSearchParams(window.location.search);
+const srcParam = params.get('src');
+if (srcParam) {
+  fetch(srcParam)
+    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+    .then(data => render(data))
+    .catch(err => { dropZone.querySelector('p').textContent = `Failed to load ${srcParam}: ${err.message}`; });
+}
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      render(data);
+    } catch (err) {
+      alert('Invalid JSON: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function render(data) {
+  dropZone.style.display = 'none';
+  content.style.display = 'block';
+  document.title = `${data.title || data.cluster} — Fleet Cluster`;
+
+  let html = `<h1>${esc(data.title || data.cluster)}</h1>`;
+
+  html += '<div class="meta-bar">';
+  if (data.role) html += `<span class="chip role-${data.role}">${esc(data.role)}</span>`;
+  if (data.version_pin) html += `<span class="chip">pin: ${esc(data.version_pin)}</span>`;
+  if (data.generated) html += `<span class="chip">generated: ${new Date(data.generated).toLocaleDateString()}</span>`;
+  html += '</div>';
+
+  // Stats bar
+  const totalComponents = countComponents(data);
+  const overlayCount = countOverlays(data);
+  const nodeCount = data.nodes?.length || 0;
+  html += '<div class="stats-bar">';
+  html += `<div class="stat-card"><div class="value">${nodeCount}</div><div class="label">Nodes</div></div>`;
+  html += `<div class="stat-card"><div class="value">${totalComponents}</div><div class="label">Components</div></div>`;
+  html += `<div class="stat-card"><div class="value">${overlayCount}</div><div class="label">Overlays</div></div>`;
+  html += `<div class="stat-card"><div class="value">${data.groups?.length || 0}</div><div class="label">Groups</div></div>`;
+  html += '</div>';
+
+  // Groups
+  if (data.groups?.length) {
+    html += '<h3>Groups</h3><div class="groups-list">';
+    for (const g of data.groups) html += `<span class="group">${esc(g)}</span>`;
+    html += '</div>';
+  }
+
+  // Managed clusters (hub only)
+  if (data.managed_clusters?.length) {
+    html += '<h3>Managed Clusters</h3><div class="managed-list">';
+    for (const c of data.managed_clusters) html += `<span class="cluster">${esc(c)}</span>`;
+    html += '</div>';
+  }
+
+  // Nodes
+  if (data.nodes?.length) {
+    html += '<h3>Nodes</h3><div class="node-grid">';
+    for (const node of data.nodes) {
+      html += `<div class="node-card"><div class="hostname">${esc(node.hostname)}</div><div class="role">${esc(node.role || 'worker')}</div></div>`;
+    }
+    html += '</div>';
+  }
+
+  // Sections
+  if (data.sections?.length) {
+    for (const section of data.sections) {
+      html += renderSection(section);
+    }
+  }
+
+  content.innerHTML = html;
+  renderMermaidDiagrams();
+  attachTableFilters();
+}
+
+function countComponents(data) {
+  if (!data.sections) return 0;
+  for (const s of data.sections) {
+    if (s.type === 'table' && s.title && s.title.toLowerCase().includes('component')) {
+      return s.rows?.length || 0;
+    }
+  }
+  return 0;
+}
+
+function countOverlays(data) {
+  if (!data.sections) return 0;
+  for (const s of data.sections) {
+    if (s.type === 'table' && s.columns) {
+      const overlayCol = s.columns.findIndex(c => c.toLowerCase().includes('overlay'));
+      if (overlayCol >= 0 && s.rows) {
+        return s.rows.filter(r => r[overlayCol] === 'Yes').length;
+      }
+    }
+  }
+  return 0;
+}
+
+function renderSection(s) {
+  let html = '<div class="section">';
+  if (s.title) html += `<h2>${esc(s.title)}</h2>`;
+
+  switch (s.type) {
+    case 'text':
+      html += `<div class="section-text">${renderMarkdownLite(s.body)}</div>`;
+      break;
+
+    case 'config-summary':
+      if (s.body) html += `<p>${esc(s.body)}</p>`;
+      if (s.values?.length) {
+        html += '<table class="config-table"><thead><tr><th>Resource</th><th>Field</th><th>Value</th><th>Rationale</th></tr></thead><tbody>';
+        for (const v of s.values) {
+          html += `<tr><td><code>${esc(v.resource)}</code></td><td><code>${esc(v.field)}</code></td><td><code>${esc(String(v.value))}</code></td><td>${esc(v.rationale)}</td></tr>`;
+        }
+        html += '</tbody></table>';
+      }
+      break;
+
+    case 'diagram':
+      html += `<div class="diagram-container"><pre class="mermaid">${esc(s.mermaid)}</pre></div>`;
+      break;
+
+    case 'table':
+      if (s.columns?.length && s.rows?.length) {
+        // Add wave filter for component tables
+        const waveCol = s.columns.findIndex(c => c.toLowerCase().includes('wave'));
+        const sourceCol = s.columns.findIndex(c => c.toLowerCase().includes('source'));
+        if (waveCol >= 0) {
+          const waves = [...new Set(s.rows.map(r => r[waveCol]))].sort((a, b) => Number(a) - Number(b));
+          html += `<div class="table-filter" data-col="${waveCol}"><button class="active" data-filter="all">All (${s.rows.length})</button>`;
+          for (const w of waves) {
+            const count = s.rows.filter(r => r[waveCol] === w).length;
+            html += `<button data-filter="${esc(String(w))}">Wave ${esc(String(w))} (${count})</button>`;
+          }
+          if (sourceCol >= 0) {
+            const sources = [...new Set(s.rows.map(r => r[sourceCol]))];
+            for (const src of sources) {
+              const count = s.rows.filter(r => r[sourceCol] === src).length;
+              html += `<button data-filter-src="${esc(src)}">⏐ ${esc(src)} (${count})</button>`;
+            }
+          }
+          html += '</div>';
+        }
+
+        html += '<table class="data-table"><thead><tr>';
+        for (const col of s.columns) html += `<th>${esc(col)}</th>`;
+        html += '</tr></thead><tbody>';
+        for (const row of s.rows) {
+          html += `<tr data-wave="${esc(String(row[waveCol] || ''))}" data-src="${esc(String(row[sourceCol] || ''))}">`;
+          for (let i = 0; i < row.length; i++) {
+            const cell = String(row[i]);
+            let cls = '';
+            if (s.columns[i]?.toLowerCase().includes('wave')) cls = ' class="wave"';
+            else if (cell === 'Yes') cls = ' class="yes"';
+            else if (cell === 'No') cls = ' class="no"';
+            html += `<td${cls}>${esc(cell)}</td>`;
+          }
+          html += '</tr>';
+        }
+        html += '</tbody></table>';
+      }
+      break;
+  }
+
+  html += '</div>';
+  return html;
+}
+
+function attachTableFilters() {
+  document.querySelectorAll('.table-filter').forEach(filterBar => {
+    const table = filterBar.nextElementSibling;
+    if (!table) return;
+    filterBar.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBar.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const waveFilter = btn.dataset.filter;
+        const srcFilter = btn.dataset.filterSrc;
+        table.querySelectorAll('tbody tr').forEach(row => {
+          if (waveFilter === 'all') { row.style.display = ''; return; }
+          if (waveFilter) { row.style.display = row.dataset.wave === waveFilter ? '' : 'none'; return; }
+          if (srcFilter) { row.style.display = row.dataset.src === srcFilter ? '' : 'none'; return; }
+        });
+      });
+    });
+  });
+}
+
+async function renderMermaidDiagrams() {
+  const els = document.querySelectorAll('.mermaid');
+  for (let i = 0; i < els.length; i++) {
+    const el = els[i];
+    const src = el.textContent;
+    try {
+      const { svg } = await mermaid.render(`mermaid-${i}`, src);
+      el.outerHTML = `<div class="mermaid-rendered">${svg}</div>`;
+    } catch (err) {
+      el.outerHTML = `<pre style="color:var(--warn)">Diagram render error: ${esc(err.message)}\n\n${esc(src)}</pre>`;
+    }
+  }
+}
+
+function renderMarkdownLite(text) {
+  if (!text) return '';
+  const blocks = text.split(/\n\n+/);
+  let html = '';
+  for (const block of blocks) {
+    const lines = block.split('\n');
+    if (lines.every(l => l.startsWith('- '))) {
+      html += '<ul>';
+      for (const line of lines) {
+        html += `<li>${inlineFmt(line.slice(2))}</li>`;
+      }
+      html += '</ul>';
+    } else if (lines[0] && lines[0].startsWith('- ')) {
+      const proseLines = [];
+      const listLines = [];
+      let inList = false;
+      for (const line of lines) {
+        if (line.startsWith('- ')) { inList = true; listLines.push(line.slice(2)); }
+        else if (!inList) { proseLines.push(line); }
+        else { listLines[listLines.length - 1] += ' ' + line; }
+      }
+      if (proseLines.length) html += `<p>${inlineFmt(proseLines.join(' '))}</p>`;
+      html += '<ul>';
+      for (const item of listLines) html += `<li>${inlineFmt(item)}</li>`;
+      html += '</ul>';
+    } else {
+      const trimmed = block.replace(/\n/g, ' ');
+      if (trimmed.startsWith('### ')) {
+        html += `<h3>${inlineFmt(trimmed.slice(4))}</h3>`;
+      } else {
+        html += `<p>${inlineFmt(trimmed)}</p>`;
+      }
+    }
+  }
+  return html;
+}
+
+function inlineFmt(s) {
+  let out = esc(s);
+  out = out.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  out = out.replace(/`([^`]+)`/g, '<code style="font-family:var(--mono);font-size:0.85em;background:var(--surface-alt);padding:0.1em 0.3em;border-radius:3px">$1</code>');
+  out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+  return out;
+}
+
+function esc(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

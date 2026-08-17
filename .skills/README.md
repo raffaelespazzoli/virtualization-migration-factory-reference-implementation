@@ -9,9 +9,9 @@ AI-assisted workflows for managing an OpenShift GitOps fleet — cluster provisi
 | `fleet-add-capability` | "add capability", "add operator", "new component" | Add a new operator, helm chart, or raw-manifest component to the fleet |
 | `fleet-add-cluster` | "add cluster", "new cluster", "onboard cluster" | Walk through adding a new bare-metal managed cluster to the fleet |
 | `fleet-add-node` | "add node", "new node", "expand cluster" | Add a bare-metal node to an existing cluster |
-| `fleet-cluster-lld` | "generate LLD", "design document", "cluster LLD" | Generate a customer-facing Low-Level Design document for a cluster |
-| `fleet-explain-cluster` | "explain cluster", "what does this cluster run" | Summarize a cluster's full configuration and component stack |
-| `fleet-explain-component` | "explain component", "what does X do" | Explain what a component does and generate its readme |
+| `fleet-cluster-lld` | "generate LLD", "design document", "cluster LLD" | Generate a structured LLD JSON for a cluster, viewable in the LLD viewer |
+| `fleet-explain-cluster` | "explain cluster", "what does this cluster run" | Generate a structured cluster summary JSON, viewable in the cluster viewer |
+| `fleet-explain-component` | "explain component", "what does X do" | Generate a structured component JSON, viewable in the component viewer |
 
 ## Shared Library
 
@@ -27,7 +27,6 @@ AI-assisted workflows for managing an OpenShift GitOps fleet — cluster provisi
 
 - Python 3.11+
 - `uv` (for `fleet-cluster-lld` script execution)
-- `pandoc` + `weasyprint` (optional, for PDF export from `fleet-cluster-lld`)
 
 ## Installation in Another Repo
 

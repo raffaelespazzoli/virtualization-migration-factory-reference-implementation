@@ -5,9 +5,9 @@ description: "Generate a customer-facing Low-Level Design document for a fleet c
 
 ## Overview
 
-Produce a complete, customer-facing Low-Level Design (LLD) document for a cluster in the virtualization-migration-factory GitOps fleet. The document covers architecture, compute, networking, storage, operators, observability, authentication, upgrades, and design decisions — all extracted from the GitOps repository configuration. Output is a structured markdown file with an option to export as PDF.
+Produce a complete, customer-facing Low-Level Design (LLD) for a cluster in the virtualization-migration-factory GitOps fleet. The document covers architecture, compute, networking, storage, operators, observability, authentication, upgrades, and design decisions — all extracted from the GitOps repository configuration. The output is a structured JSON file conforming to the LLD schema, viewable through the fleet LLD viewer.
 
-**Args:** `<cluster-name>` — as it appears in `clusters/`. Optional `--output <path>` to specify output location (default: `_bmad-output/lld/<cluster-name>-lld.md`). Optional `--headless` to write directly without confirmation and return a status JSON.
+**Args:** `<cluster-name>` — as it appears in `clusters/`. Optional `--headless` to write directly without confirmation and return a status JSON.
 
 ## Resolution rules
 
@@ -26,24 +26,38 @@ Produce a complete, customer-facing Low-Level Design (LLD) document for a cluste
 
 4. For each component that has a `readme.md` (from the data's `has_readme` field), read it to enrich the component descriptions.
 
-## Document Composition
+## Build the JSON Output
 
-With the gathered data and section guidance loaded, compose the LLD using `assets/lld-template.md` as the structural scaffold, filling each section per the guidance in `references/lld-sections.md`. Web-search for current Red Hat documentation links using the OCP version from the ClusterVersion channel.
+Produce a JSON file at `{project-root}/clusters/<cluster-name>/<cluster-name>-lld.json` conforming to the schema at `{fleet-common}/assets/lld-schema.json`. The structure has:
 
-**Post-composition review:** Before presenting, scan the composed document to verify: (1) all sections are populated with real data (no placeholder braces remain), (2) table row counts match the source JSON, (3) Mermaid fences are well-formed. Fix any issues inline.
+- **Metadata:** cluster name, title, generation timestamp, OCP version, role (hub/managed).
+- **Sections** (array, rendered in order):
+  - `type: "text"` — titled prose paragraphs (executive summary, architecture overview, design decisions, etc.)
+  - `type: "diagram"` — Mermaid diagrams (architecture, network topology, deployment sequence)
+  - `type: "table"` — structured data (compute inventory, operator stack, storage configuration, etc.)
+  - `type: "config-summary"` — ties configuration values to upstream documentation with rationale
 
-## Output
+With the gathered data and section guidance loaded, compose the LLD sections per the guidance in `references/lld-sections.md`. Web-search for current Red Hat documentation links using the OCP version from the ClusterVersion channel.
 
-Write the LLD markdown to `{project-root}/_bmad-output/lld/<cluster-name>-lld.md` (or user-specified path). Also persist the gathered data as `{project-root}/_bmad-output/lld/<cluster-name>-lld.json` for programmatic consumption by other skills.
+**Diagram placement:** Place architecture and sequence diagrams immediately after the introductory/overview sections so the reader gets the high-level picture before detailed configuration tables.
 
-Present a summary: section count, word count, and output paths. Then offer:
+**Post-composition review:** Before writing, scan the composed JSON to verify: (1) all sections are populated with real data (no placeholder braces remain), (2) table row counts match the source data, (3) Mermaid strings are well-formed. Fix any issues inline.
 
-- **Export as PDF** — run `{skill-root}/scripts/export_pdf.sh <markdown-path>` which uses pandoc + weasyprint. If not installed, provide: `sudo dnf install pandoc && uv tool install weasyprint`.
-- **Adjust sections** — rewrite or expand specific sections on request.
+## Validate and Write
 
-**Headless mode (`--headless`):** Skip all interaction. Write both files and return:
+1. Validate the JSON with `python {fleet-common}/scripts/validate_component_json.py {project-root}/clusters/<cluster-name>/<cluster-name>-lld.json --schema {fleet-common}/assets/lld-schema.json`. Fix any schema violations before proceeding.
+
+2. Present a brief chat summary: section count and output path. Then provide the viewer link:
+
+```
+Open [lld-viewer.html]({fleet-common}/assets/lld-viewer.html) and load `clusters/<cluster-name>/<cluster-name>-lld.json`.
+```
+
+Then offer to adjust sections — rewrite or expand specific sections on request.
+
+**Headless mode (`--headless`):** Skip all interaction. Write the JSON and return:
 ```json
-{"status": "complete", "markdown": "<path>", "json": "<path>", "sections": 15, "gaps": []}
+{"status": "complete", "json": "clusters/<cluster-name>/<cluster-name>-lld.json", "sections": 15, "gaps": []}
 ```
 
 ## Gotchas
@@ -54,4 +68,3 @@ Present a summary: section count, word count, and output paths. Then offer:
 - Some operator names don't match their component directory (e.g., `openshift-virtualization` in values.yaml points to `components/openshift-virtualization-operator`). Use the values.yaml name as the application name and note the component path.
 - Secrets visible in the repo (like the Trident ontap-san-secret) should be noted as "credentials managed via sealed secret / GitOps" — do not reproduce credential values in the LLD.
 - NMState configs can be complex. Summarize the topology (bonding mode, VLANs, purpose) rather than reproducing every line.
-- The `render_mermaid.py` script depends on the external mermaid.ink service. If unreachable (air-gapped, proxy), diagrams remain as code blocks in the PDF. For offline rendering, install `mmdc`: `npm install -g @mermaid-js/mermaid-cli`.

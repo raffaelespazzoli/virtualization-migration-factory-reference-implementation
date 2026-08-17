@@ -1,0 +1,255 @@
+{
+  "metadata": {
+    "cluster_name": "etl7",
+    "title": "Low-Level Design — etl7 OpenShift Cluster",
+    "generated": "2026-08-17T09:38:00Z",
+    "ocp_version": "4.22 (stable-4.22)",
+    "role": "managed",
+    "generator": "fleet-cluster-lld skill"
+  },
+  "sections": [
+    {
+      "id": "executive-summary",
+      "title": "Executive Summary",
+      "type": "text",
+      "content": "The **etl7** cluster is a three-node compact OpenShift Container Platform 4.22 cluster operating as a managed cluster within the virtualization-migration-factory fleet. It is governed by Red Hat Advanced Cluster Management (ACM) from the central hub cluster and receives its entire configuration through a GitOps delivery model powered by ArgoCD.\n\nThe cluster is built on HPE ProLiant DL380 Gen9 bare-metal servers provisioned via the ACM agent-based installer using Redfish virtual media. All three nodes serve the combined control-plane and worker role, forming a converged topology optimized for virtualization workloads. OpenShift Virtualization (KubeVirt) is the primary workload platform, backed by NetApp ONTAP SAN block storage delivered through the Astra Trident CSI driver.\n\nThe cluster deploys 40 ArgoCD-managed components across four sync-wave tiers, including 13 operators managed via ACM OperatorPolicy. Key capabilities include: OpenShift Virtualization for VM hosting, MetalLB for bare-metal load balancing, a full observability stack (Loki, Grafana, Tempo, Network Observability, OpenTelemetry), cert-manager for automated TLS certificate management, Kyverno for policy enforcement, and NMState for declarative network configuration. All operator lifecycle management, upgrades, and configuration drift reconciliation are handled declaratively through the GitOps repository."
+    },
+    {
+      "id": "multi-cluster-architecture",
+      "title": "Multi-Cluster Architecture",
+      "type": "text",
+      "content": "The etl7 cluster operates within a four-cluster fleet managed through a hub-and-spoke topology. The hub cluster runs ACM and ArgoCD, serving as the central management plane for all managed clusters. Each managed cluster receives its configuration via ArgoCD Applications rendered from a shared GitOps repository, with cluster-specific customizations applied through Kustomize overlays.\n\n**Fleet composition:**\n- **hub** — Central management cluster running ACM, ArgoCD, and provisioning infrastructure. Member of the `all` group.\n- **etl4** — Managed production cluster on Lenovo x240 M5 hardware (3 nodes). Member of `all` and `prod` groups.\n- **etl6** — Managed production cluster on HPE DL380 Gen9 hardware (3 nodes). Member of `all` and `prod` groups.\n- **etl7** — This cluster. Managed production cluster on HPE DL380 Gen9 hardware (3 nodes). Member of `all` and `prod` groups.\n\nAll managed clusters share the same `all` and `prod` group memberships, inheriting a common operator stack and observability configuration. Cluster-specific differences are limited to network addressing, storage SVM assignments, and MetalLB IP pool allocations."
+    },
+    {
+      "id": "multi-cluster-diagram",
+      "title": "Fleet Topology",
+      "type": "diagram",
+      "diagram_type": "mermaid",
+      "content": "graph TD\n    HUB[\"hub\\nACM + ArgoCD\\nGroups: all\"]\n    ETL4[\"etl4\\n3x Lenovo x240 M5\\nGroups: all, prod\"]\n    ETL6[\"etl6\\n3x HPE DL380 Gen9\\nGroups: all, prod\"]\n    ETL7[\"etl7\\n3x HPE DL380 Gen9\\nGroups: all, prod\"]\n\n    HUB -->|\"ACM Policy\\n+ GitOps\"| ETL4\n    HUB -->|\"ACM Policy\\n+ GitOps\"| ETL6\n    HUB -->|\"ACM Policy\\n+ GitOps\"| ETL7\n\n    style ETL7 fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px"
+    },
+    {
+      "id": "cluster-identity",
+      "title": "Cluster Identity",
+      "type": "table",
+      "columns": ["Property", "Value"],
+      "rows": [
+        ["Cluster Name", "etl7"],
+        ["Domain", "etl7.ocp.rht-labs.com"],
+        ["Role", "Managed (ACM-governed)"],
+        ["OCP Version Channel", "stable-4.22"],
+        ["Git Version Pin", "main"],
+        ["Group Membership", "all, prod"],
+        ["Node Count", "3 (compact / converged)"],
+        ["Total Components", "40"],
+        ["Total Operators", "13"]
+      ]
+    },
+    {
+      "id": "cluster-identity-groups",
+      "title": "Group Contributions",
+      "type": "text",
+      "content": "**Group `all`** provides base infrastructure components shared by every cluster in the fleet: OpenShift GitOps (ArgoCD), cert-manager, external-dns, MetalLB, NMState, Trident storage, Loki logging, MinIO (object storage for Loki), cluster-observability-operator, and kube-ops-view.\n\n**Group `prod`** adds production-grade capabilities on top of `all`: OpenShift Virtualization (KubeVirt + HyperConverged), Kyverno policy engine, descheduler for pod rebalancing, node health check for automated remediation, network observability (NetObserv), Grafana dashboards, Tempo distributed tracing, OpenTelemetry collection, and ScyllaDB."
+    },
+    {
+      "id": "compute-inventory",
+      "title": "Compute & Node Inventory",
+      "type": "table",
+      "columns": ["Hostname", "FQDN", "Role", "Hardware", "BMC Address", "Boot MAC", "Status"],
+      "rows": [
+        ["dl380g9-8", "dl380g9-8.etl7.ocp.rht-labs.com", "master", "HPE ProLiant DL380 Gen9", "redfish://10.9.48.218/redfish/v1/Systems/1/", "00:11:0a:6b:b5:40", "Online"],
+        ["dl380g9-9", "dl380g9-9.etl7.ocp.rht-labs.com", "master", "HPE ProLiant DL380 Gen9", "redfish://10.9.48.219/redfish/v1/Systems/1/", "00:11:0a:6a:65:b8", "Online"],
+        ["dl380g9-10", "dl380g9-10.etl7.ocp.rht-labs.com", "master", "HPE ProLiant DL380 Gen9", "redfish://10.9.48.220/redfish/v1/Systems/1/", "00:11:0a:68:06:4c", "Online"]
+      ]
+    },
+    {
+      "id": "compute-notes",
+      "title": "Compute Topology Notes",
+      "type": "text",
+      "content": "This is a **compact (converged) three-node cluster** where all nodes carry both the `master` and `worker` roles. The control plane is schedulable, meaning virtualization workloads and operators run on the same nodes that host the Kubernetes API server, etcd, and scheduler. This topology is common for edge and lab deployments where dedicated worker nodes are not required.\n\nEach server is an HPE ProLiant DL380 Gen9 with dual-port 10GbE NICs (ens2f0/ens2f1) used for production traffic via LACP bonding, plus four onboard 1GbE ports (eno1–eno4) that are administratively down. Each node has a dedicated Redfish-capable iLO BMC for out-of-band management."
+    },
+    {
+      "id": "networking-install",
+      "title": "Installation Network Configuration",
+      "type": "text",
+      "content": "### Bond Configuration\nAll nodes use **IEEE 802.3ad (LACP) link aggregation** with a 100ms MII monitoring interval. The bond (`bond0`) aggregates two 10GbE ports (`ens2f0` and `ens2f1`), providing redundancy and increased throughput for all cluster traffic.\n\n### VLAN Assignments\nTwo VLANs are trunked over the bond:\n\n- **VLAN 2531** (`bond0.2531`) — Control plane and API network. Subnet: `10.9.53.0/25`. Default gateway: `10.9.53.1`. This VLAN carries all Kubernetes API, etcd, and cluster management traffic.\n- **VLAN 3531** (`bond0.3531`) — Storage network. Subnet: `192.168.53.0/25`. Dedicated to iSCSI traffic between nodes and the NetApp ONTAP storage array.\n\n### DNS Configuration\nAll nodes use two DNS servers: `10.9.48.31` and `10.9.48.32`.\n\n### IPv6\nIPv6 is disabled on all interfaces. The cluster operates as a single-stack IPv4 deployment."
+    },
+    {
+      "id": "networking-ip-table",
+      "title": "Node IP Address Assignments",
+      "type": "table",
+      "columns": ["Node", "VLAN 2531 (Control Plane)", "VLAN 3531 (Storage)"],
+      "rows": [
+        ["dl380g9-8", "10.9.53.18/25", "192.168.53.18/25"],
+        ["dl380g9-9", "10.9.53.19/25", "192.168.53.19/25"],
+        ["dl380g9-10", "10.9.53.20/25", "192.168.53.20/25"]
+      ]
+    },
+    {
+      "id": "networking-day2",
+      "title": "Day-2 Network Configuration",
+      "type": "text",
+      "content": "### OVS Bridge for VM Traffic\nA dedicated Open vSwitch bridge (`ovs-br1`) is configured via NMState NodeNetworkConfigurationPolicy (NNCP) on all worker-role nodes. This bridge attaches to the physical `bond0` interface and provides trunk access for VM network segments.\n\n**Bridge properties:**\n- Name: `ovs-br1`\n- Uplink: `bond0`\n- STP: Disabled (flat L2 topology, loops prevented at switch layer)\n- Extra patch ports: Allowed (for OVN integration)\n\n### OVN Bridge Mappings (localnet)\nThree OVN localnet mappings connect OpenShift SDN to physical VLANs through `ovs-br1`:\n\n| Localnet Name | Bridge | VLAN Purpose |\n|---|---|---|\n| `vlan-2522` | ovs-br1 | VM workload network |\n| `vlan-2901` | ovs-br1 | VM workload network |\n| `vlan-2911` | ovs-br1 | VM workload network |\n\nThese mappings enable VMs running under OpenShift Virtualization to attach directly to physical VLANs via NetworkAttachmentDefinitions (NADs), providing L2 connectivity to external networks without NAT.\n\n### MetalLB Load Balancer\nMetalLB is configured in Layer 2 mode with a single IP address pool:\n- **Pool name:** main-pool\n- **Address range:** `10.9.53.32/28` (16 addresses: 10.9.53.32–10.9.53.47)\n- **Auto-assign:** Enabled\n\nThis pool provides external IP addresses for LoadBalancer-type Services, including the OpenShift Router/Ingress, console, and any user-facing services."
+    },
+    {
+      "id": "networking-diagram",
+      "title": "Network Topology",
+      "type": "diagram",
+      "diagram_type": "mermaid",
+      "content": "graph LR\n    subgraph \"Physical NICs\"\n        E0[\"ens2f0\\n10GbE\"]\n        E1[\"ens2f1\\n10GbE\"]\n    end\n\n    subgraph \"Bond\"\n        B0[\"bond0\\n802.3ad LACP\"]\n    end\n\n    subgraph \"VLANs\"\n        V2531[\"VLAN 2531\\nControl Plane\\n10.9.53.0/25\"]\n        V3531[\"VLAN 3531\\nStorage\\n192.168.53.0/25\"]\n    end\n\n    subgraph \"OVS Bridge (Day-2)\"\n        OVS[\"ovs-br1\"]\n    end\n\n    subgraph \"VM Localnets\"\n        L2522[\"vlan-2522\"]\n        L2901[\"vlan-2901\"]\n        L2911[\"vlan-2911\"]\n    end\n\n    E0 --> B0\n    E1 --> B0\n    B0 --> V2531\n    B0 --> V3531\n    B0 --> OVS\n    OVS --> L2522\n    OVS --> L2901\n    OVS --> L2911"
+    },
+    {
+      "id": "storage",
+      "title": "Storage Configuration",
+      "type": "text",
+      "content": "### Storage Backend\nThe cluster uses **NetApp ONTAP SAN** block storage delivered through the **Astra Trident CSI driver**. The Trident operator is deployed from the `certified-operators` catalog starting at version v25.6.1 with automatic upgrades enabled.\n\n**Backend Configuration (TridentBackendConfig):**\n- Driver: `ontap-san` (iSCSI block protocol)\n- Management LIF: `netapp.etl.rht-labs.com`\n- SVM: `ocp_e7` (dedicated Storage Virtual Machine for this cluster)\n- Credentials: Managed via sealed secret / GitOps (not stored in cleartext)\n\niSCSI traffic traverses VLAN 3531 (`192.168.53.0/25`), providing network isolation between storage and control-plane traffic."
+    },
+    {
+      "id": "storage-table",
+      "title": "StorageClass Configuration",
+      "type": "table",
+      "columns": ["StorageClass", "Provisioner", "Backend Type", "Reclaim Policy", "Volume Expansion", "Default Virt Class"],
+      "rows": [
+        ["ontap-san", "csi.trident.netapp.io", "ontap-san", "Delete", "Yes", "Yes"]
+      ]
+    },
+    {
+      "id": "storage-notes",
+      "title": "Storage Design Notes",
+      "type": "text",
+      "content": "The `ontap-san` StorageClass is marked as the default virtualization storage class (`storageclass.kubevirt.io/is-default-virt-class: true`), meaning OpenShift Virtualization will automatically use it for VM disk provisioning. The ONTAP SAN driver provides iSCSI block volumes with thin provisioning.\n\nFor VM live migration, RWX (ReadWriteMany) access mode is required. The `ontap-san` driver supports RWX through SCSI-3 persistent reservations when using iSCSI multipath, enabling non-disruptive VM migration between nodes during maintenance windows or descheduler rebalancing."
+    },
+    {
+      "id": "installation-method",
+      "title": "Installation Method",
+      "type": "text",
+      "content": "### ACM Agent-Based Installation\nThe etl7 cluster was provisioned from the hub cluster using the **ACM agent-based installer**. This method uses the following workflow:\n\n1. **BareMetalHost CRs** are created on the hub cluster, each specifying the node's BMC address (Redfish endpoint), boot MAC address, and network configuration.\n2. **NMState configs** define per-node network bonding, VLAN, and IP assignments applied during the discovery phase.\n3. **InfraEnv** and **AgentClusterInstall** CRs (rendered by the `bm-cluster-agent-install` Helm chart) orchestrate the boot image generation and installation flow.\n4. Nodes boot via **Redfish virtual media** (not PXE), pulling the discovery ISO directly through the BMC's iLO interface.\n5. Once discovered, the agent installer configures the nodes, installs RHCOS, and bootstraps the OpenShift cluster.\n\n**BMC Protocol:** Redfish (`redfish://` endpoints on the 10.9.48.218–220 management network)\n**Boot Method:** Virtual media via iLO Redfish API\n\nAfter installation, the cluster is registered to ACM via the `cluster-registration` Helm chart, which assigns labels and cluster-set membership for policy-based governance."
+    },
+    {
+      "id": "operator-stack",
+      "title": "Operator Stack",
+      "type": "table",
+      "columns": ["Operator", "Package", "Channel", "Source", "Namespace", "Wave", "Pinned CSV", "Upgrade"],
+      "rows": [
+        ["cert-manager", "openshift-cert-manager-operator", "stable-v1", "redhat-operators", "cert-manager", "5", "v1.17.0", "Automatic"],
+        ["cluster-observability", "cluster-observability-operator", "stable", "redhat-operators", "openshift-operators", "5", "v1.0.0", "Automatic"],
+        ["descheduler", "cluster-kube-descheduler-operator", "stable", "redhat-operators", "openshift-kube-descheduler-operator", "5", "v5.1.1", "Automatic"],
+        ["external-dns", "external-dns-operator", "stable-v1", "redhat-operators", "external-dns-operator", "5", "v1.3.0", "Automatic"],
+        ["loki", "loki-operator", "stable-6.6", "redhat-operators", "openshift-loki-operator", "5", "v6.3.0", "Automatic"],
+        ["metallb", "metallb-operator", "stable", "redhat-operators", "metallb-system", "5", "v4.20.0", "Automatic"],
+        ["network-observability", "netobserv-operator", "stable", "redhat-operators", "openshift-netobserv-operator", "5", "v1.12.0", "Automatic"],
+        ["nmstate", "kubernetes-nmstate-operator", "stable", "redhat-operators", "openshift-nmstate", "5", "v4.19.0", "Automatic"],
+        ["openshift-gitops", "openshift-gitops-operator", "latest", "redhat-operators", "openshift-gitops-operator", "5", "v1.20.4", "Automatic"],
+        ["openshift-logging", "cluster-logging", "stable-6.6", "redhat-operators", "openshift-logging", "5", "v6.3.0", "Automatic"],
+        ["openshift-virtualization", "kubevirt-hyperconverged", "stable", "redhat-operators", "openshift-cnv", "5", "v4.20.11", "Automatic"],
+        ["scylladb", "scylladb-operator", "stable", "certified-operators", "scylladb", "5", "v1.20.2", "Automatic"],
+        ["trident", "trident-operator", "stable", "certified-operators", "netapp-trident", "5", "v25.6.1", "Automatic"]
+      ]
+    },
+    {
+      "id": "operator-notes",
+      "title": "Operator Lifecycle Management",
+      "type": "text",
+      "content": "All operators are deployed via **ACM OperatorPolicy** — a policy-based lifecycle mechanism that replaces traditional OLM Subscriptions. This approach provides several advantages:\n\n- **Centralized governance:** Operator installations and upgrades are controlled from the hub cluster through ACM policies, ensuring consistency across the fleet.\n- **Version pinning with approved lists:** Each operator specifies a `startingCSV` (minimum version) and a list of approved versions. The `Automatic` upgrade approval allows OLM to upgrade within the approved version list without manual intervention.\n- **Drift remediation:** If an operator is manually modified or deleted, the ACM policy engine automatically restores it to the declared state.\n\n**Catalog sources:**\n- `redhat-operators` — Red Hat certified operators (11 operators)\n- `certified-operators` — ISV certified operators: NetApp Trident, ScyllaDB (2 operators)"
+    },
+    {
+      "id": "observability",
+      "title": "Observability Stack",
+      "type": "text",
+      "content": "The etl7 cluster deploys a comprehensive observability stack spanning metrics, logs, traces, and network flows:\n\n### Metrics\n- **Cluster Observability Operator** — Provides the base monitoring and alerting pipeline.\n- **User Workload Monitoring** — Enabled via `cluster-monitoring-config` ConfigMap, allowing custom application metrics collection.\n- **Grafana** — Deployed via the Grafana Operator for custom dashboards beyond the built-in OCP console dashboards.\n\n### Logging\n- **OpenShift Logging Operator** (cluster-logging v6.3.0+) — Collects container and node logs.\n- **Loki Operator** (v6.3.0+) — Log storage and query backend, replacing the deprecated Elasticsearch stack.\n- **MinIO** — Object storage backend for Loki log retention.\n- **Loki Logging Configuration** — Connects the logging pipeline to the Loki instance.\n\n### Tracing\n- **Tempo Operator** — Distributed tracing backend for OpenTelemetry-compatible trace data.\n- **OpenTelemetry Operator + Configuration** — Deploys OpenTelemetry collectors for trace and telemetry data collection.\n\n### Network Observability\n- **Network Observability Operator** (NetObserv v1.12.0) — Provides eBPF-based network flow collection, topology visualization, and DNS tracking through the OCP console.\n\n### Monitoring Configuration\nCustom monitoring configuration is applied via the `cluster-monitoring-config` ConfigMap in the `openshift-monitoring` namespace, enabling user workload monitoring and configuring retention policies."
+    },
+    {
+      "id": "authentication",
+      "title": "Authentication & Authorization",
+      "type": "text",
+      "content": "### Identity Providers\nThe cluster is configured with a single identity provider:\n- **HTPasswd** — File-based authentication using the `htpass-secret` Secret in the `openshift-config` namespace.\n\nThis is typically an interim or lab configuration. For production deployments handling sensitive VM workloads, integrating with an enterprise identity provider (OIDC, LDAP, or Active Directory) is recommended for centralized user lifecycle management, MFA support, and audit compliance.\n\n### Console Customization\nThe OpenShift Console is patched via `console-patch.yaml` to apply cluster-specific branding or configuration.\n\n### Network Policy\nThe `network-patch.yaml` applies cluster-wide network configuration, and Kyverno is deployed for policy enforcement across namespaces."
+    },
+    {
+      "id": "cluster-upgrades",
+      "title": "Cluster Upgrades",
+      "type": "text",
+      "content": "### OCP Platform Upgrades\nThe cluster tracks the **stable-4.22** update channel, which provides production-grade releases that have passed extended testing. The `stable` channel is the recommended choice for production workloads, offering a balance between timely updates and stability.\n\n### Operator Upgrades\nAll 13 operators are configured with **Automatic** upgrade approval. When a new version appears in the operator's approved version list, OLM will install it without manual intervention. The version lists in each OperatorPolicy define the upgrade boundary — operators cannot upgrade beyond the highest approved version.\n\n### Recommended Upgrade Procedure\n1. **Control plane first:** Upgrade the OCP platform version via the ClusterVersion channel.\n2. **Operator compatibility:** After platform upgrade, verify operator compatibility matrices and update `startingCSV` and version lists in the GitOps repository as needed.\n3. **Workload validation:** Confirm VM workloads are running and live migration is functional after upgrades.\n4. **Fleet coordination:** Stage upgrades across the fleet (etl7 → etl6 → etl4) to validate changes before rolling to all clusters."
+    },
+    {
+      "id": "component-deployment-sequence",
+      "title": "Component Deployment Sequence",
+      "type": "table",
+      "columns": ["Component", "Wave", "Source", "Has Overlay", "Purpose"],
+      "rows": [
+        ["cert-manager-operator", "5", "group:all", "No", "TLS certificate operator (OperatorPolicy)"],
+        ["cluster-observability-operator", "5", "group:all", "No", "Monitoring and alerting operator"],
+        ["descheduler-operator", "5", "group:prod", "No", "Pod rebalancing operator"],
+        ["external-dns-operator", "5", "group:all", "No", "DNS record management operator"],
+        ["kyverno-operator", "5", "group:prod", "No", "Policy engine operator"],
+        ["loki-operator", "5", "group:all", "No", "Log storage operator"],
+        ["metallb-operator", "5", "group:all", "No", "Bare-metal load balancer operator"],
+        ["minio-operator", "5", "group:all", "No", "Object storage operator (Loki backend)"],
+        ["network-observability-operator", "5", "group:prod", "No", "eBPF network flow collection operator"],
+        ["nmstate-operator", "5", "group:all", "No", "Declarative network configuration operator"],
+        ["node-health-check-operator", "5", "group:prod", "No", "Automated node remediation operator"],
+        ["openshift-gitops-operator", "5", "group:all", "No", "ArgoCD GitOps operator"],
+        ["openshift-grafana-operator", "5", "group:prod", "No", "Grafana dashboard operator"],
+        ["openshift-logging-operator", "5", "group:all", "No", "Log collection operator"],
+        ["openshift-tempo-operator", "5", "group:prod", "No", "Distributed tracing operator"],
+        ["openshift-virtualization", "5", "group:prod", "No", "KubeVirt virtualization operator"],
+        ["otel-configuration", "5", "group:prod", "No", "OpenTelemetry collector configuration"],
+        ["otel-operator", "5", "group:prod", "No", "OpenTelemetry operator"],
+        ["scylladb-operator", "5", "group:prod", "No", "ScyllaDB NoSQL database operator"],
+        ["trident-operator", "5", "group:all", "No", "NetApp Trident CSI storage operator"],
+        ["cert-manager-configuration", "6", "group:all", "No", "Let's Encrypt ClusterIssuers and certificates"],
+        ["external-dns-configuration", "6", "group:all", "No", "RFC2136 DNS update configuration"],
+        ["metallb-configuration", "6", "cluster-specific", "Yes", "IP address pool: 10.9.53.32/28"],
+        ["nmstate-instance", "6", "group:all", "No", "NMState CR instance"],
+        ["trident-configuration", "6", "cluster-specific", "Yes", "ONTAP SAN backend: SVM ocp_e7"],
+        ["trident-instance", "6", "group:all", "No", "Trident orchestrator CR"],
+        ["cluster-observability-configuration", "15", "group:prod", "No", "Monitoring stack configuration"],
+        ["descheduler-configuration", "15", "group:prod", "No", "Descheduler profiles and policies"],
+        ["hyperconverged-instance", "15", "group:prod", "No", "OpenShift Virtualization HyperConverged CR"],
+        ["kube-ops-view", "15", "group:all", "No", "Cluster operations dashboard"],
+        ["kyverno-configuration", "15", "group:prod", "No", "Kyverno policy rules"],
+        ["loki-logging-configuration", "15", "group:all", "No", "Loki log pipeline configuration"],
+        ["network-observability-configuration", "15", "group:prod", "No", "FlowCollector and console plugin config"],
+        ["nmstate-configuration", "15", "cluster-specific", "Yes", "OVS bridge, OVN bridge-mappings, NADs"],
+        ["node-health-check-configuration", "15", "group:prod", "No", "Node health check remediation rules"],
+        ["openshift-gitops-configuration", "15", "group:all", "No", "ArgoCD instance configuration"],
+        ["openshift-logging-configuration", "15", "group:all", "No", "ClusterLogForwarder pipeline config"],
+        ["openshift-tempo-instance", "15", "group:prod", "No", "TempoStack distributed tracing instance"],
+        ["user-workload-grafana-instance", "15", "group:prod", "No", "Grafana instance for user dashboards"],
+        ["openshift-config", "16", "cluster-specific", "Yes", "OAuth, console, monitoring, network patches"],
+        ["soteria", "25", "cluster-specific", "No", "Backup and recovery application"]
+      ]
+    },
+    {
+      "id": "deployment-sequence-diagram",
+      "title": "Deployment Wave Sequence",
+      "type": "diagram",
+      "diagram_type": "mermaid",
+      "content": "graph TD\n    W5[\"Wave 5: Operators\\n20 components\\ncert-manager, virtualization,\\ntrident, metallb, nmstate,\\nloki, gitops, kyverno...\"]\n    W6[\"Wave 6: Early Dependencies\\n6 components\\ncert-manager-config, external-dns-config,\\nmetallb-config, nmstate-instance,\\ntrident-config, trident-instance\"]\n    W15[\"Wave 15: Instances & Configuration\\n13 components\\nhyperconverged-instance,\\nobservability configs,\\nnmstate-config, kyverno-config...\"]\n    W16[\"Wave 16: Platform Config\\n1 component\\nopenshift-config\"]\n    W25[\"Wave 25: Applications\\n1 component\\nsoteria\"]\n\n    W5 --> W6\n    W6 --> W15\n    W15 --> W16\n    W16 --> W25"
+    },
+    {
+      "id": "design-decisions",
+      "title": "Design Decisions",
+      "type": "table",
+      "columns": ["ID", "Topic", "Decision", "Rationale"],
+      "rows": [
+        ["DD-01", "Cluster Topology", "Compact 3-node converged cluster (masters schedulable)", "Reduces hardware requirements for lab/edge environments while maintaining HA quorum. All three nodes serve both control plane and workload roles. Aligns with Red Hat's supported compact cluster topology for OpenShift Virtualization."],
+        ["DD-02", "Storage Driver", "NetApp ONTAP SAN (iSCSI) via Astra Trident", "Block storage via iSCSI provides consistent low-latency performance for VM disk I/O. The ontap-san driver supports thin provisioning and SCSI-3 persistent reservations for RWX access, enabling VM live migration. A dedicated storage VLAN (3531) isolates iSCSI traffic."],
+        ["DD-03", "Network Bonding", "IEEE 802.3ad LACP with 100ms MII monitoring", "LACP provides active-active link aggregation with switch-negotiated load distribution, maximizing bandwidth utilization for both cluster and VM traffic. The 100ms MII interval enables sub-second failover detection."],
+        ["DD-04", "VM Network Topology", "Dedicated OVS bridge (ovs-br1) with OVN localnet mappings", "Separates VM VLAN traffic from the cluster control plane by routing it through a dedicated OVS bridge. VMs attach directly to physical VLANs via localnet mappings, providing native L2 connectivity without NAT overhead."],
+        ["DD-05", "Load Balancing", "MetalLB Layer 2 mode with /28 pool", "Appropriate for bare-metal environments without external load balancers. The /28 pool provides 16 addresses — sufficient for cluster services (ingress, API) plus user workload services. Layer 2 mode is simple and requires no BGP infrastructure."],
+        ["DD-06", "Authentication", "HTPasswd identity provider", "This appears to be an interim/lab configuration. HTPasswd provides simple file-based authentication suitable for initial setup and testing. For production VM workloads with compliance requirements, migration to OIDC or LDAP is recommended."],
+        ["DD-07", "Upgrade Channel", "stable-4.22", "The stable channel provides the most tested and reliable releases. This is the recommended channel for production clusters running virtualization workloads where stability is prioritized over access to the latest features."],
+        ["DD-08", "Installation Method", "ACM agent-based install via Redfish virtual media", "Agent-based installation eliminates the need for PXE infrastructure and provides fully declarative, reproducible cluster provisioning. Redfish virtual media boot is more reliable than PXE in enterprise data center environments."],
+        ["DD-09", "Operator Lifecycle", "ACM OperatorPolicy with Automatic approval", "Policy-based operator management ensures fleet-wide consistency. Automatic approval within version-bounded lists balances timely security patches with controlled upgrade boundaries. All operators follow the same pattern, simplifying fleet-wide operations."],
+        ["DD-10", "GitOps Model", "ArgoCD app-of-apps with envsubst CMP sidecar", "The app-of-apps pattern scales to dozens of components per cluster. The envsubst sidecar enables environment-specific variable interpolation (cluster name, domain, etc.) without duplicating manifests per cluster."],
+        ["DD-11", "DNS Management", "External-DNS with RFC2136 (TSIG)", "RFC2136 dynamic DNS updates are used because the environment's DNS infrastructure supports this protocol. This is a non-operator-driven deployment since Red Hat does not officially support the RFC2136 provider, though it is functionally stable."],
+        ["DD-12", "Policy Engine", "Kyverno for admission control and policy enforcement", "Kyverno provides Kubernetes-native policy-as-code without requiring a separate policy language (unlike OPA/Gatekeeper). Policies are expressed as Kubernetes resources, aligning with the GitOps delivery model."]
+      ]
+    },
+    {
+      "id": "references",
+      "title": "References",
+      "type": "text",
+      "content": "### Red Hat OpenShift Documentation (4.22)\n- [OpenShift Container Platform 4.22 Documentation](https://docs.redhat.com/en/documentation/openshift_container_platform/4.22)\n- [OpenShift Virtualization](https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/virtualization/index)\n- [MetalLB Operator](https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/networking_operators/metallb-operator)\n- [NMState Operator](https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/networking_operators/kubernetes-nmstate)\n- [cert-manager Operator](https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/security_and_compliance/cert-manager-operator-for-red-hat-openshift)\n- [Cluster Logging (Loki)](https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/logging/index)\n- [Network Observability](https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/network_observability/index)\n- [Cluster Upgrades](https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/updating_clusters/index)\n\n### Red Hat Advanced Cluster Management\n- [ACM Documentation](https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.13)\n- [OperatorPolicy](https://docs.redhat.com/en/documentation/red_hat_advanced_cluster_management_for_kubernetes/2.13/html/governance/operator-policy)\n\n### Storage\n- [NetApp Astra Trident Documentation](https://docs.netapp.com/us-en/trident/index.html)\n- [ONTAP SAN Driver](https://docs.netapp.com/us-en/trident/trident-use/ontap-san.html)\n\n### NMState\n- [NMState YAML API Reference](https://nmstate.io/devel/yaml_api.html)\n\n### Additional\n- [Kyverno Documentation](https://kyverno.io/docs/)\n- [ArgoCD Documentation](https://argo-cd.readthedocs.io/en/stable/)"
+    }
+  ]
+}

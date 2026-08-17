@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fleet Cluster LLD Viewer</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+:root {
+  --bg: #0f1419;
+  --surface: #1a2028;
+  --surface-alt: #222d38;
+  --border: #2d3a47;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #58a6ff;
+  --accent-dim: #1f6feb33;
+  --success: #3fb950;
+  --warn: #d29922;
+  --error: #f85149;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --radius: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  padding: 2rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+h1 { font-size: 2rem; margin-bottom: 0.25rem; }
+h2 { font-size: 1.4rem; margin: 2rem 0 0.75rem; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 0.4rem; }
+h3 { font-size: 1.1rem; margin: 1.25rem 0 0.5rem; color: var(--text); }
+p { margin-bottom: 0.75rem; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.meta-bar {
+  display: flex; flex-wrap: wrap; gap: 0.75rem;
+  margin: 0.75rem 0 1.5rem;
+  font-size: 0.85rem; color: var(--text-muted);
+}
+.meta-bar .chip {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.2rem 0.6rem;
+}
+.meta-bar .chip.role-hub { border-color: var(--warn); color: var(--warn); }
+.meta-bar .chip.role-managed { border-color: var(--success); color: var(--success); }
+.meta-bar .chip.ocp { border-color: #f85149; color: #f85149; }
+
+.toc {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem 1.5rem;
+  margin: 1.5rem 0;
+}
+.toc h3 { margin: 0 0 0.75rem; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.toc-list { list-style: none; columns: 2; column-gap: 2rem; }
+.toc-list li { margin-bottom: 0.4rem; }
+.toc-list a {
+  font-size: 0.9rem; color: var(--text);
+  transition: color 0.15s;
+}
+.toc-list a:hover { color: var(--accent); }
+.toc-list .toc-id {
+  font-family: var(--mono); font-size: 0.75rem;
+  color: var(--text-muted); margin-right: 0.4rem;
+}
+
+.section { margin-bottom: 2rem; scroll-margin-top: 1rem; }
+.section-text { white-space: pre-wrap; }
+.section-text strong { color: var(--text); }
+
+.config-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.9rem; }
+.config-table th, .config-table td {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+.config-table th { background: var(--surface-alt); color: var(--text-muted); font-weight: 600; }
+.config-table td { background: var(--surface); }
+.config-table code { font-family: var(--mono); font-size: 0.8rem; color: var(--success); }
+
+table.data-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.9rem; }
+table.data-table th, table.data-table td {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+table.data-table th { background: var(--surface-alt); font-weight: 600; }
+table.data-table td { background: var(--surface); }
+table.data-table tr:hover td { background: var(--surface-alt); }
+table.data-table td.wave { font-family: var(--mono); font-size: 0.85rem; color: var(--warn); text-align: center; }
+
+.table-search {
+  margin-bottom: 0.5rem;
+}
+.table-search input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.4rem 0.75rem;
+  color: var(--text);
+  font-size: 0.85rem;
+  width: 280px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.table-search input:focus { border-color: var(--accent); }
+.table-search input::placeholder { color: var(--text-muted); }
+
+.diagram-container {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-top: 0.75rem;
+  overflow-x: auto;
+}
+.diagram-container svg { max-width: 100%; height: auto; }
+
+.stats-bar {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem; margin: 1.5rem 0;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  text-align: center;
+}
+.stat-card .value { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+.stat-card .label { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem; }
+
+#drop-zone {
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 3rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+#drop-zone:hover, #drop-zone.dragover { border-color: var(--accent); }
+#drop-zone p { color: var(--text-muted); margin-bottom: 0.5rem; }
+#file-input { display: none; }
+#content { display: none; }
+
+@media print {
+  body { background: #fff; color: #000; max-width: 100%; padding: 0; }
+  :root { --bg: #fff; --surface: #f8f8f8; --surface-alt: #f0f0f0; --border: #ddd; --text: #000; --text-muted: #666; --accent: #0366d6; }
+  .toc { break-inside: avoid; }
+  .section { break-inside: avoid; }
+  #drop-zone { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div id="drop-zone">
+  <p>Drop a cluster LLD JSON file here or click to browse</p>
+  <p style="font-size:0.8rem">Supports files generated by fleet-cluster-lld</p>
+  <input type="file" id="file-input" accept=".json">
+</div>
+
+<div id="content"></div>
+
+<script>
+mermaid.initialize({ startOnLoad: false, theme: 'dark', themeVariables: { primaryColor: '#1f6feb', primaryTextColor: '#e6edf3', lineColor: '#58a6ff', secondaryColor: '#222d38' }});
+
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+const content = document.getElementById('content');
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) loadFile(file);
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+
+const params = new URLSearchParams(window.location.search);
+const srcParam = params.get('src');
+if (srcParam) {
+  fetch(srcParam)
+    .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+    .then(data => render(data))
+    .catch(err => { dropZone.querySelector('p').textContent = `Failed to load ${srcParam}: ${err.message}`; });
+}
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      render(data);
+    } catch (err) {
+      alert('Invalid JSON: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+function render(data) {
+  dropZone.style.display = 'none';
+  content.style.display = 'block';
+
+  const meta = data.metadata || {};
+  const title = meta.title || `LLD — ${meta.cluster_name || 'Unknown'}`;
+  document.title = title;
+
+  let html = `<h1>${esc(title)}</h1>`;
+
+  // Meta bar
+  html += '<div class="meta-bar">';
+  if (meta.role) html += `<span class="chip role-${meta.role}">${esc(meta.role)}</span>`;
+  if (meta.ocp_version) html += `<span class="chip ocp">OCP ${esc(meta.ocp_version)}</span>`;
+  if (meta.cluster_name) html += `<span class="chip">cluster: ${esc(meta.cluster_name)}</span>`;
+  if (meta.generated) html += `<span class="chip">generated: ${new Date(meta.generated).toLocaleDateString()}</span>`;
+  if (meta.generator) html += `<span class="chip">${esc(meta.generator)}</span>`;
+  html += '</div>';
+
+  // Stats
+  const sections = data.sections || [];
+  const tableCount = sections.filter(s => s.type === 'table').length;
+  const diagramCount = sections.filter(s => s.type === 'diagram').length;
+  const textCount = sections.filter(s => s.type === 'text' || s.type === 'config-summary').length;
+  html += '<div class="stats-bar">';
+  html += `<div class="stat-card"><div class="value">${sections.length}</div><div class="label">Sections</div></div>`;
+  html += `<div class="stat-card"><div class="value">${textCount}</div><div class="label">Text Sections</div></div>`;
+  html += `<div class="stat-card"><div class="value">${tableCount}</div><div class="label">Tables</div></div>`;
+  html += `<div class="stat-card"><div class="value">${diagramCount}</div><div class="label">Diagrams</div></div>`;
+  html += '</div>';
+
+  // Table of contents
+  if (sections.length > 3) {
+    html += '<div class="toc"><h3>Table of Contents</h3><ul class="toc-list">';
+    for (const s of sections) {
+      if (s.title) {
+        const anchor = s.id || slugify(s.title);
+        html += `<li><span class="toc-id">${esc(s.id || '')}</span><a href="#${esc(anchor)}">${esc(s.title)}</a></li>`;
+      }
+    }
+    html += '</ul></div>';
+  }
+
+  // Sections
+  for (const section of sections) {
+    html += renderSection(section);
+  }
+
+  content.innerHTML = html;
+  renderMermaidDiagrams();
+  attachTableSearch();
+}
+
+function renderSection(s) {
+  const anchor = s.id || slugify(s.title || '');
+  let html = `<div class="section" id="${esc(anchor)}">`;
+  if (s.title) html += `<h2>${esc(s.title)}</h2>`;
+
+  switch (s.type) {
+    case 'text':
+      html += `<div class="section-text">${renderMarkdownLite(s.content || s.body || '')}</div>`;
+      break;
+
+    case 'config-summary':
+      if (s.content || s.body) html += `<div class="section-text">${renderMarkdownLite(s.content || s.body)}</div>`;
+      if (s.values?.length) {
+        html += '<table class="config-table"><thead><tr><th>Resource</th><th>Field</th><th>Value</th><th>Rationale</th></tr></thead><tbody>';
+        for (const v of s.values) {
+          html += `<tr><td><code>${esc(v.resource)}</code></td><td><code>${esc(v.field)}</code></td><td><code>${esc(String(v.value))}</code></td><td>${esc(v.rationale)}</td></tr>`;
+        }
+        html += '</tbody></table>';
+      }
+      break;
+
+    case 'diagram':
+      const mermaidSrc = s.mermaid || s.content || '';
+      html += `<div class="diagram-container"><pre class="mermaid">${esc(mermaidSrc)}</pre></div>`;
+      break;
+
+    case 'table':
+      if (s.columns?.length && s.rows?.length) {
+        html += `<div class="table-search"><input type="text" placeholder="Filter rows..." data-table-id="${esc(anchor)}"></div>`;
+        html += `<table class="data-table" id="table-${esc(anchor)}"><thead><tr>`;
+        for (const col of s.columns) html += `<th>${esc(col)}</th>`;
+        html += '</tr></thead><tbody>';
+        for (const row of s.rows) {
+          const rowText = row.map(c => String(c)).join(' ').toLowerCase();
+          html += `<tr data-text="${esc(rowText)}">`;
+          for (let i = 0; i < row.length; i++) {
+            const cell = String(row[i]);
+            let cls = '';
+            if (s.columns[i]?.toLowerCase().includes('wave')) cls = ' class="wave"';
+            html += `<td${cls}>${esc(cell)}</td>`;
+          }
+          html += '</tr>';
+        }
+        html += '</tbody></table>';
+      }
+      break;
+  }
+
+  html += '</div>';
+  return html;
+}
+
+function renderMarkdownLite(text) {
+  if (!text) return '';
+  let out = esc(text);
+  // Bold
+  out = out.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Headings (### within text sections)
+  out = out.replace(/^### (.+)$/gm, '</p><h3>$1</h3><p>');
+  // Inline code
+  out = out.replace(/`([^`]+)`/g, '<code style="font-family:var(--mono);font-size:0.85em;background:var(--surface-alt);padding:0.1em 0.3em;border-radius:3px">$1</code>');
+  // Links
+  out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+  // Line breaks to paragraphs
+  out = out.replace(/\n\n/g, '</p><p>');
+  // Simple list items
+  out = out.replace(/^- (.+)$/gm, '<span style="display:block;padding-left:1em;margin:0.2em 0">• $1</span>');
+  // Markdown tables (basic rendering)
+  out = out.replace(/\|(.+)\|\n\|[-| ]+\|\n((?:\|.+\|\n?)+)/g, (match, header, body) => {
+    const headers = header.split('|').map(h => h.trim()).filter(Boolean);
+    const rows = body.trim().split('\n').map(r => r.split('|').map(c => c.trim()).filter(Boolean));
+    let table = '<table class="data-table" style="margin:0.5em 0"><thead><tr>';
+    for (const h of headers) table += `<th>${h}</th>`;
+    table += '</tr></thead><tbody>';
+    for (const row of rows) {
+      table += '<tr>';
+      for (const cell of row) table += `<td>${cell}</td>`;
+      table += '</tr>';
+    }
+    return table + '</tbody></table>';
+  });
+  return `<p>${out}</p>`;
+}
+
+function attachTableSearch() {
+  document.querySelectorAll('.table-search input').forEach(input => {
+    input.addEventListener('input', () => {
+      const query = input.value.toLowerCase();
+      const tableId = 'table-' + input.dataset.tableId;
+      const table = document.getElementById(tableId);
+      if (!table) return;
+      table.querySelectorAll('tbody tr').forEach(row => {
+        row.style.display = row.dataset.text.includes(query) ? '' : 'none';
+      });
+    });
+  });
+}
+
+async function renderMermaidDiagrams() {
+  const els = document.querySelectorAll('.mermaid');
+  for (let i = 0; i < els.length; i++) {
+    const el = els[i];
+    const src = el.textContent;
+    try {
+      const { svg } = await mermaid.render(`mermaid-${i}`, src);
+      el.outerHTML = `<div class="mermaid-rendered">${svg}</div>`;
+    } catch (err) {
+      el.outerHTML = `<pre style="color:var(--warn)">Diagram render error: ${esc(err.message)}\n\n${esc(src)}</pre>`;
+    }
+  }
+}
+
+function slugify(s) {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+
+function esc(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

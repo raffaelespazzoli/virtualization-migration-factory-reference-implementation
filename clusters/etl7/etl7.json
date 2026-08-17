@@ -1,0 +1,95 @@
+{
+  "cluster": "etl7",
+  "title": "ETL7 — Managed Production Cluster",
+  "generated": "2026-08-17T13:38:00Z",
+  "role": "managed",
+  "version_pin": "main",
+  "groups": ["all", "prod"],
+  "managed_clusters": [],
+  "nodes": [
+    { "hostname": "dl380g9-10", "role": "worker" },
+    { "hostname": "dl380g9-8", "role": "worker" },
+    { "hostname": "dl380g9-9", "role": "worker" }
+  ],
+  "sections": [
+    {
+      "type": "text",
+      "title": "Identity and Role",
+      "body": "ETL7 is a managed production cluster provisioned by the hub. It composes both the `all` and `prod` groups, receiving the full production stack including virtualization, high-availability, and observability capabilities.\n\nGroup `all` provides base infrastructure: GitOps operators, certificate management, DNS, storage (Trident), networking (NMState, MetalLB), logging (Loki + OpenShift Logging), and cluster observability.\n\nGroup `prod` adds virtualization (OpenShift Virtualization + HyperConverged), HA features (descheduler, node-health-check), advanced observability (network observability, Tempo tracing, OpenTelemetry, Grafana), policy enforcement (Kyverno), and database operators (ScyllaDB).\n\nThe cluster runs on 3 bare-metal nodes (dl380g9-8, dl380g9-9, dl380g9-10) and is version-pinned to the `main` branch. Cluster-specific overlays customize MetalLB IP pools, NMState network configuration, Trident storage backends, OpenShift platform config (OAuth, console, monitoring, networking), and a Soteria security application."
+    },
+    {
+      "type": "diagram",
+      "title": "Deployment Sequence",
+      "mermaid": "sequenceDiagram\n    participant W5 as Wave 5 — Operators\n    participant W6 as Wave 6 — Early Dependencies\n    participant W15 as Wave 15 — Instances & Config\n    participant W16 as Wave 16 — Cluster Config\n    participant W25 as Wave 25 — Applications\n\n    Note over W5: 20 operators deploy in parallel\n    ArgoCD->>W5: cert-manager-operator, nmstate-operator,<br/>metallb-operator, trident-operator,<br/>openshift-virtualization, loki-operator,<br/>openshift-gitops-operator, kyverno-operator ...\n    Note over W5,W6: Operators ready — CRDs available\n    ArgoCD->>W6: cert-manager-configuration,<br/>external-dns-configuration,<br/>metallb-configuration (cluster overlay),<br/>nmstate-instance, trident-instance,<br/>trident-configuration (cluster overlay)\n    Note over W6,W15: Certificates, DNS, networking, storage ready\n    ArgoCD->>W15: hyperconverged-instance,<br/>nmstate-configuration (cluster overlay),<br/>openshift-gitops-configuration,<br/>kyverno-configuration,<br/>loki-logging-configuration,<br/>cluster-observability-configuration ...\n    Note over W15,W16: Operator instances running\n    ArgoCD->>W16: openshift-config (cluster overlay)\n    Note over W16,W25: Platform configuration applied\n    ArgoCD->>W25: soteria"
+    },
+    {
+      "type": "table",
+      "title": "Component Stack",
+      "columns": ["Name", "Sync-Wave", "Source", "Has Overlay", "Has Readme"],
+      "rows": [
+        ["cert-manager-operator", "5", "group:all", "No", "Yes"],
+        ["cluster-observability-operator", "5", "group:all", "No", "No"],
+        ["descheduler-operator", "5", "group:prod", "No", "No"],
+        ["external-dns-operator", "5", "group:all", "No", "Yes"],
+        ["kyverno-operator", "5", "group:prod", "No", "No"],
+        ["loki-operator", "5", "group:all", "No", "No"],
+        ["metallb-operator", "5", "group:all", "No", "Yes"],
+        ["minio-operator", "5", "group:all", "No", "No"],
+        ["network-observability-operator", "5", "group:prod", "No", "No"],
+        ["nmstate-operator", "5", "group:all", "No", "Yes"],
+        ["node-health-check-operator", "5", "group:prod", "No", "No"],
+        ["openshift-gitops-operator", "5", "group:all", "No", "No"],
+        ["openshift-grafana-operator", "5", "group:prod", "No", "No"],
+        ["openshift-logging-operator", "5", "group:all", "No", "No"],
+        ["openshift-tempo-operator", "5", "group:prod", "No", "No"],
+        ["openshift-virtualization", "5", "group:prod", "No", "Yes"],
+        ["otel-configuration", "5", "group:prod", "No", "No"],
+        ["otel-operator", "5", "group:prod", "No", "No"],
+        ["scylladb-operator", "5", "group:prod", "No", "No"],
+        ["trident-operator", "5", "group:all", "No", "No"],
+        ["cert-manager-configuration", "6", "group:all", "No", "Yes"],
+        ["external-dns-configuration", "6", "group:all", "No", "Yes"],
+        ["metallb-configuration", "6", "cluster-specific", "Yes", "Yes"],
+        ["nmstate-instance", "6", "group:all", "No", "Yes"],
+        ["trident-configuration", "6", "cluster-specific", "Yes", "No"],
+        ["trident-instance", "6", "group:all", "No", "No"],
+        ["cluster-observability-configuration", "15", "group:prod", "No", "No"],
+        ["descheduler-configuration", "15", "group:prod", "No", "No"],
+        ["hyperconverged-instance", "15", "group:prod", "No", "No"],
+        ["kube-ops-view", "15", "group:all", "No", "No"],
+        ["kyverno-configuration", "15", "group:prod", "No", "No"],
+        ["loki-logging-configuration", "15", "group:all", "No", "No"],
+        ["network-observability-configuration", "15", "group:prod", "No", "No"],
+        ["nmstate-configuration", "15", "cluster-specific", "Yes", "Yes"],
+        ["node-health-check-configuration", "15", "group:prod", "No", "No"],
+        ["openshift-gitops-configuration", "15", "group:all", "No", "No"],
+        ["openshift-logging-configuration", "15", "group:all", "No", "No"],
+        ["openshift-tempo-instance", "15", "group:prod", "No", "No"],
+        ["user-workload-grafana-instance", "15", "group:prod", "No", "No"],
+        ["openshift-config", "16", "cluster-specific", "Yes", "Yes"],
+        ["soteria", "25", "cluster-specific", "No", "No"]
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Available Inventory (Inactive)",
+      "columns": ["Name", "Sync-Wave", "Path", "Notes"],
+      "rows": [
+        ["odf-operator", "5", "components/odf-operator", "OpenShift Data Foundation operator — alternative storage backend"],
+        ["odf-configuration", "15", "components/odf-configuration", "ODF configuration — requires odf-operator"],
+        ["percona-operator", "5", "clusters/etl6/overlays/percona-operator", "Percona PostgreSQL operator — demo workload"],
+        ["percona-instance", "10", "clusters/etl7/overlays/percona-instance", "Percona PG cluster + PetClinic app — demo workload"]
+      ]
+    },
+    {
+      "type": "text",
+      "title": "Cluster-Specific Customizations",
+      "body": "ETL7 has 7 overlay directories customizing base components:\n\n- **metallb-configuration** — Defines the MetalLB IP address pool specific to ETL7's network segment (deployed to `metallb-system` namespace).\n- **nmstate-configuration** — NodeNetworkConfigurationPolicy (NNCP) and NetworkAttachmentDefinition (NAD) for cluster-specific network bonding and VLAN configuration.\n- **trident-configuration** — NetApp ONTAP SAN backend configuration targeting ETL7's storage array (deployed to `netapp-trident` namespace).\n- **openshift-config** — Platform-level configuration: OAuth identity provider, console customization patches, cluster monitoring ConfigMap, network patches, and cluster version channel.\n- **percona-operator** — Percona operator deployment (currently inactive/commented-out).\n- **percona-instance** — Percona PostgreSQL cluster with PetClinic demo app and DNS endpoint (currently inactive/commented-out).\n- **soteria-instance** — Soteria security application with namespace and TLS certificate issuer."
+    },
+    {
+      "type": "text",
+      "title": "Dependencies and Relationships",
+      "body": "Key dependency chains in ETL7's deployment:\n\n1. **Storage chain:** trident-operator (W5) → trident-instance (W6) → trident-configuration (W6) — the operator must be running before the Trident orchestrator instance can be created, and the ONTAP SAN backend configuration depends on the orchestrator.\n\n2. **Networking chain:** nmstate-operator (W5) → nmstate-instance (W6) → nmstate-configuration (W15) — NMState CRDs must exist before creating the NMState instance, and node network policies depend on the instance being healthy.\n\n3. **Certificate chain:** cert-manager-operator (W5) → cert-manager-configuration (W6) — ClusterIssuers and certificate resources depend on cert-manager's CRDs and webhooks being ready. Other wave-15 components (e.g. Grafana, Tempo) may rely on certificates issued by cert-manager.\n\n4. **Virtualization chain:** openshift-virtualization (W5) → hyperconverged-instance (W15) — the HyperConverged CR depends on the OCP Virtualization operator's CRDs and controllers.\n\n5. **Observability chain:** cluster-observability-operator (W5) + loki-operator (W5) → loki-logging-configuration (W15) + cluster-observability-configuration (W15) — logging and monitoring instances depend on their respective operators.\n\n6. **MetalLB:** metallb-operator (W5) → metallb-configuration (W6) — IP address pool allocation depends on the MetalLB controller being ready."
+    }
+  ]
+}

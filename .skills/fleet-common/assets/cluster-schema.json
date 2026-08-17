@@ -1,0 +1,97 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Fleet Cluster Documentation",
+  "type": "object",
+  "required": ["cluster", "title", "generated", "sections"],
+  "properties": {
+    "cluster": { "type": "string", "description": "Cluster name as it appears in clusters/" },
+    "title": { "type": "string", "description": "Human-readable display name" },
+    "generated": { "type": "string", "format": "date-time" },
+    "role": { "type": "string", "enum": ["hub", "managed"] },
+    "version_pin": { "type": "string", "description": "Git ref from cluster-versions.yaml" },
+    "groups": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Groups this cluster composes (e.g. all, prod)"
+    },
+    "managed_clusters": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "For hub clusters: managed clusters it provisions"
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "hostname": { "type": "string" },
+          "role": { "type": "string" }
+        }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["type", "title", "body"],
+            "properties": {
+              "type": { "const": "text" },
+              "title": { "type": "string" },
+              "body": { "type": "string" }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": ["type", "title"],
+            "properties": {
+              "type": { "const": "config-summary" },
+              "title": { "type": "string" },
+              "body": { "type": "string" },
+              "values": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["resource", "field", "value", "rationale"],
+                  "properties": {
+                    "resource": { "type": "string" },
+                    "field": { "type": "string" },
+                    "value": {},
+                    "rationale": { "type": "string" }
+                  },
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": ["type", "title", "mermaid"],
+            "properties": {
+              "type": { "const": "diagram" },
+              "title": { "type": "string" },
+              "mermaid": { "type": "string" }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": ["type", "title", "columns", "rows"],
+            "properties": {
+              "type": { "const": "table" },
+              "title": { "type": "string" },
+              "columns": { "type": "array", "items": { "type": "string" } },
+              "rows": { "type": "array", "items": { "type": "array" } }
+            },
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+  "additionalProperties": false
+}
