@@ -16,4 +16,3 @@ spec:
     - argocd-agent-principal-server.argocd-agent-principal.svc.cluster.local
   usages:
     - server auth
-    - client-auth
