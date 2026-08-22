@@ -8,4 +8,6 @@ resources:
 - resource-proxy-certificate.yaml
 - jwt-certificate.yaml
 - jwt-key-policy.yaml
+- agent-namespaces-policy.yaml
+- agent-cluster-secrets-policy.yaml
 - argocd.yaml

@@ -1,0 +1,60 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: argocd-agent-namespaces-policy
+  namespace: acm-policies
+spec:
+  remediationAction: enforce
+  disabled: false
+  hubTemplateOptions:
+    serviceAccountName: policy-admin
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: argocd-agent-namespaces-policy
+        spec:
+          remediationAction: enforce
+          severity: low
+          object-templates-raw: |-
+            {{- range $mc := (lookup "cluster.open-cluster-management.io/v1" "ManagedCluster" "" "").items }}
+            {{- if and (index $mc.metadata.labels "gitops") (eq (index $mc.metadata.labels "gitops") "deploy") }}
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: Namespace
+                metadata:
+                  name: argocd-agent-{{ $mc.metadata.name }}
+                  labels:
+                    argocd.argoproj.io/managed-by: argocd-agent-principal
+            {{- end }}
+            {{- end }}
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: argocd-agent-namespaces-placement
+  namespace: acm-policies
+spec:
+  clusterSets:
+  - global
+  predicates:
+    - requiredClusterSelector:
+        labelSelector:
+          matchLabels:
+            local-cluster: "true"
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: argocd-agent-namespaces-binding
+  namespace: acm-policies
+subjects:
+  - kind: Policy
+    apiGroup: policy.open-cluster-management.io
+    name: argocd-agent-namespaces-policy
+placementRef:
+  kind: Placement
+  apiGroup: cluster.open-cluster-management.io
+  name: argocd-agent-namespaces-placement

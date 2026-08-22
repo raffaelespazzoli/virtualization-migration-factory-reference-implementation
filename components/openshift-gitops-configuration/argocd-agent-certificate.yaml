@@ -5,7 +5,7 @@ metadata:
   namespace: openshift-gitops
 spec:
   secretName: argocd-agent-client-tls
-  commonName: ${CLUSTER_NAME}
+  commonName: argocd-agent-${CLUSTER_NAME}
   issuerRef:
     name: argocd-agent-ca-issuer
     kind: Issuer
