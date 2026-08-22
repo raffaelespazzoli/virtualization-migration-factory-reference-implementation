@@ -1,0 +1,18 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: argocd-agent-resource-proxy-cert
+spec:
+  secretName: argocd-agent-resource-proxy-tls
+  commonName: argocd-agent-resource-proxy
+  issuerRef:
+    name: argocd-agent-ca-issuer
+    kind: Issuer
+  duration: 8760h
+  renewBefore: 720h
+  dnsNames:
+    - argocd-agent-principal-agent-principal-resource-proxy
+    - argocd-agent-principal-agent-principal-resource-proxy.argocd-agent-principal.svc
+    - argocd-agent-principal-agent-principal-resource-proxy.argocd-agent-principal.svc.cluster.local
+  usages:
+    - server auth

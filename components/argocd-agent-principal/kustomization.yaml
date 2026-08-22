@@ -7,4 +7,5 @@ resources:
 - namespace.yaml
 - issuer.yaml
 - certificate.yaml
+- resource-proxy-certificate.yaml
 - argocd.yaml
