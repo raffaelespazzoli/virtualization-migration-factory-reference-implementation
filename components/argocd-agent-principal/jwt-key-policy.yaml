@@ -1,0 +1,60 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: argocd-agent-jwt-key-policy
+  namespace: acm-policies
+spec:
+  remediationAction: enforce
+  disabled: false
+  hubTemplateOptions:
+    serviceAccountName: policy-admin
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: argocd-agent-jwt-key-policy
+        spec:
+          remediationAction: enforce
+          severity: low
+          object-templates-raw: |-
+            {{- $secret := (lookup "v1" "Secret" "argocd-agent-principal" "argocd-agent-jwt") }}
+            {{- if and $secret $secret.data (index $secret.data "tls.key") }}
+            - complianceType: musthave
+              objectDefinition:
+                apiVersion: v1
+                kind: Secret
+                metadata:
+                  name: argocd-agent-jwt
+                  namespace: argocd-agent-principal
+                data:
+                  jwt.key: '{{ index $secret.data "tls.key" }}'
+            {{- end }}
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: argocd-agent-jwt-key-placement
+  namespace: acm-policies
+spec:
+  clusterSets:
+  - global
+  predicates:
+    - requiredClusterSelector:
+        labelSelector:
+          matchLabels:
+            local-cluster: "true"
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: argocd-agent-jwt-key-binding
+  namespace: acm-policies
+subjects:
+  - kind: Policy
+    apiGroup: policy.open-cluster-management.io
+    name: argocd-agent-jwt-key-policy
+placementRef:
+  kind: Placement
+  apiGroup: cluster.open-cluster-management.io
+  name: argocd-agent-jwt-key-placement

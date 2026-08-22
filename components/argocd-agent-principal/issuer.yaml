@@ -2,6 +2,7 @@ apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   name: argocd-agent-ca-issuer
+  namespace: argocd-agent-principal
 spec:
   ca:
     secretName: argocd-agent-ca

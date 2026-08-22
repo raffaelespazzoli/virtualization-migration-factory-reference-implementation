@@ -1,11 +1,11 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: argocd-agent-principal
-
 resources:
 - namespace.yaml
 - issuer.yaml
 - certificate.yaml
 - resource-proxy-certificate.yaml
+- jwt-certificate.yaml
+- jwt-key-policy.yaml
 - argocd.yaml

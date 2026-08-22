@@ -2,6 +2,7 @@ apiVersion: argoproj.io/v1beta1
 kind: ArgoCD
 metadata:
   name: argocd-agent-principal
+  namespace: argocd-agent-principal
 spec:
   controller:
     enabled: false

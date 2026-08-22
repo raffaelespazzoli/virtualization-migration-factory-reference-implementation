@@ -1,0 +1,20 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: argocd-agent-jwt
+  namespace: argocd-agent-principal
+spec:
+  secretName: argocd-agent-jwt
+  commonName: argocd-agent-jwt
+  issuerRef:
+    name: argocd-agent-ca-issuer
+    kind: Issuer
+  duration: 87600h
+  renewBefore: 720h
+  privateKey:
+    algorithm: RSA
+    size: 4096
+    encoding: PKCS8
+  secretTemplate:
+    labels:
+      app.kubernetes.io/part-of: argocd-agent-principal
