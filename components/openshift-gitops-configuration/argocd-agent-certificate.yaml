@@ -13,5 +13,3 @@ spec:
   renewBefore: 720h
   usages:
     - client auth
-    - digital signature
-    - key encipherment
