@@ -16,5 +16,4 @@ spec:
     - argocd-agent-principal-server.argocd-agent-principal.svc.cluster.local
   usages:
     - server auth
-    - digital signature
-    - key encipherment
+    - client-auth

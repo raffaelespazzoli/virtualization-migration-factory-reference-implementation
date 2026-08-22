@@ -588,7 +588,7 @@ spec:
       tls:
         insecure: false
         secretName: argocd-agent-client-tls
-        rootCASecretName: argocd-agent-ca
+        rootCASecretName: argocd-agent-ca-cert
   controller:
     processors: {}
     resources:
