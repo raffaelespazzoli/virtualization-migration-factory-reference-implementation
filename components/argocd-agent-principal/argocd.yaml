@@ -24,7 +24,9 @@ spec:
     route:
       enabled: true
       tls:
-        termination: passthrough
+        termination: edge
+        insecureEdgeTerminationPolicy: Redirect
+    insecure: true
     resources:
       limits:
         memory: 512Mi
