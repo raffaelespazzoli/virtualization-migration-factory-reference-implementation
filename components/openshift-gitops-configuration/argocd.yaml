@@ -581,7 +581,7 @@ spec:
       client:
         keepAliveInterval: 50s
         mode: autonomous
-        principalServerAddress: argocd-agent-principal-server-argocd-agent-principal.apps.${HUB_BASE_DOMAIN}
+        principalServerAddress: argocd-agent-principal-agent-principal-argocd-agent-principal.apps.${HUB_BASE_DOMAIN}
         principalServerPort: "443"
       redis:
         serverAddress: openshift-gitops-redis:6379

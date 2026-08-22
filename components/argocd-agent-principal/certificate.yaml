@@ -12,8 +12,8 @@ spec:
   duration: 8760h
   renewBefore: 720h
   dnsNames:
-    - argocd-agent-principal-server-argocd-agent-principal.apps.${HUB_BASE_DOMAIN}
-    - argocd-agent-principal-server.argocd-agent-principal.svc
-    - argocd-agent-principal-server.argocd-agent-principal.svc.cluster.local
+    - argocd-agent-principal-agent-principal-argocd-agent-principal.apps.${HUB_BASE_DOMAIN}
+    - argocd-agent-principal-agent-principal.argocd-agent-principal.svc
+    - argocd-agent-principal-agent-principal.argocd-agent-principal.svc.cluster.local
   usages:
     - server auth
