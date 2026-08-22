@@ -573,6 +573,18 @@ spec:
       requests:
         cpu: 250m
         memory: 128Mi
+  argoCDAgent:
+    agent:
+      enabled: true
+      mode: autonomous
+      logLevel: info
+      remote:
+        address: argocd-agent-principal-server-argocd-agent-principal.apps.${HUB_BASE_DOMAIN}
+        port: 443
+      tls:
+        insecure: false
+        clientSecretName: argocd-agent-client-tls
+        rootCASecretName: argocd-agent-ca
   controller:
     processors: {}
     resources:

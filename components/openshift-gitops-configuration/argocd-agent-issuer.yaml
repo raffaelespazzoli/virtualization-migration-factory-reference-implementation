@@ -1,0 +1,8 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: argocd-agent-ca-issuer
+  namespace: openshift-gitops
+spec:
+  ca:
+    secretName: argocd-agent-ca

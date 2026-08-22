@@ -19,7 +19,21 @@ applications:
     destination:
       namespace: reflector-operator      
     source:
-      path: components/reflector-operator      
+      path: components/reflector-operator
+
+  argocd-agent-ca:
+    annotations:
+      argocd.argoproj.io/sync-wave: '6'
+    source:
+      path: components/argocd-agent-ca
+
+  argocd-agent-principal:
+    annotations:
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: argocd-agent-principal
+    source:
+      path: components/argocd-agent-principal
 
 # Networking
 

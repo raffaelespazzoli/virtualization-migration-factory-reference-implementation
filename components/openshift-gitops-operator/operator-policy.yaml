@@ -27,7 +27,7 @@ spec:
     config:
       env:
       - name: ARGOCD_CLUSTER_CONFIG_NAMESPACES
-        value: openshift-gitops    
+        value: openshift-gitops,argocd-agent-principal    
   versions: 
     - openshift-gitops-operator.v1.20.4
     - openshift-gitops-operator.v1.21.0

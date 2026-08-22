@@ -1,0 +1,17 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: argocd-agent-client
+  namespace: openshift-gitops
+spec:
+  secretName: argocd-agent-client-tls
+  commonName: ${CLUSTER_NAME}
+  issuerRef:
+    name: argocd-agent-ca-issuer
+    kind: Issuer
+  duration: 8760h
+  renewBefore: 720h
+  usages:
+    - client auth
+    - digital signature
+    - key encipherment

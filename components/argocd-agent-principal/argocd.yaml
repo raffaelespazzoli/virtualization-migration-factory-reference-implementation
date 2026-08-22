@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1beta1
+kind: ArgoCD
+metadata:
+  name: argocd-agent-principal
+spec:
+  controller:
+    enabled: false
+  argoCDAgent:
+    principal:
+      enabled: true
+      auth: "mtls:CN=([^,]+)"
+      logLevel: info
+      namespace:
+        allowedNamespaces:
+          - "argocd-agent-*"
+      tls:
+        insecureGenerate: false
+      jwt:
+        insecureGenerate: false
+  sourceNamespaces:
+    - "argocd-agent-*"
+  server:
+    route:
+      enabled: true
+      tls:
+        termination: passthrough
+    resources:
+      limits:
+        memory: 512Mi
+      requests:
+        cpu: 125m
+        memory: 128Mi
+  sso:
+    dex:
+      openShiftOAuth: true
+      resources:
+        limits:
+          memory: 256Mi
+        requests:
+          cpu: 125m
+          memory: 128Mi
+    provider: dex
+  rbac:
+    defaultPolicy: 'role:admin'
+    policy: |
+      p, role:none, *, *, */*, deny
+      g, system:cluster-admins, role:admin
+      g, cluster-admins, role:admin
+      g, admin, role:admin
+    scopes: "[groups]"
+  redis:
+    resources:
+      limits:
+        memory: 256Mi
+      requests:
+        cpu: 125m
+        memory: 128Mi
