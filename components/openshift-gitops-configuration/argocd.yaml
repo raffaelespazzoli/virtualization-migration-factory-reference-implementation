@@ -576,14 +576,18 @@ spec:
   argoCDAgent:
     agent:
       enabled: true
-      mode: autonomous
       logLevel: info
-      remote:
-        address: argocd-agent-principal-server-argocd-agent-principal.apps.${HUB_BASE_DOMAIN}
-        port: 443
+      creds: "mtls:any"
+      client:
+        keepAliveInterval: 50s
+        mode: autonomous
+        principalServerAddress: argocd-agent-principal-server-argocd-agent-principal.apps.${HUB_BASE_DOMAIN}
+        principalServerPort: "443"
+      redis:
+        serverAddress: openshift-gitops-redis:6379
       tls:
         insecure: false
-        clientSecretName: argocd-agent-client-tls
+        secretName: argocd-agent-client-tls
         rootCASecretName: argocd-agent-ca
   controller:
     processors: {}
