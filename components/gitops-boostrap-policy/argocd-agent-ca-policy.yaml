@@ -37,7 +37,7 @@ spec:
                 metadata:
                   name: argocd-agent-ca-cert
                   namespace: 'openshift-gitops'
-                type: kubernetes.io/tls
+                type: Opaque
                 data:
                   ca.crt: {{hub (index (lookup "v1" "Secret" "openshift-gitops" "argocd-agent-ca").data "ca.crt") hub}}
 ---
