@@ -8,3 +8,4 @@ resources:
   - ./cluster-version.yaml
   - ./cluster-monitoring-configmap.yaml
   - ./network-patch.yaml
+  - ./alertmanager-main-secret.yaml
