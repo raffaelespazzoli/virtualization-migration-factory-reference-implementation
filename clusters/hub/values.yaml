@@ -206,6 +206,7 @@ applications:
   etl4:
     annotations:
       argocd.argoproj.io/sync-wave: '25'
+      argocd.argoproj.io/manifest-generate-paths: ".;/.helm-charts/cluster-registration"
     destination:
       namespace: etl4
     source:
@@ -220,6 +221,7 @@ applications:
   etl6:
     annotations:
       argocd.argoproj.io/sync-wave: '25'
+      argocd.argoproj.io/manifest-generate-paths: ".;/.helm-charts/cluster-registration"
     destination:
       namespace: etl6
     source:
@@ -228,6 +230,7 @@ applications:
   etl7:
     annotations:
       argocd.argoproj.io/sync-wave: '25'
+      argocd.argoproj.io/manifest-generate-paths: ".;/.helm-charts/cluster-registration"
     destination:
       namespace: etl7
     source:

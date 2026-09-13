@@ -130,6 +130,7 @@ applications:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
+      argocd.argoproj.io/manifest-generate-paths: ".;/.helm-charts/tenant"
     destination:
       namespace: openshift-tempo-instance
     source:
@@ -181,6 +182,7 @@ applications:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
       argocd.argoproj.io/sync-wave: '15'
+      argocd.argoproj.io/manifest-generate-paths: ".;/.helm-charts/grafana"
     destination:
       namespace: openshift-user-workload-grafana-instance     
     source:
