@@ -10,7 +10,11 @@ spec:
   extraConfig:
     resource.compareoptions: |
       ignoreAggregatedRoles: true
-    resource.customizations.useOpenLibs.minio.min.io_Tenant: 'true'      
+    resource.customizations.useOpenLibs.minio.min.io_Tenant: 'true'
+    server.repo.server.timeout.seconds: "120"
+    controller.repo.server.timeout.seconds: "120"
+    reposerver.parallelism.limit: "5"
+    reposerver.plugin.use.manifest.generate.paths: "true"
   server:
     replicas: 2
     autoscale:
@@ -475,6 +479,8 @@ spec:
     env:
     - name: KUSTOMIZE_PLUGIN_HOME
       value: /etc/kustomize/plugin
+    - name: ARGOCD_REPO_SERVER_CMP_TAR_EXCLUDED_GLOBS
+      value: "*.md;media/**;_bmad*/**;.claude/**;.agents/**;_bmad-output/**;.bmad-loop/**;.vscode/**;pvc-cleanup/**;.gitleaks.toml;.skills/**;*.png;*.jpg;*.svg;*.gif;*.tgz;*.zip;*.qcow2"
     initContainers:
     - args:
       - -c
@@ -492,11 +498,21 @@ spec:
     sidecarContainers:
       - name: setenv-plugin
         command: [/var/run/argocd/argocd-cmp-server]
+        env:
+          - name: ARGOCD_EXEC_TIMEOUT
+            value: "90s"
         envFrom:
         - configMapRef:
             name: environment-variables
         image: quay.io/raffaelespazzoli/raffa-envsub:1.1
         imagePullPolicy: Always
+        resources:
+          limits:
+            cpu: "1"
+            memory: 1Gi
+          requests:
+            cpu: 250m
+            memory: 256Mi
         securityContext:
           runAsNonRoot: true
         volumeMounts:
@@ -519,10 +535,11 @@ spec:
         name: policy-generator        
     resources:
       limits:
-        memory: 1Gi
+        cpu: "2"
+        memory: 2Gi
       requests:
-        cpu: 250m
-        memory: 256Mi
+        cpu: 500m
+        memory: 512Mi
   resourceExclusions: |
     - apiGroups:
       - internal.open-cluster-management.io
@@ -598,8 +615,7 @@ data:
           - "-c"
           - "set -o pipefail && kustomize build --load-restrictor LoadRestrictionsNone --enable-helm --enable-alpha-plugins . | envsub"
       discover:
-        find:
-          command: [sh, -c, 'find . -maxdepth 1 -name kustomization.yaml']   
+        fileName: kustomization.yaml
 ---
 apiVersion: v1
 kind: ConfigMap

@@ -4,6 +4,7 @@ default:
   app:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/manifest-generate-paths: .
     finalizers:
       - resources-finalizer.argocd.argoproj.io  
     enabled: true

@@ -4,7 +4,7 @@ metadata:
   name: cluster-versions
   namespace: openshift-gitops
 data:
-  hub: main
-  etl4: main
-  etl6: main
-  etl7: main
+  hub: refs/heads/main
+  etl4: refs/heads/main
+  etl6: refs/heads/main
+  etl7: refs/heads/main

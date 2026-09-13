@@ -6,7 +6,8 @@ applications:
   openshift-config:
     annotations:
       argocd.argoproj.io/sync-wave: '16'
-      argocd.argoproj.io/compare-options: ServerSideDiff=true,IncludeMutationWebhook=true,IgnoreExtraneous      
+      argocd.argoproj.io/compare-options: ServerSideDiff=true,IncludeMutationWebhook=true,IgnoreExtraneous
+      argocd.argoproj.io/manifest-generate-paths: ".;/components/openshift-config"
     source:
       path: clusters/etl7/overlays/openshift-config
 
@@ -21,6 +22,7 @@ applications:
   metallb-configuration:
     annotations:
       argocd.argoproj.io/sync-wave: '6'
+      argocd.argoproj.io/manifest-generate-paths: ".;/components/metallb-configuration"
     destination:
       namespace: metallb-system
     source:
@@ -31,6 +33,7 @@ applications:
   trident-configuration:
     annotations:
       argocd.argoproj.io/sync-wave: '6'
+      argocd.argoproj.io/manifest-generate-paths: ".;/components/trident-configuration"
     destination:
       namespace: netapp-trident
     source:

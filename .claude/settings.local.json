@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(oc whoami --show-server)",
+      "Bash(oc get nodes)",
+      "Bash(oc get clusterversion)",
+      "Bash(oc get co)",
+      "Bash(oc get daemonset -n openshift-frr-k8s)",
+      "Bash(oc get pods -n openshift-frr-k8s)",
+      "Bash(oc describe daemonset frr-k8s -n openshift-frr-k8s)",
+      "Bash(oc get events -n openshift-frr-k8s --sort-by='.lastTimestamp')",
+      "Bash(oc describe pod frr-k8s-7qv78 -n openshift-frr-k8s)",
+      "Bash(oc get node dl380g9-5.etl6.ocp.rht-labs.com -o jsonpath='{.status.nodeInfo.containerRuntimeVersion}')",
+      "Bash(oc get node dl380g9-5.etl6.ocp.rht-labs.com -o jsonpath='{.status.nodeInfo.kernelVersion}')",
+      "Bash(oc get pod frr-k8s-7qv78 -n openshift-frr-k8s -o jsonpath='{.spec.securityContext}')",
+      "Bash(oc adm policy who-can use scc privileged -n openshift-frr-k8s)",
+      "Bash(oc get machineconfig)"
+    ]
+  }
+}
