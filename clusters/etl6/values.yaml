@@ -235,13 +235,13 @@ applications:
     source:
       path: clusters/etl6/overlays/sm-on-udn   
 
-# soteria demo
+# soteria demo — uninstalled from etl6 (webhook/APIService blocked cluster VM ops)
 
-  soteria:
-    annotations:
-      argocd.argoproj.io/sync-wave: '25'     
-    source:
-      path: clusters/etl6/overlays/soteria-instance
+  # soteria:
+  #   annotations:
+  #     argocd.argoproj.io/sync-wave: '25'
+  #   source:
+  #     path: clusters/etl6/overlays/soteria-instance
 
 # vlan-dhcp
 
