@@ -14,7 +14,7 @@ spec:
       spec:
         source:
           registry:
-            url: docker://quay.io/<org>/rhel10-spire-vault-demo-disk:latest
+            url: docker://quay.io/raffaelespazzoli/rhel10-spire-vault-demo-disk:latest
         storage:
           accessModes:
             - ReadWriteOnce

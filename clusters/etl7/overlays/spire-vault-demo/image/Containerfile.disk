@@ -1,0 +1,2 @@
+FROM scratch
+ADD --chown=107:107 output/qcow2/disk.qcow2 /disk/
