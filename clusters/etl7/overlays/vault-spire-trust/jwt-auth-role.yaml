@@ -19,3 +19,4 @@ spec:
     - experiment-read
   tokenTTL: "1h"
   tokenMaxTTL: "24h"
+  allowedRedirectURIs: []

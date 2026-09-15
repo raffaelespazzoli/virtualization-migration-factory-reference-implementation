@@ -8,5 +8,6 @@ spec:
     role: vault-admin
     serviceAccount:
       name: default
+  path: spire-jwt
   type: jwt
   description: "SPIRE JWT auth for workload identity via OIDC federation"
