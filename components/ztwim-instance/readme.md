@@ -33,9 +33,11 @@ The base component uses `PLACEHOLDER` values that **must** be patched via a clus
 | `trustDomain` | ZeroTrustWorkloadIdentityManager | `etl7.ocp.rht-labs.com` |
 | `clusterName` | ZeroTrustWorkloadIdentityManager | `etl7` |
 | `jwtIssuer` | SpireServer, SpireOIDCDiscoveryProvider | `https://oidc-discovery.apps.<cluster-domain>` |
-| `storageClass` | SpireServer | `ontap-san` |
+| `storageClass` | SpireServer | `ontap-nas` |
 
 > **⚠️ Immutable fields:** `trustDomain`, `clusterName`, and `bundleConfigMap` on ZeroTrustWorkloadIdentityManager, and all `persistence` fields on SpireServer, are immutable after creation (CEL-enforced). If set incorrectly, the CRs must be deleted and recreated.
+
+> **⚠️ Storage class selection:** The SpireServer PVC must use a storage class that correctly applies `fsGroup` permissions. iSCSI-backed storage classes (e.g. `ontap-san`) may fail to apply fsGroup, causing the sqlite3 datastore to be unwritable by the non-root SPIRE process. Prefer NFS-backed (`ontap-nas`) or Ceph RBD (`ocs-storagecluster-ceph-rbd`, `fsGroupPolicy: File`) storage classes.
 
 > **⚠️ jwtIssuer consistency:** The `jwtIssuer` value MUST be identical on both `SpireServer` and `SpireOIDCDiscoveryProvider`. A mismatch causes JWT validation failures.
 

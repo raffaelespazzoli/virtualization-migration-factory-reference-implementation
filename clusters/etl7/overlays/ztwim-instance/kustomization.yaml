@@ -26,7 +26,7 @@ patches:
         value: 'https://oidc-discovery.apps.${CLUSTER_BASE_DOMAIN}'
       - op: replace
         path: /spec/persistence/storageClass
-        value: 'ontap-san'
+        value: 'ontap-nas'
   - target:
       kind: SpireOIDCDiscoveryProvider
       group: operator.openshift.io
