@@ -52,7 +52,8 @@ spec:
               name: bootstrap-cert-disk
               serial: SPIREBOOTCERT
           interfaces:
-            - masquerade: {}
+            - macAddress: 02:2e:13:d9:31:b4
+              masquerade: {}
               name: default
               ports:
                 - port: 22

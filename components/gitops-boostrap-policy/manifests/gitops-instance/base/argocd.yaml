@@ -20,6 +20,9 @@ object-templates-raw: |
           resource.customizations.useOpenLibs.minio.min.io_Tenant: 'true'
           reposerver.plugin.use.manifest.generate.paths: "true"
         server:
+          env:
+          - name: ARGOCD_SERVER_REPO_SERVER_TIMEOUT_SECONDS
+            value: "120"
           replicas: 2
           autoscale:
             enabled: false
@@ -583,6 +586,9 @@ object-templates-raw: |
               cpu: 250m
               memory: 128Mi
         controller:
+          env:
+          - name: ARGOCD_APPLICATION_CONTROLLER_REPO_SERVER_TIMEOUT_SECONDS
+            value: "120"
           processors: {}
           resources:
             limits:
