@@ -1,0 +1,16 @@
+[Unit]
+Description=Apache httpd (secret display endpoint)
+After=vault-agent.container
+Requires=vault-agent.container
+
+[Container]
+Image=registry.access.redhat.com/ubi10/httpd-24:latest
+ContainerName=httpd
+PublishPort=8080:8080
+Volume=/var/www/html:/opt/app-root/src:ro,z
+
+[Service]
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target default.target

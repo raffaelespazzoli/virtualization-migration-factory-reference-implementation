@@ -1,0 +1,44 @@
+apiVersion: policy.open-cluster-management.io/v1beta1
+kind: OperatorPolicy
+metadata:
+  name: vault-config-operator
+  namespace: open-cluster-management-policies
+spec:
+  upgradeApproval: Automatic
+  complianceConfig:
+    catalogSourceUnhealthy: Compliant
+    deploymentsUnavailable: NonCompliant
+    upgradesAvailable: Compliant
+  complianceType: musthave
+  remediationAction: enforce
+  removalBehavior:
+    clusterServiceVersions: Delete
+    customResourceDefinitions: Keep
+    operatorGroups: DeleteIfUnused
+    subscriptions: Delete
+  severity: medium
+  subscription:
+    channel: alpha
+    name: vault-config-operator
+    namespace: vault-config-operator
+    source: community-operators
+    sourceNamespace: openshift-marketplace
+    startingCSV: vault-config-operator.v1.0.2
+    config:
+      env:
+        - name: VAULT_ADDR
+          value: https://vault.vault.svc:8200
+        - name: VAULT_CACERT
+          value: /vault-ca/service-ca.crt
+      volumes:
+        - name: vault-ca
+          configMap:
+            name: ocp-service-ca
+            items:
+              - key: service-ca.crt
+                path: service-ca.crt
+      volumeMounts:
+        - mountPath: /vault-ca
+          name: vault-ca
+  versions:
+    - vault-config-operator.v1.0.2

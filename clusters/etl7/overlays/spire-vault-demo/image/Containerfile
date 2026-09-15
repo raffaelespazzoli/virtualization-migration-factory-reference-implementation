@@ -1,0 +1,68 @@
+FROM registry.redhat.io/rhel10/rhel-bootc:10
+
+# ── System packages ──────────────────────────────────────────────────
+# policycoreutils-python-utils: semanage for SELinux fcontext rules at build time
+RUN dnf install -y \
+      policycoreutils-python-utils \
+    && dnf clean all
+
+# ── Users and groups ─────────────────────────────────────────────────
+RUN groupadd -g 10001 spire && \
+    useradd  -u 10001 -g 10001 -r -s /sbin/nologin spire && \
+    groupadd -g 10003 spiffe-consumers && \
+    useradd  -u 10002 -r -s /sbin/nologin spiffe-helper && \
+    usermod  -aG spiffe-consumers spiffe-helper && \
+    useradd  -u 10004 -r -s /sbin/nologin vault-agent-user && \
+    usermod  -aG spiffe-consumers vault-agent-user
+
+# ── Directory structure ──────────────────────────────────────────────
+# spire-agent: bootstrap certs (most sensitive), agent config, socket
+RUN mkdir -p /etc/spire/bootstrap && \
+    chown -R spire:spire /etc/spire && \
+    chmod 0755 /etc/spire && \
+    chmod 0500 /etc/spire/bootstrap && \
+    mkdir -p /run/spire/sockets && \
+    chown spire:spire /run/spire/sockets && \
+    chmod 0755 /run/spire/sockets
+
+# spiffe-helper: SVID output directory
+RUN mkdir -p /var/run/secrets/spiffe && \
+    chown spiffe-helper:spiffe-consumers /var/run/secrets/spiffe && \
+    chmod 0750 /var/run/secrets/spiffe
+
+# spiffe-helper: config directory
+RUN mkdir -p /etc/spiffe-helper && \
+    chmod 0755 /etc/spiffe-helper
+
+# vault-agent: token sink and config
+RUN mkdir -p /var/run/vault && \
+    chown vault-agent-user:vault-agent-user /var/run/vault && \
+    chmod 0750 /var/run/vault && \
+    mkdir -p /etc/vault-agent && \
+    chmod 0755 /etc/vault-agent
+
+# httpd: document root — created explicitly (no httpd RPM)
+RUN mkdir -p /var/www/html && \
+    chown vault-agent-user:vault-agent-user /var/www/html && \
+    chmod 0755 /var/www/html
+
+# ── SELinux contexts (defensive — Quadlet :z handles container access) ──
+RUN semanage fcontext -a -t httpd_sys_rw_content_t "/var/www/html(/.*)?" && \
+    restorecon -Rv /var/www/html
+
+# ── tmpfiles.d — recreate runtime dirs on tmpfs after reboot ─────────
+COPY files/etc/tmpfiles.d/spire-vault-demo.conf /etc/tmpfiles.d/spire-vault-demo.conf
+
+# ── Configuration files (placeholders — Stories 6b/6c finalize) ──────
+COPY files/etc/spire/agent.conf         /etc/spire/agent.conf
+COPY files/etc/spiffe-helper/helper.conf /etc/spiffe-helper/helper.conf
+COPY files/etc/vault-agent/agent.hcl     /etc/vault-agent/agent.hcl
+
+RUN chown root:root /etc/spire/agent.conf /etc/spiffe-helper/helper.conf /etc/vault-agent/agent.hcl && \
+    chmod 0644 /etc/spire/agent.conf /etc/spiffe-helper/helper.conf /etc/vault-agent/agent.hcl
+
+# ── Quadlet container definitions ────────────────────────────────────
+COPY files/etc/containers/systemd/spire-agent.container    /etc/containers/systemd/
+COPY files/etc/containers/systemd/spiffe-helper.container  /etc/containers/systemd/
+COPY files/etc/containers/systemd/vault-agent.container    /etc/containers/systemd/
+COPY files/etc/containers/systemd/httpd.container          /etc/containers/systemd/

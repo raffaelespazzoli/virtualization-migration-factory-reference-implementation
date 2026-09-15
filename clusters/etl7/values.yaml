@@ -39,6 +39,42 @@ applications:
     source:
       path: clusters/etl7/overlays/trident-configuration  
 
+# Zero Trust
+
+  ztwim-operator:
+    annotations:
+      argocd.argoproj.io/sync-wave: '5'
+    source:
+      path: components/ztwim-operator
+
+  vault:
+    annotations:
+      argocd.argoproj.io/sync-wave: '15'
+      argocd.argoproj.io/manifest-generate-paths: ".;/components/vault"
+    destination:
+      namespace: vault
+    source:
+      path: clusters/etl7/overlays/vault
+    extraFields: |
+      ignoreDifferences:
+        - group: 'apps'
+          jsonPointers:
+            - /spec/volumeClaimTemplates
+          kind: StatefulSet
+
+  vault-config-operator:
+    annotations:
+      argocd.argoproj.io/sync-wave: '5'
+    source:
+      path: components/vault-config-operator
+    extraFields: |
+      ignoreDifferences:
+        - group: ''
+          kind: ConfigMap
+          name: ocp-service-ca
+          jsonPointers:
+            - /data
+
   # odf-operator:
   #   annotations:
   #     argocd.argoproj.io/compare-options: IgnoreExtraneous
@@ -84,4 +120,4 @@ applications:
     annotations:
       argocd.argoproj.io/sync-wave: '25'     
     source:
-      path: clusters/etl6/overlays/soteria-instance                                 
+      path: clusters/etl6/overlays/soteria-instance
