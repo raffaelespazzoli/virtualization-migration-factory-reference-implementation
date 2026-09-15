@@ -40,9 +40,9 @@ development_status:
   1-2-deploy-ztwim-operands-spireserver-oidc-discovery-provider-cs: done
   1-3-deploy-vault-on-etl7-with-latest-images: done
   1-4-deploy-vault-config-operator-on-etl7: done
-  1-5-configure-spire-vault-oidc-trust-via-vault-config-operator: review
+  1-5-configure-spire-vault-oidc-trust-via-vault-config-operator: done
   1-6a-build-rhel-10-image-mode-bootc-image: done
   1-6b-configure-spire-agent-and-spiffe-helper-on-the-vm: done
-  1-6c-configure-vault-agent-and-httpd-on-the-vm: review
+  1-6c-configure-vault-agent-and-httpd-on-the-vm: done
   1-6d-deploy-the-rhel-10-image-mode-vm-on-openshift-virtualization: ready-for-dev
   epic-1-retrospective: optional
