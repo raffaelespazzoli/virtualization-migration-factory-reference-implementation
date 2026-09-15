@@ -135,7 +135,9 @@ The leaf cert Secret (`spire-bootstrap-cert`) provides:
 
 ### SPIRE Server Route
 
-The passthrough Route exposes the SPIRE Server's gRPC API at `spire-server.apps.${CLUSTER_BASE_DOMAIN}`. This is separate from the OIDC Discovery Provider Route created by Story 1.2. TLS termination is `passthrough` because SPIRE agent ↔ server use their own mTLS.
+The passthrough Route exposes the SPIRE Server's gRPC API at `spire-server.apps.${CLUSTER_BASE_DOMAIN}`. This is separate from the OIDC Discovery Provider Route created by Story 1.2. TLS termination is `passthrough` because SPIRE agent ↔ server use their own mTLS. The Route has `haproxy.router.openshift.io/timeout: 3600s` to prevent the router from dropping long-lived gRPC streams at the default 30s idle timeout.
+
+> **⚠️ Kustomize namespace trap:** This Route lives in `zero-trust-workload-identity-manager`, not `spire-vault-demo`. If the overlay `kustomization.yaml` sets a global `namespace: spire-vault-demo`, this Route **must** be excluded from namespace transformation (e.g., via `configurations:` or by moving it to the `ztwim-instance` overlay).
 
 ## x509pop Server-Side Patching (Manual Procedure)
 
@@ -146,6 +148,7 @@ The SpireServer CRD does **not** support configuring additional NodeAttestor plu
 
 ```bash
 #!/bin/bash
+set -euo pipefail
 # x509pop server-side patching for SPIRE Server on etl7
 # Run after: SPIRE Server deployed (Story 1.2) AND cert-manager certs issued (Story 6b)
 
@@ -153,12 +156,21 @@ ZTWIM_NS="zero-trust-workload-identity-manager"
 DEMO_NS="spire-vault-demo"
 
 # Step 1: Enable create-only mode on SpireServer CR
+# WARNING: create-only freezes ALL SpireServer-managed resources (ConfigMap,
+# StatefulSet, etc.), not just the x509pop-related ones. While this annotation
+# is active, ZTWIM operator upgrades will NOT reconcile server-side changes.
+# Remove the annotation when manual patching is no longer needed.
 oc annotate spireserver cluster -n "${ZTWIM_NS}" \
   ztwim.openshift.io/create-only=true --overwrite
 
 # Step 2: Extract CA cert from cert-manager and create Secret in ZTWIM namespace
+# Prefer ca.crt from the CA keypair secret (cert-manager populates this key)
 CA_CRT=$(oc get secret spire-bootstrap-ca-keypair -n "${DEMO_NS}" \
   -o jsonpath='{.data.ca\.crt}' | base64 -d)
+if [[ -z "${CA_CRT}" ]]; then
+  echo "ERROR: ca.crt is empty in spire-bootstrap-ca-keypair — is the Certificate issued?" >&2
+  exit 1
+fi
 
 cat <<EOF | oc apply -f -
 apiVersion: v1
@@ -200,9 +212,10 @@ jq --argjson new "${NEW_ATTESTOR}" \
     end | tojson)' | \
 oc apply -f -
 
-# Step 5: Restart SPIRE Server to pick up changes
+# Step 5: Restart SPIRE Server and wait for readiness
 oc rollout restart statefulset spire-server -n "${ZTWIM_NS}"
 oc rollout status statefulset/spire-server -n "${ZTWIM_NS}" --timeout=300s
+oc wait --for=condition=Ready pod/spire-server-0 -n "${ZTWIM_NS}" --timeout=120s
 
 echo "x509pop server-side patching complete"
 
@@ -210,19 +223,24 @@ echo "x509pop server-side patching complete"
 oc exec spire-server-0 -c spire-server -n "${ZTWIM_NS}" -- \
   cat /opt/spire/conf/server/server.conf | jq '.plugins.NodeAttestor'
 
-# Step 7: Extract the bootstrap cert fingerprint for Story 1.5 bound_subject
+# Step 7: Extract the bootstrap cert fingerprint (needed as parentID for workload registration)
 FINGERPRINT=$(oc get secret spire-bootstrap-cert -n "${DEMO_NS}" \
   -o jsonpath='{.data.tls\.crt}' | base64 -d | \
   openssl x509 -fingerprint -sha1 -noout | tr -d ':' | awk -F= '{print tolower($2)}')
-echo "Agent SPIFFE ID: spiffe://etl7.ocp.rht-labs.com/spire/agent/x509pop/${FINGERPRINT}"
-echo "Use this as bound_subject in Story 1.5 JWTOIDCAuthEngineRole"
+if [[ -z "${FINGERPRINT}" ]]; then
+  echo "ERROR: Failed to extract fingerprint — is the bootstrap cert issued?" >&2
+  exit 1
+fi
+echo "Agent SPIFFE ID (parentID): spiffe://etl7.ocp.rht-labs.com/spire/agent/x509pop/${FINGERPRINT}"
+echo "NOTE: Vault bound_subject must be the WORKLOAD SPIFFE ID (from the registration entry), NOT the agent ID."
+echo "See Story 1.5 and Story 6d for the workload registration entry that sets -spiffeID."
 ```
 
 **Source**: Adapted from [Sky Computing Part 2](https://developers.redhat.com/blog/2026/04/23/sky-computing-openshift-service-mesh-spire-multicloud-integration).
 
 ### Cross-Story Fingerprint Coordination
 
-After the cert-manager Certificate is issued, the bootstrap cert's SHA1 fingerprint determines the agent's SPIFFE ID:
+After the cert-manager Certificate is issued, the bootstrap cert's SHA1 fingerprint determines the **agent's** SPIFFE ID:
 
 ```
 spiffe://etl7.ocp.rht-labs.com/spire/agent/x509pop/<sha1-fingerprint>
@@ -234,7 +252,14 @@ oc get secret spire-bootstrap-cert -n spire-vault-demo -o jsonpath='{.data.tls\.
   base64 -d | openssl x509 -fingerprint -sha1 -noout | tr -d ':' | awk -F= '{print tolower($2)}'
 ```
 
-This value must be used as `bound_subject` in Story 1.5's `JWTOIDCAuthEngineRole`.
+> **⚠️ This is the agent SPIFFE ID (used as `parentID` in the workload registration entry), NOT the Vault `bound_subject`.** The Vault JWT `sub` claim contains the **workload** SPIFFE ID from the registration entry's `-spiffeID` parameter, not the agent's identity. See Story 1.5 for the correct `bound_subject` value.
+
+> **⚠️ Leaf renewal changes the fingerprint.** cert-manager renews the bootstrap cert 30 days before expiry (`renewBefore: 720h`). A renewed cert has a new SHA1 fingerprint, which changes the agent's SPIFFE ID and breaks x509pop attestation until the operator:
+> 1. Re-extracts the new fingerprint from the renewed `spire-bootstrap-cert` Secret
+> 2. Re-injects it into the VM via cloud-init (reboot or re-provision)
+> 3. Updates the x509pop CA bundle in the SPIRE server if the CA was also rotated
+>
+> For this experiment the 1-year leaf duration is sufficient; production deployments should automate this rotation.
 
 ## Image Rebuild Required
 

@@ -48,6 +48,22 @@ so that the VM has a continuously refreshed SPIFFE identity and JWT token for Va
   - [x] 6.2: Create-only annotation on SpireServer CR
 - [x] Task 7: Document image rebuild requirement (AC: #7)
 
+### Review Findings
+
+- [ ] [Review][Patch] Readme tells operators to put the **agent** x509pop SPIFFE ID in Vault `bound_subject`; Story 1.5 requires the **workload** SPIFFE ID (`sub` claim) [`readme.md:217`]
+- [ ] [Review][Patch] Passthrough Route has no HAProxy tunnel timeout; SPIRE agent gRPC streams will be cut at the router default [`spire-server-route.yaml:1`]
+- [ ] [Review][Patch] Warn that overlay `kustomization.yaml` must not set a global `namespace:` — it would rewrite the ZTWIM Route into `spire-vault-demo` [`spire-server-route.yaml:5`]
+- [ ] [Review][Patch] Harden x509pop script: `set -euo pipefail`, `oc wait` Certificate Ready, prefer CA `tls.crt` if `ca.crt` is empty, abort on empty fingerprint [`readme.md:147`]
+- [ ] [Review][Patch] Document that `ztwim.openshift.io/create-only=true` freezes **all** SpireServer-managed objects, not only the extra NodeAttestor [`readme.md:156`]
+- [ ] [Review][Patch] Document that cert-manager leaf renewal changes the SHA1 fingerprint (registration `parentID` and VM-injected cert diverge) [`cert-bootstrap.yaml:8`]
+- [ ] [Review][Patch] Containerfile still comments `agent.conf` / `helper.conf` as placeholders after this story finalized them [`Containerfile:56`]
+
+- [x] [Review][Defer] Story 6d kustomization still lists split cert filenames and omits `spire-server-route.yaml` [`1-6d-...md:520`] — deferred, pre-existing
+- [x] [Review][Defer] Story 6d x509pop runbook uses different Secret/mount paths than this overlay readme [`1-6d-...md:214`] — deferred, pre-existing
+- [x] [Review][Defer] Story 6d cloud-init still `sed`s `PLACEHOLDER_SPIRE_SERVER_ADDRESS` to the in-cluster Service:8081 [`1-6d-...md:455`] — deferred, pre-existing
+- [x] [Review][Defer] Workload SPIFFE ID disagrees across stories (`experiment/demo-vm` vs `spire-vault-demo/workload`) [`1-5-...md:25`] — deferred, pre-existing
+- [x] [Review][Defer] `namespace.yaml` has no OpenShift Virtualization / PSA labels for virt-launcher [`namespace.yaml:1`] — deferred, pre-existing
+
 ## Dev Notes
 
 ### ⚠️ CRITICAL: This Story Updates Placeholder Files from Story 6a

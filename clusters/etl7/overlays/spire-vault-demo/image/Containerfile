@@ -53,7 +53,9 @@ RUN semanage fcontext -a -t httpd_sys_rw_content_t "/var/www/html(/.*)?" && \
 # ── tmpfiles.d — recreate runtime dirs on tmpfs after reboot ─────────
 COPY files/etc/tmpfiles.d/spire-vault-demo.conf /etc/tmpfiles.d/spire-vault-demo.conf
 
-# ── Configuration files (placeholders — Stories 6b/6c finalize) ──────
+# ── Configuration files ──────────────────────────────────────────────
+# agent.conf and helper.conf are finalized (Story 1.6b).
+# agent.hcl is a placeholder — Story 1.6c finalizes it.
 COPY files/etc/spire/agent.conf         /etc/spire/agent.conf
 COPY files/etc/spiffe-helper/helper.conf /etc/spiffe-helper/helper.conf
 COPY files/etc/vault-agent/agent.hcl     /etc/vault-agent/agent.hcl

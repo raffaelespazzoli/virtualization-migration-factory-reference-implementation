@@ -10,13 +10,14 @@ object-templates-raw: |
       spec:
         resourceTrackingMethod: annotation
         kustomizeBuildOptions: --enable-alpha-plugins --load-restrictor LoadRestrictionsNone --helm-command /usr/local/bin/helm
+        cmdParams:
+          controller.repo.server.timeout.seconds: "120"
+          server.repo.server.timeout.seconds: "120"
+          reposerver.parallelism.limit: "5"
         extraConfig:
           resource.compareoptions: |
             ignoreAggregatedRoles: true
           resource.customizations.useOpenLibs.minio.min.io_Tenant: 'true'
-          server.repo.server.timeout.seconds: "120"
-          controller.repo.server.timeout.seconds: "120"
-          reposerver.parallelism.limit: "5"
           reposerver.plugin.use.manifest.generate.paths: "true"
         server:
           replicas: 2
