@@ -5,7 +5,6 @@ namespace: spire-vault-demo
 
 resources:
   - namespace.yaml
-  - cert-issuer.yaml
   - cert-bootstrap.yaml
   - virtual-machine.yaml
   - service.yaml

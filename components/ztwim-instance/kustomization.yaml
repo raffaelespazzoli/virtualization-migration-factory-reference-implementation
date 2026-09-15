@@ -10,3 +10,4 @@ resources:
   - spiffe-csi-driver.yaml
   - spire-oidc-discovery-provider.yaml
   - spire-server-route.yaml
+  - spire-cert-manager-ca.yaml

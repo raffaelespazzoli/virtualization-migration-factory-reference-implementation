@@ -12,5 +12,5 @@ spec:
     - digital signature
     - key encipherment
   issuerRef:
-    name: spire-bootstrap-ca-issuer
-    kind: Issuer
+    name: spire-root-ca-issuer
+    kind: ClusterIssuer

@@ -138,7 +138,7 @@ The following config files are embedded in the image:
 | File | Status |
 |---|---|
 | `/etc/spire/agent.conf` | ✅ Finalized (Story 1.6b) |
-| `/etc/spiffe-helper/helper.conf` | ✅ Finalized (Story 1.6b) |
+| `/etc/spiffe-helper/helper.conf` | ✅ Finalized (Story 1.6b) — extracts X.509 SVIDs, JWT-SVIDs, and JWT Bundle |
 | `/etc/vault-agent/agent.hcl` | Placeholder — Story 1.6c finalizes |
 
 After updating configuration files, rebuild and push the image.
@@ -156,8 +156,12 @@ After updating configuration files, rebuild and push the image.
 
 - **daemon_mode**: `true` — continuously fetches and renews SVIDs
 - **cert_dir**: `/var/run/secrets/spiffe` — SVID output directory
-- **jwt_audience**: `vault` — must match `bound_audiences` in Story 1.5's Vault JWT role
+- **Extracts all supported identity types:**
+  - **X.509 SVID**: certificate (`svid.crt.pem`), private key (`svid.key.pem`), trust bundle (`bundle.crt.pem`)
+  - **JWT-SVID**: token for audience `vault` (`jwt-svid.token`) — must match `bound_audiences` in Story 1.5's Vault JWT role
+  - **JWT Bundle**: JWKS verification keys (`jwt_bundle.json`) — enables local JWT-SVID validation without contacting SPIRE Server
 - **File modes**: `0640` — owner (spiffe-helper, UID 10002) + group (spiffe-consumers, GID 10003) read access
+- **Note**: SPIFFE also defines WIT-SVIDs (Workload Identity Tokens) but spiffe-helper does not support them
 
 ## Kubernetes Manifests (Story 1.6b)
 
@@ -166,23 +170,33 @@ The following manifests are deployed by ArgoCD (Story 6d creates the ArgoCD Appl
 | File | Kind | Namespace | Purpose |
 |---|---|---|---|
 | `namespace.yaml` | Namespace | — | Creates `spire-vault-demo` namespace |
-| `cert-issuer.yaml` | Issuer, Certificate, Issuer | spire-vault-demo | Two-tier CA: self-signed root → CA cert → CA issuer |
 | `cert-bootstrap.yaml` | Certificate | spire-vault-demo | 1-year leaf cert for x509pop attestation (`spire-bootstrap-cert` Secret) |
-| `spire-server-route.yaml` | Route | zero-trust-workload-identity-manager | Passthrough Route exposing SPIRE Server gRPC for VM agent |
+
+The root CA infrastructure is deployed by the `ztwim-instance` component/overlay:
+
+| File | Kind | Scope | Purpose |
+|---|---|---|---|
+| `components/ztwim-instance/spire-cert-manager-ca.yaml` | ClusterIssuer × 2 | Cluster | Self-signed bootstrap + root CA ClusterIssuer |
+| `clusters/etl7/overlays/ztwim-instance/spire-cert-manager-ca.yaml` | Certificate | cert-manager ns | Root CA cert (creates `spire-root-ca-secret`) |
 
 ### cert-manager Certificate Chain
 
+A single root CA serves both SPIRE Server's UpstreamAuthority (intermediate signing CA) and the VM's x509pop bootstrap cert:
+
 ```
-spire-bootstrap-selfsigned (self-signed Issuer)
-  └── spire-bootstrap-ca (CA Certificate, 10-year, Secret: spire-bootstrap-ca-keypair)
-        └── spire-bootstrap-ca-issuer (CA Issuer)
-              └── spire-bootstrap-cert (Leaf Certificate, 1-year, Secret: spire-bootstrap-cert)
+selfsigned-bootstrap (ClusterIssuer, self-signed)
+  └── spire-root-ca (Certificate, 10-year, ns: cert-manager, Secret: spire-root-ca-secret)
+        └── spire-root-ca-issuer (ClusterIssuer, backed by spire-root-ca-secret)
+              ├── SpireServer upstreamAuthority.certManager (intermediate signing cert — declarative)
+              └── spire-bootstrap-cert (Leaf Certificate, 1-year, ns: spire-vault-demo, Secret: spire-bootstrap-cert)
 ```
 
 The leaf cert Secret (`spire-bootstrap-cert`) provides:
 - `tls.crt` → cloud-init injects as `/etc/spire/bootstrap/agent.crt.pem`
 - `tls.key` → cloud-init injects as `/etc/spire/bootstrap/agent.key.pem`
 - `ca.crt` → used for x509pop server-side patching
+
+The SPIRE Server's UpstreamAuthority is configured declaratively via the `SpireServer` CR's `spec.upstreamAuthority.certManager` field (patched in the etl7 ztwim-instance overlay). ZTWIM reconciles the SPIRE Server StatefulSet automatically — no manual intermediate cert provisioning is needed.
 
 ### SPIRE Server Route
 
@@ -204,7 +218,7 @@ set -euo pipefail
 # Run after: SPIRE Server deployed (Story 1.2) AND cert-manager certs issued (Story 6b)
 
 ZTWIM_NS="zero-trust-workload-identity-manager"
-DEMO_NS="spire-vault-demo"
+CERTMGR_NS="cert-manager"
 
 # Step 1: Enable create-only mode on SpireServer CR
 # WARNING: create-only freezes ALL SpireServer-managed resources (ConfigMap,
@@ -214,12 +228,17 @@ DEMO_NS="spire-vault-demo"
 oc annotate spireserver cluster -n "${ZTWIM_NS}" \
   ztwim.openshift.io/create-only=true --overwrite
 
-# Step 2: Extract CA cert from cert-manager and create Secret in ZTWIM namespace
-# Prefer ca.crt from the CA keypair secret (cert-manager populates this key)
-CA_CRT=$(oc get secret spire-bootstrap-ca-keypair -n "${DEMO_NS}" \
+# Step 2: Extract root CA cert from the cert-manager namespace
+# The spire-root-ca-secret is created by the ztwim-instance overlay's Certificate CR
+CA_CRT=$(oc get secret spire-root-ca-secret -n "${CERTMGR_NS}" \
   -o jsonpath='{.data.ca\.crt}' | base64 -d)
 if [[ -z "${CA_CRT}" ]]; then
-  echo "ERROR: ca.crt is empty in spire-bootstrap-ca-keypair — is the Certificate issued?" >&2
+  # Fall back to tls.crt if ca.crt is not populated (self-signed root CA)
+  CA_CRT=$(oc get secret spire-root-ca-secret -n "${CERTMGR_NS}" \
+    -o jsonpath='{.data.tls\.crt}' | base64 -d)
+fi
+if [[ -z "${CA_CRT}" ]]; then
+  echo "ERROR: CA cert is empty in spire-root-ca-secret — is the Certificate issued?" >&2
   exit 1
 fi
 
@@ -275,6 +294,7 @@ oc exec spire-server-0 -c spire-server -n "${ZTWIM_NS}" -- \
   cat /opt/spire/conf/server/server.conf | jq '.plugins.NodeAttestor'
 
 # Step 7: Extract the bootstrap cert fingerprint (needed as parentID for workload registration)
+DEMO_NS="spire-vault-demo"
 FINGERPRINT=$(oc get secret spire-bootstrap-cert -n "${DEMO_NS}" \
   -o jsonpath='{.data.tls\.crt}' | base64 -d | \
   openssl x509 -fingerprint -sha1 -noout | tr -d ':' | awk -F= '{print tolower($2)}')
@@ -297,7 +317,7 @@ After the cert-manager Certificate is issued, the bootstrap cert's SHA1 fingerpr
 spiffe://etl7.ocp.rht-labs.com/spire/agent/x509pop/<sha1-fingerprint>
 ```
 
-Extract the fingerprint:
+Extract the fingerprint (from the bootstrap leaf cert, NOT the root CA):
 ```bash
 oc get secret spire-bootstrap-cert -n spire-vault-demo -o jsonpath='{.data.tls\.crt}' | \
   base64 -d | openssl x509 -fingerprint -sha1 -noout | tr -d ':' | awk -F= '{print tolower($2)}'
@@ -366,7 +386,7 @@ sudo podman logs spire-agent
 
 # 5. Check spiffe-helper is extracting SVIDs
 ls -la /var/run/secrets/spiffe/
-# Should contain: svid.crt.pem, svid.key.pem, bundle.crt.pem, jwt-svid.token
+# Should contain: svid.crt.pem, svid.key.pem, bundle.crt.pem, jwt-svid.token, jwt_bundle.json
 cat /var/run/secrets/spiffe/jwt-svid.token | cut -d. -f2 | base64 -d 2>/dev/null | python3 -m json.tool
 # Verify the 'sub' field matches the registration entry's SPIFFE ID
 
@@ -413,13 +433,11 @@ podman push quay.io/<org>/rhel10-spire-vault-demo:latest
 
 ```
 clusters/etl7/overlays/spire-vault-demo/
-├── cert-bootstrap.yaml          # Story 6b — leaf Certificate for x509pop
-├── cert-issuer.yaml             # Story 6b — self-signed CA chain (Issuer + CA Cert + CA Issuer)
+├── cert-bootstrap.yaml          # Story 6b — leaf Certificate for x509pop (refs ClusterIssuer)
 ├── kustomization.yaml           # Story 6d — Kustomize overlay root
 ├── namespace.yaml               # Story 6b — spire-vault-demo namespace
 ├── route.yaml                   # Story 6d — Route for httpd external access
 ├── service.yaml                 # Story 6d — Service targeting VM httpd (port 8080)
-├── spire-server-route.yaml      # Story 6b — passthrough Route for SPIRE Server gRPC
 ├── virtual-machine.yaml         # Story 6d — VirtualMachine CR with DataVolume + cloud-init
 ├── image/
 │   ├── Containerfile
@@ -440,6 +458,13 @@ clusters/etl7/overlays/spire-vault-demo/
 │           └── vault-agent/
 │               └── agent.hcl
 └── readme.md
+
+# Root CA resources (deployed by ztwim-instance, not this overlay):
+components/ztwim-instance/
+└── spire-cert-manager-ca.yaml    # ClusterIssuers: selfsigned-bootstrap + spire-root-ca-issuer
+
+clusters/etl7/overlays/ztwim-instance/
+└── spire-cert-manager-ca.yaml    # Certificate: spire-root-ca in cert-manager namespace
 ```
 
 ## Post-Deployment Manual Steps Summary
@@ -459,3 +484,23 @@ These manual steps are acceptable for an experiment. A production implementation
 - **Story 1.6b** — Finalizes SPIRE agent and spiffe-helper configuration
 - **Story 1.6c** — Finalizes Vault agent configuration
 - **Story 1.6d** — Deploys the VM on OpenShift Virtualization (VirtualMachine CR, Service, Route, kustomization)
+
+
+Abbreviated steps:
+
+```sh
+podman build -t quay.io/raffaelespazzoli/rhel10-spire-vault-demo:latest -f Containerfile .
+podman save quay.io/raffaelespazzoli/rhel10-spire-vault-demo:latest | sudo podman load
+
+sudo podman run --rm -it --privileged \
+  --pull=newer \
+  --security-opt label=type:unconfined_t \
+  -v $(pwd)/output:/output \
+  -v /var/lib/containers/storage:/var/lib/containers/storage \
+  registry.redhat.io/rhel10/bootc-image-builder:latest \
+  --type qcow2 \
+  quay.io/raffaelespazzoli/rhel10-spire-vault-demo:latest
+
+podman build -t quay.io/raffaelespazzoli/rhel10-spire-vault-demo-disk:latest -f Containerfile.disk .
+podman push quay.io/raffaelespazzoli/rhel10-spire-vault-demo-disk:latest
+```

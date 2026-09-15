@@ -63,14 +63,16 @@ An httpd endpoint on the RHEL 10 VM displays a KV2 secret retrieved from Vault, 
 
 ### Trust Chain
 
-1. **cert-manager** issues a 1-year bootstrap leaf certificate for the VM
-2. The cert-manager CA is added to the **SPIRE Server's** x509pop trusted CA bundle
-3. **cloud-init** injects the leaf cert + key into the VM at `/etc/spire/bootstrap/`
-4. **spire-agent** boots, presents the bootstrap cert, SPIRE Server validates and attests
-5. **spiffe-helper** extracts X.509-SVIDs and JWT-SVIDs from the attested agent
-6. **vault-agent** reads the JWT-SVID, authenticates to Vault via OIDC-federated JWT auth
-7. **vault-agent** templates the KV2 secret to disk
-8. **httpd** serves the secret file at a public URL
+1. **cert-manager** provides the single root of trust via a ClusterIssuer chain (deployed by `ztwim-instance`)
+2. **SPIRE Server** obtains its intermediate signing CA from cert-manager via the **UpstreamAuthority cert-manager plugin** (declarative, no manual steps)
+3. **cert-manager** issues a 1-year bootstrap leaf certificate for the VM from the same root CA ClusterIssuer
+4. The root CA cert is added to the **SPIRE Server's** x509pop trusted CA bundle (manual patch — CRD limitation)
+5. **cloud-init** injects the leaf cert + key into the VM at `/etc/spire/bootstrap/`
+6. **spire-agent** boots, presents the bootstrap cert, SPIRE Server validates and attests
+7. **spiffe-helper** extracts all supported identity types: X.509-SVIDs, JWT-SVIDs, and JWT Bundle (JWKS)
+8. **vault-agent** reads the JWT-SVID, authenticates to Vault via OIDC-federated JWT auth
+9. **vault-agent** templates the KV2 secret to disk
+10. **httpd** serves the secret file at a public URL
 
 ### VM Container Isolation and Shared Folder Architecture
 
@@ -94,6 +96,7 @@ Each Quadlet container on the VM operates at a distinct privilege level. Folders
 │    svid.key.pem    (0640 spiffe-helper:spiffe-consumers)            │
 │    bundle.crt.pem  (0640 spiffe-helper:spiffe-consumers)            │
 │    jwt-svid.token  (0640 spiffe-helper:spiffe-consumers)            │
+│    jwt_bundle.json (0640 spiffe-helper:spiffe-consumers)            │
 │    dir perms:      (0750 spiffe-helper:spiffe-consumers)            │
 │    vault-agent user is member of spiffe-consumers group.            │
 │    httpd has NO access to this folder.                               │
@@ -150,9 +153,10 @@ Story 6c (Vault Agent + httpd config) ──┤
 
 ### Future Work
 
-- Investigate the **Vault UpstreamAuthority plugin** (ZTWIM docs §12.13.6) to have Vault serve as the SPIRE root CA, closing the trust circle.
+- Investigate the **Vault UpstreamAuthority plugin** (ZTWIM docs §12.13.6) to have Vault's PKI engine serve as the SPIRE root CA, closing the trust circle (cert-manager → Vault PKI → SPIRE).
 - Evaluate **SPIRE federation** across clusters (etl6 ↔ etl7) for cross-cluster identity.
 - Explore replacing the experiment's `containerDisk` VM with a `DataVolume` for persistence.
+- Automate the x509pop SPIRE Server patching (currently manual due to CRD limitation) — potentially via a Kubernetes Job or custom controller.
 
 ### Key References
 
@@ -226,13 +230,17 @@ None
 - [ ] Contains `SpireServer` CR configured with:
   - Trust domain (e.g., `spiffe://etl7.ocp.rht-labs.com`)
   - OIDC Discovery Provider enabled and configured
-  - X509pop node attestor plugin with `ca_bundle_path` pointing to the cert-manager CA bundle (for VM bootstrap cert validation)
+  - **UpstreamAuthority cert-manager plugin** via `spec.upstreamAuthority.certManager` referencing the `spire-root-ca-issuer` ClusterIssuer (SPIRE's intermediate signing cert comes from cert-manager — fully declarative, no manual CA provisioning)
+- [ ] Contains cert-manager `ClusterIssuer` resources (`spire-cert-manager-ca.yaml`):
+  - `selfsigned-bootstrap` — self-signed ClusterIssuer for bootstrapping the root CA
+  - `spire-root-ca-issuer` — ClusterIssuer backed by the root CA Secret (shared with VM bootstrap cert)
 - [ ] Contains SPIFFE CSI Driver CR
 - [ ] Contains `kustomization.yaml` referencing the above resources
 - [ ] Overlay at `clusters/etl7/overlays/ztwim-instance/` with cluster-specific configuration:
   - Trust domain
   - OIDC discovery domain / Route host
-  - cert-manager CA bundle for x509pop (may come from Story 6b's cert-manager Issuer)
+  - `upstreamAuthority.certManager` patch pointing to the `spire-root-ca-issuer` ClusterIssuer
+  - Root CA `Certificate` CR (`spire-cert-manager-ca.yaml`) in `cert-manager` namespace — must be in the overlay (not the component) to avoid namespace transformer override
 - [ ] Sync-wave set to `15` (instance tier)
 - [ ] Application entry in `clusters/etl7/values.yaml`:
   ```yaml
@@ -253,8 +261,10 @@ None
 
 - **SpireAgent and SpiffeCSIDriver are deployed with all defaults** — they are standard ZTWIM operands and part of the complete operand set, but they are not functionally used in this experiment. The VM's spire-agent (Story 6b) uses x509pop attestation and runs standalone inside the VM, not via the cluster-level SpireAgent DaemonSet. Deploy both with defaults for completeness.
 - The OIDC discovery Route URL will be referenced by Story 5 (Vault trust config)
-- The x509pop CA bundle will need to include the cert-manager CA from Story 6b — this creates a cross-story dependency for the overlay configuration
-- Reference: [OCP 4.22 ZTWIM docs §12.5 - Deploying operands](https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/security_and_compliance/zero-trust-workload-identity-manager)
+- **cert-manager UpstreamAuthority** (ZTWIM 1.1 feature) — the `SpireServer` CR's `spec.upstreamAuthority.certManager` is patched in the overlay to point at the `spire-root-ca-issuer` ClusterIssuer. ZTWIM auto-reconciles the SPIRE Server StatefulSet to load the plugin. No manual intermediate cert provisioning is needed.
+- The same root CA ClusterIssuer issues the VM bootstrap cert (Story 6b) — one root of trust for everything
+- The x509pop CA bundle still requires manual patching on the SPIRE Server (CRD limitation) but uses the same `spire-root-ca-secret` from the `cert-manager` namespace
+- Reference: [OCP 4.22 ZTWIM docs §12.13 - UpstreamAuthority plugins](https://docs.redhat.com/en/documentation/openshift_container_platform/4.22/html/security_and_compliance/zero-trust-workload-identity-manager)
 
 ---
 
@@ -550,15 +560,13 @@ None (image build is independent of cluster deployment)
 - [ ] Log level set appropriately for debugging (e.g., `DEBUG` initially)
 
 **Bootstrap certificate provisioning:**
-- [ ] cert-manager `Issuer` CR in the demo overlay:
-  - Self-signed CA issuer (or references an existing cluster CA)
-- [ ] cert-manager `Certificate` CR issuing a **1-year** leaf certificate:
-  - Signed by the above Issuer
+- [ ] cert-manager `Certificate` CR (`cert-bootstrap.yaml`) issuing a **1-year** leaf certificate:
+  - Signed by the `spire-root-ca-issuer` **ClusterIssuer** (deployed by Story 1.2's `ztwim-instance` component/overlay)
   - Includes `digitalSignature` key usage (required by x509pop)
   - Unique common name per VM (e.g., `spire-vault-demo-vm.etl7.ocp.rht-labs.com`)
-  - Stored in a Kubernetes Secret (e.g., `spire-bootstrap-cert`)
-- [ ] The **CA certificate** from the cert-manager Issuer is included in the SPIRE Server's `SpireServer` CR x509pop `ca_bundle_path` configuration
-  - This is a cross-reference with Story 2's overlay — the CA cert must be available to the SpireServer configuration
+  - Stored in a Kubernetes Secret (`spire-bootstrap-cert` in `spire-vault-demo` namespace)
+- [ ] **No separate CA Issuer chain in this overlay** — the old `cert-issuer.yaml` is deleted; the root CA is managed by `ztwim-instance`
+- [ ] The **root CA certificate** from `spire-root-ca-secret` (in `cert-manager` namespace) is used for SPIRE Server's x509pop `ca_bundle_path` configuration (manual patching step — see readme.md)
 - [ ] The leaf cert + private key are injected into the VM via **cloud-init** `write_files` directive:
   - `/etc/spire/bootstrap/agent.crt.pem` — leaf certificate (mode `0400`, owner `spire:spire`)
   - `/etc/spire/bootstrap/agent.key.pem` — private key (mode `0400`, owner `spire:spire`)
@@ -567,13 +575,11 @@ None (image build is independent of cluster deployment)
 
 **SPIFFE Helper configuration (`/etc/spiffe-helper/helper.conf`):**
 - [ ] Watches the SPIRE Agent workload API socket at `/run/spire/sockets/agent.sock`
-- [ ] Extracts X.509-SVIDs:
-  - Certificate: `/var/run/secrets/spiffe/svid.crt.pem`
-  - Private key: `/var/run/secrets/spiffe/svid.key.pem`
-  - Trust bundle: `/var/run/secrets/spiffe/bundle.crt.pem`
-- [ ] Extracts JWT-SVID:
-  - Audience: `vault` (must match `bound_audiences` in Vault JWT role from Story 5)
-  - Output: `/var/run/secrets/spiffe/jwt-svid.token`
+- [ ] Extracts **all supported identity types**:
+  - **X.509 SVID:** Certificate (`svid.crt.pem`), private key (`svid.key.pem`), trust bundle (`bundle.crt.pem`)
+  - **JWT-SVID:** Token for audience `vault` (`jwt-svid.token`) — must match `bound_audiences` in Vault JWT role from Story 5
+  - **JWT Bundle (JWKS):** Verification keys (`jwt_bundle.json`) — enables local JWT-SVID validation without contacting SPIRE Server
+  - *(Note: SPIFFE also defines WIT-SVIDs but spiffe-helper does not support them)*
 - [ ] All output files written with ownership `spiffe-helper:spiffe-consumers` and mode `0640`
   - vault-agent (member of `spiffe-consumers`) can read; httpd and other processes cannot
 - [ ] Continuously refreshes credentials as they rotate
@@ -585,8 +591,8 @@ None (image build is independent of cluster deployment)
 ### Implementation Notes
 
 - The [x509pop agent plugin](https://github.com/spiffe/spire/blob/main/doc/plugin_agent_nodeattestor_x509pop.md) requires the leaf cert to have `digitalSignature` key usage
-- The cert does NOT need to be signed by SPIRE — any CA works, as long as the CA is in the Server's trusted bundle
-- cert-manager can absolutely issue this certificate
+- The bootstrap cert is signed by the same `spire-root-ca-issuer` ClusterIssuer that provides SPIRE's UpstreamAuthority — one root of trust for everything
+- The old `cert-issuer.yaml` (self-signed Issuer chain in `spire-vault-demo` namespace) has been deleted — replaced by ClusterIssuers in the `ztwim-instance` component
 - See [Yulia Paterson's walkthrough on X.509 node attestation](https://medium.com/@yulia.paterson/spire-x-509-node-attestation-033bd157ce0d) for a step-by-step reference
 - The SPIRE Server also needs a **registration entry** for this VM's workload — either via `ClusterSPIFFEID` CR or manual `spire-server entry create` — this is handled in Story 6d
 

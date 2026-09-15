@@ -13,6 +13,7 @@ This component creates five cluster-scoped singleton operand CRs (all named `clu
 | `SpireAgent` | Node-level DaemonSet — attests workloads via k8sPSAT |
 | `SpiffeCSIDriver` | CSI driver — mounts SPIFFE credentials into pods |
 | `SpireOIDCDiscoveryProvider` | OIDC endpoint — enables external JWT-SVID validation (e.g. Vault) |
+| `ClusterIssuer` (× 2) | cert-manager self-signed bootstrap + root CA issuer for SPIRE UpstreamAuthority |
 
 ## Deployment Order
 
@@ -23,6 +24,7 @@ The ZTWIM operator controller handles internal ordering, but resources are liste
 3. `SpireAgent` (node-level agent DaemonSet)
 4. `SpiffeCSIDriver` (CSI driver for workload socket mounting)
 5. `SpireOIDCDiscoveryProvider` (OIDC endpoint for external JWT validation)
+6. `ClusterIssuer` resources for cert-manager UpstreamAuthority (self-signed bootstrap + root CA issuer)
 
 ## Customization
 
@@ -34,6 +36,9 @@ The base component uses `PLACEHOLDER` values that **must** be patched via a clus
 | `clusterName` | ZeroTrustWorkloadIdentityManager | `etl7` |
 | `jwtIssuer` | SpireServer, SpireOIDCDiscoveryProvider | `https://oidc-discovery.apps.<cluster-domain>` |
 | `storageClass` | SpireServer | `ontap-nas` |
+| `upstreamAuthority.certManager` | SpireServer | issuer name, kind, namespace |
+
+> **⚠️ cert-manager root CA Certificate:** The root CA `Certificate` CR (which creates the `spire-root-ca-secret` Secret in the `cert-manager` namespace) must be deployed via the cluster overlay — not the component — because this component's `namespace:` transformer would override `cert-manager` → `zero-trust-workload-identity-manager`. The component deploys only the `ClusterIssuer` resources (cluster-scoped, unaffected by namespace transformer).
 
 > **⚠️ Immutable fields:** `trustDomain`, `clusterName`, and `bundleConfigMap` on ZeroTrustWorkloadIdentityManager, and all `persistence` fields on SpireServer, are immutable after creation (CEL-enforced). If set incorrectly, the CRs must be deleted and recreated.
 

@@ -3,11 +3,18 @@ FROM registry.redhat.io/rhel10/rhel-bootc:10.2
 # ── System packages ──────────────────────────────────────────────────
 # policycoreutils-python-utils: semanage for SELinux fcontext rules at build time
 # qemu-guest-agent: allows host to run commands inside the VM via virtio channel
+# openssh-server: SSH access for debugging
 RUN dnf install -y \
       policycoreutils-python-utils \
       qemu-guest-agent \
+      openssh-server \
     && dnf clean all \
-    && systemctl enable qemu-guest-agent
+    && systemctl enable qemu-guest-agent sshd
+
+# ── Enable all guest-agent commands (exec, file ops) for diagnostics ─
+RUN mkdir -p /etc/sysconfig && \
+    echo 'BLOCKEDRPCS=""' > /etc/sysconfig/qemu-ga && \
+    echo 'BLACKLIST_RPC=""' >> /etc/sysconfig/qemu-ga
 
 # ── Users and groups ─────────────────────────────────────────────────
 RUN groupadd -g 10001 spire && \

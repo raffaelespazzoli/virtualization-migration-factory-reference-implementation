@@ -1,0 +1,17 @@
+# Root CA Certificate — must live in the overlay (not the component) because
+# the component's namespace transformer would override cert-manager → ztwim namespace.
+# The resulting Secret (spire-root-ca-secret) is referenced by the ClusterIssuer
+# defined in the component (components/ztwim-instance/spire-cert-manager-ca.yaml).
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: spire-root-ca
+  namespace: cert-manager
+spec:
+  isCA: true
+  duration: 87600h  # 10 years
+  commonName: "SPIRE Root CA - etl7"
+  secretName: spire-root-ca-secret
+  issuerRef:
+    name: selfsigned-bootstrap
+    kind: ClusterIssuer

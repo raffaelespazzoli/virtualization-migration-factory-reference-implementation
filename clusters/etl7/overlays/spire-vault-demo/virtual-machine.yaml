@@ -55,6 +55,7 @@ spec:
             - masquerade: {}
               name: default
               ports:
+                - port: 22
                 - port: 8080
           rng: {}
         features:

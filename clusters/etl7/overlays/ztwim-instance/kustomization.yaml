@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../../../components/ztwim-instance
+  - spire-cert-manager-ca.yaml
 
 patches:
   - target:
@@ -27,6 +28,14 @@ patches:
       - op: replace
         path: /spec/persistence/storageClass
         value: 'ontap-nas'
+      - op: add
+        path: /spec/upstreamAuthority
+        value:
+          certManager:
+            namespace: cert-manager
+            issuerName: spire-root-ca-issuer
+            issuerKind: ClusterIssuer
+            issuerGroup: cert-manager.io
   - target:
       kind: SpireOIDCDiscoveryProvider
       group: operator.openshift.io

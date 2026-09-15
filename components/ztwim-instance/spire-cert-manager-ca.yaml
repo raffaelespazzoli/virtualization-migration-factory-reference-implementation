@@ -1,0 +1,29 @@
+# cert-manager ClusterIssuers for SPIRE UpstreamAuthority + VM bootstrap certs.
+# This establishes a single root of trust used by:
+#   1. SPIRE Server intermediate signing CA (via UpstreamAuthority cert-manager plugin)
+#   2. VM x509pop bootstrap certificate signing CA
+#
+# The root CA Certificate (which creates the backing Secret in cert-manager
+# namespace) must be deployed via the cluster overlay because this component's
+# namespace transformer would override it to zero-trust-workload-identity-manager.
+#
+# Reference: OCP 4.22 ZTWIM docs §12.13.2 — Preparing cert-manager for SPIRE Server
+
+# Self-signed bootstrap ClusterIssuer — issues the root CA certificate
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-bootstrap
+spec:
+  selfSigned: {}
+---
+# ClusterIssuer backed by the root CA Secret (created by overlay's Certificate CR).
+# Accessible from any namespace — used by both SpireServer upstreamAuthority and
+# the spire-vault-demo VM bootstrap Certificate.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: spire-root-ca-issuer
+spec:
+  ca:
+    secretName: spire-root-ca-secret
