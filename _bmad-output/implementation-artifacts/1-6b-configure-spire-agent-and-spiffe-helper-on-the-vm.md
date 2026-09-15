@@ -588,6 +588,7 @@ No issues encountered. All files created/updated exactly as specified in Dev Not
 ### Change Log
 
 - 2026-09-15: Story 1.6b implemented — finalized SPIRE agent and spiffe-helper configs, created cert-manager CA chain, bootstrap leaf cert, SPIRE Server passthrough Route, and namespace manifest. x509pop server-side patching procedure documented in readme.
+- 2026-09-15: Code review patches applied (7 patches): corrected bound_subject guidance to distinguish agent vs workload SPIFFE IDs, added HAProxy tunnel timeout to Route, added Kustomize namespace trap warning, hardened x509pop script with set -euo pipefail and validation guards, documented create-only annotation blast radius, documented leaf renewal fingerprint impact, updated Containerfile comment to reflect finalized configs.
 
 ## Suggested Review Order
 
