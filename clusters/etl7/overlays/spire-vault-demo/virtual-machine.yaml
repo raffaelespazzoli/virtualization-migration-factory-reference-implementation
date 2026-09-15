@@ -17,7 +17,7 @@ spec:
             url: docker://quay.io/raffaelespazzoli/rhel10-spire-vault-demo-disk:latest
         storage:
           accessModes:
-            - ReadWriteOnce
+            - ReadWriteMany
           volumeMode: Filesystem
           resources:
             requests:
