@@ -1,0 +1,19 @@
+apiVersion: redhatcop.redhat.io/v1alpha1
+kind: JWTOIDCAuthEngineConfig
+metadata:
+  name: spire-jwt-config
+spec:
+  authentication:
+    path: etl7
+    role: vault-admin
+    serviceAccount:
+      name: default
+  path: spire-jwt
+  OIDCDiscoveryURL: "https://oidc-discovery.apps.${CLUSTER_BASE_DOMAIN}"
+  OIDCDiscoveryCAPEM: |
+    PLACEHOLDER — replace with output of:
+    oc get secret -n openshift-ingress-operator router-ca -o jsonpath='{.data.tls\.crt}' | base64 -d
+  boundIssuer: "https://oidc-discovery.apps.${CLUSTER_BASE_DOMAIN}"
+  JWTSupportedAlgs:
+    - RS256
+  defaultRole: spire-vm-role

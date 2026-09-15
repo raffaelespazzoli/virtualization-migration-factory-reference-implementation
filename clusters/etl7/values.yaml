@@ -82,6 +82,18 @@ applications:
           jsonPointers:
             - /data
 
+  vault-spire-trust:
+    annotations:
+      argocd.argoproj.io/sync-wave: '25'
+    source:
+      path: clusters/etl7/overlays/vault-spire-trust
+    extraFields: |
+      ignoreDifferences:
+        - group: ""
+          kind: ConfigMap
+          jsonPointers:
+            - /data
+
   # odf-operator:
   #   annotations:
   #     argocd.argoproj.io/compare-options: IgnoreExtraneous

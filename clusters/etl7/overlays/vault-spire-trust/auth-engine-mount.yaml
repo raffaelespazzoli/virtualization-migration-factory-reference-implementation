@@ -1,0 +1,12 @@
+apiVersion: redhatcop.redhat.io/v1alpha1
+kind: AuthEngineMount
+metadata:
+  name: spire-jwt
+spec:
+  authentication:
+    path: etl7
+    role: vault-admin
+    serviceAccount:
+      name: default
+  type: jwt
+  description: "SPIRE JWT auth for workload identity via OIDC federation"

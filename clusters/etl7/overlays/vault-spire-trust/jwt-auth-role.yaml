@@ -1,0 +1,21 @@
+apiVersion: redhatcop.redhat.io/v1alpha1
+kind: JWTOIDCAuthEngineRole
+metadata:
+  name: spire-vm-role
+spec:
+  authentication:
+    path: etl7
+    role: vault-admin
+    serviceAccount:
+      name: default
+  path: spire-jwt
+  name: spire-vm-role
+  roleType: jwt
+  userClaim: sub
+  boundAudiences:
+    - vault
+  boundSubject: "spiffe://etl7.ocp.rht-labs.com/experiment/demo-vm"
+  tokenPolicies:
+    - experiment-read
+  tokenTTL: "1h"
+  tokenMaxTTL: "24h"

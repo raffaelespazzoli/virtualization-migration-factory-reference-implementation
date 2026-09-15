@@ -1,0 +1,18 @@
+apiVersion: redhatcop.redhat.io/v1alpha1
+kind: Policy
+metadata:
+  name: experiment-read
+spec:
+  authentication:
+    path: etl7
+    role: vault-admin
+    serviceAccount:
+      name: default
+  type: acl
+  policy: |
+    path "secret/data/experiment/*" {
+      capabilities = ["read"]
+    }
+    path "secret/metadata/experiment/*" {
+      capabilities = ["read", "list"]
+    }

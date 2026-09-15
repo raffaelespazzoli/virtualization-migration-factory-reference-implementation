@@ -1,6 +1,7 @@
 # Story 1.5: Configure SPIRE-Vault OIDC Trust via vault-config-operator
 
-Status: ready-for-dev
+Status: done
+baseline_commit: 992a97560abf757dc76e3443bb000f32931ad8ce
 
 ## Story
 
@@ -35,32 +36,32 @@ so that workloads with SPIFFE identities can authenticate to Vault without pre-s
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create `clusters/etl7/overlays/vault-spire-trust/` directory (AC: #9)
-- [ ] Task 2: Create `namespace.yaml` — vault-admin namespace (AC: #1)
-  - [ ] 2.1: Namespace `vault-admin`
-  - [ ] 2.2: Annotation `argocd.argoproj.io/sync-options: Delete=false`
-  - [ ] 2.3: Label `argocd.argoproj.io/managed-by: openshift-gitops`
-- [ ] Task 3: Create `auth-engine-mount.yaml` — JWT auth engine (AC: #2, #8)
-- [ ] Task 4: Create `jwt-auth-config.yaml` — OIDC discovery config (AC: #3, #8)
-  - [ ] 4.1: Set `OIDCDiscoveryURL` to Route URL
-  - [ ] 4.2: Populate `OIDCDiscoveryCAPEM` with OpenShift ingress CA (see dev notes)
-  - [ ] 4.3: Set `defaultRole: spire-vm-role`
-- [ ] Task 5: Create `policy.yaml` — Vault read policy (AC: #4, #8)
-- [ ] Task 6: Create `jwt-auth-role.yaml` — JWT auth role (AC: #5, #8)
-  - [ ] 6.1: `roleType: jwt`, `userClaim: sub`
-  - [ ] 6.2: `boundAudiences: ["vault"]`
-  - [ ] 6.3: `boundSubject: "spiffe://etl7.ocp.rht-labs.com/experiment/demo-vm"`
-  - [ ] 6.4: `tokenPolicies: ["experiment-read"]`
-- [ ] Task 7: Create `secret-engine-mount.yaml` — KV v2 engine (AC: #6, #8)
-- [ ] Task 8: Create `seed-secret-job.yaml` — test secret writer (AC: #7)
-- [ ] Task 9: Create `configmap-ocp-service-ca.yaml` — OCP service-CA for Vault TLS trust (AC: #7)
-  - [ ] 9.1: ConfigMap `ocp-service-ca` with annotation `service.beta.openshift.io/inject-cabundle: "true"`
-- [ ] Task 10: Create `kustomization.yaml` (AC: #9)
-  - [ ] 10.1: Set `namespace: vault-admin`
-  - [ ] 10.2: List resources in dependency order
-- [ ] Task 11: Add application entry to `clusters/etl7/values.yaml` (AC: #10, #11)
-  - [ ] 11.1: Entry under the `# Zero Trust` section
-  - [ ] 11.2: Sync-wave `'25'`, source path `clusters/etl7/overlays/vault-spire-trust`
+- [x] Task 1: Create `clusters/etl7/overlays/vault-spire-trust/` directory (AC: #9)
+- [x] Task 2: Create `namespace.yaml` — vault-admin namespace (AC: #1)
+  - [x] 2.1: Namespace `vault-admin`
+  - [x] 2.2: Annotation `argocd.argoproj.io/sync-options: Delete=false`
+  - [x] 2.3: Label `argocd.argoproj.io/managed-by: openshift-gitops`
+- [x] Task 3: Create `auth-engine-mount.yaml` — JWT auth engine (AC: #2, #8)
+- [x] Task 4: Create `jwt-auth-config.yaml` — OIDC discovery config (AC: #3, #8)
+  - [x] 4.1: Set `OIDCDiscoveryURL` to Route URL
+  - [x] 4.2: Populate `OIDCDiscoveryCAPEM` with OpenShift ingress CA (see dev notes)
+  - [x] 4.3: Set `defaultRole: spire-vm-role`
+- [x] Task 5: Create `policy.yaml` — Vault read policy (AC: #4, #8)
+- [x] Task 6: Create `jwt-auth-role.yaml` — JWT auth role (AC: #5, #8)
+  - [x] 6.1: `roleType: jwt`, `userClaim: sub`
+  - [x] 6.2: `boundAudiences: ["vault"]`
+  - [x] 6.3: `boundSubject: "spiffe://etl7.ocp.rht-labs.com/experiment/demo-vm"`
+  - [x] 6.4: `tokenPolicies: ["experiment-read"]`
+- [x] Task 7: Create `secret-engine-mount.yaml` — KV v2 engine (AC: #6, #8)
+- [x] Task 8: Create `seed-secret-job.yaml` — test secret writer (AC: #7)
+- [x] Task 9: Create `configmap-ocp-service-ca.yaml` — OCP service-CA for Vault TLS trust (AC: #7)
+  - [x] 9.1: ConfigMap `ocp-service-ca` with annotation `service.beta.openshift.io/inject-cabundle: "true"`
+- [x] Task 10: Create `kustomization.yaml` (AC: #9)
+  - [x] 10.1: Set `namespace: vault-admin`
+  - [x] 10.2: List resources in dependency order
+- [x] Task 11: Add application entry to `clusters/etl7/values.yaml` (AC: #10, #11)
+  - [x] 11.1: Entry under the `# Zero Trust` section
+  - [x] 11.2: Sync-wave `'25'`, source path `clusters/etl7/overlays/vault-spire-trust`
 
 ## Dev Notes
 
@@ -565,3 +566,43 @@ Vault validates:
 ### Completion Notes List
 
 ### File List
+
+## Suggested Review Order
+
+**ArgoCD Integration**
+
+- Entry point: new ArgoCD Application at sync-wave 25 with `ignoreDifferences` for injected ConfigMap
+  [`values.yaml:85`](../../clusters/etl7/values.yaml#L85)
+
+**Vault Trust Configuration (VCO CRDs)**
+
+- Resource ordering and namespace injection — dependency chain for reconciliation
+  [`kustomization.yaml:1`](../../clusters/etl7/overlays/vault-spire-trust/kustomization.yaml#L1)
+
+- OIDC discovery config — the architectural core: binds Vault's JWT auth to SPIRE's OIDC endpoint
+  [`jwt-auth-config.yaml:1`](../../clusters/etl7/overlays/vault-spire-trust/jwt-auth-config.yaml#L1)
+
+- JWT role with SPIFFE ID binding — `boundSubject` must match workload SPIFFE ID exactly
+  [`jwt-auth-role.yaml:1`](../../clusters/etl7/overlays/vault-spire-trust/jwt-auth-role.yaml#L1)
+
+- JWT auth engine mount at `auth/spire-jwt`
+  [`auth-engine-mount.yaml:1`](../../clusters/etl7/overlays/vault-spire-trust/auth-engine-mount.yaml#L1)
+
+- KV2 read policy scoped to `secret/data/experiment/*`
+  [`policy.yaml:1`](../../clusters/etl7/overlays/vault-spire-trust/policy.yaml#L1)
+
+**Secret Engine & Seed**
+
+- KV v2 engine at `secret/` with version 2 options
+  [`secret-engine-mount.yaml:1`](../../clusters/etl7/overlays/vault-spire-trust/secret-engine-mount.yaml#L1)
+
+- Sync hook Job with `set -euo pipefail`, explicit KV2 readiness check, and timeout guard
+  [`seed-secret-job.yaml:26`](../../clusters/etl7/overlays/vault-spire-trust/seed-secret-job.yaml#L26)
+
+**Supporting Resources**
+
+- vault-admin namespace with ArgoCD labels/annotations
+  [`namespace.yaml:1`](../../clusters/etl7/overlays/vault-spire-trust/namespace.yaml#L1)
+
+- OCP service-CA ConfigMap for Vault TLS trust (auto-injected by service-ca-operator)
+  [`configmap-ocp-service-ca.yaml:1`](../../clusters/etl7/overlays/vault-spire-trust/configmap-ocp-service-ca.yaml#L1)
