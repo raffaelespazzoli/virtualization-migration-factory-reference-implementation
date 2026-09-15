@@ -1,0 +1,16 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: spire-bootstrap-cert
+  namespace: spire-vault-demo
+spec:
+  secretName: spire-bootstrap-cert
+  duration: 8760h  # 1 year
+  renewBefore: 720h  # 30 days
+  commonName: "spire-vault-demo-vm.etl7.ocp.rht-labs.com"
+  usages:
+    - digital signature
+    - key encipherment
+  issuerRef:
+    name: spire-bootstrap-ca-issuer
+    kind: Issuer

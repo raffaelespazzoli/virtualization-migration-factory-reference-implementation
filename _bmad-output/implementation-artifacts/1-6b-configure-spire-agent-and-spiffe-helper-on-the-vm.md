@@ -1,6 +1,7 @@
 # Story 1.6b: Configure SPIRE Agent and SPIFFE Helper on the VM
 
-Status: ready-for-dev
+Status: done
+baseline_commit: efe45306d63c30e5ad9ece0713df828815be234b
 
 ## Story
 
@@ -20,32 +21,32 @@ so that the VM has a continuously refreshed SPIFFE identity and JWT token for Va
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Finalize `agent.conf` (AC: #1)
-  - [ ] 1.1: Replace PLACEHOLDER values with correct trust_domain, server_address, server_port
-  - [ ] 1.2: Set `insecure_bootstrap = true` (experiment — trust bundle not pre-provisioned to VM)
-  - [ ] 1.3: Verify x509pop plugin paths match Quadlet bind-mount paths from Story 6a
-  - [ ] 1.4: Add `data_dir` matching the agent container's writable directory
-- [ ] Task 2: Finalize `helper.conf` (AC: #2)
-  - [ ] 2.1: Set `agent_address` to the Workload API socket path
-  - [ ] 2.2: Configure X.509-SVID output (cert, key, bundle) in `cert_dir`
-  - [ ] 2.3: Configure JWT-SVID output with `jwt_audience = "vault"`
-  - [ ] 2.4: Set all file modes to `0640`
-  - [ ] 2.5: Enable `daemon_mode = true` for continuous renewal
-- [ ] Task 3: Create cert-manager Issuer CR (AC: #3)
-  - [ ] 3.1: Self-signed root `Issuer` in the demo namespace
-  - [ ] 3.2: CA `Issuer` backed by a self-signed CA Certificate
-- [ ] Task 4: Create cert-manager Certificate CR (AC: #3, #4)
-  - [ ] 4.1: 1-year duration, `digitalSignature` + `keyEncipherment` key usages
-  - [ ] 4.2: Unique common name for the VM
-  - [ ] 4.3: Secret name `spire-bootstrap-cert` — stores `tls.crt`, `tls.key`, `ca.crt`
-- [ ] Task 5: Create SPIRE Server passthrough Route (AC: #5)
-  - [ ] 5.1: Route in `zero-trust-workload-identity-manager` namespace
-  - [ ] 5.2: TLS termination: passthrough (gRPC mTLS between agent and server)
-  - [ ] 5.3: Target: `spire-server` service, port `grpc`
-- [ ] Task 6: Document x509pop server-side patching (AC: #6)
-  - [ ] 6.1: Script/procedure to create Secret with CA cert, mount into StatefulSet, patch ConfigMap
-  - [ ] 6.2: Create-only annotation on SpireServer CR
-- [ ] Task 7: Document image rebuild requirement (AC: #7)
+- [x] Task 1: Finalize `agent.conf` (AC: #1)
+  - [x] 1.1: Replace PLACEHOLDER values with correct trust_domain, server_address, server_port
+  - [x] 1.2: Set `insecure_bootstrap = true` (experiment — trust bundle not pre-provisioned to VM)
+  - [x] 1.3: Verify x509pop plugin paths match Quadlet bind-mount paths from Story 6a
+  - [x] 1.4: Add `data_dir` matching the agent container's writable directory
+- [x] Task 2: Finalize `helper.conf` (AC: #2)
+  - [x] 2.1: Set `agent_address` to the Workload API socket path
+  - [x] 2.2: Configure X.509-SVID output (cert, key, bundle) in `cert_dir`
+  - [x] 2.3: Configure JWT-SVID output with `jwt_audience = "vault"`
+  - [x] 2.4: Set all file modes to `0640`
+  - [x] 2.5: Enable `daemon_mode = true` for continuous renewal
+- [x] Task 3: Create cert-manager Issuer CR (AC: #3)
+  - [x] 3.1: Self-signed root `Issuer` in the demo namespace
+  - [x] 3.2: CA `Issuer` backed by a self-signed CA Certificate
+- [x] Task 4: Create cert-manager Certificate CR (AC: #3, #4)
+  - [x] 4.1: 1-year duration, `digitalSignature` + `keyEncipherment` key usages
+  - [x] 4.2: Unique common name for the VM
+  - [x] 4.3: Secret name `spire-bootstrap-cert` — stores `tls.crt`, `tls.key`, `ca.crt`
+- [x] Task 5: Create SPIRE Server passthrough Route (AC: #5)
+  - [x] 5.1: Route in `zero-trust-workload-identity-manager` namespace
+  - [x] 5.2: TLS termination: passthrough (gRPC mTLS between agent and server)
+  - [x] 5.3: Target: `spire-server` service, port `grpc`
+- [x] Task 6: Document x509pop server-side patching (AC: #6)
+  - [x] 6.1: Script/procedure to create Secret with CA cert, mount into StatefulSet, patch ConfigMap
+  - [x] 6.2: Create-only annotation on SpireServer CR
+- [x] Task 7: Document image rebuild requirement (AC: #7)
 
 ## Dev Notes
 
@@ -541,10 +542,66 @@ Our `helper.conf` paths are consistent:
 
 ### Agent Model Used
 
-
+Claude Opus 4.6 (via Cursor)
 
 ### Debug Log References
 
+No issues encountered. All files created/updated exactly as specified in Dev Notes.
+
 ### Completion Notes List
 
+- **Task 1 (agent.conf):** Replaced placeholder with final x509pop config. Key changes from placeholder: `server_address` set to literal `spire-server.apps.etl7.ocp.rht-labs.com` (not envsubst — baked into bootc image), `server_port` changed from `8081` to `443` (OpenShift Route), added `insecure_bootstrap = true`, removed `PLACEHOLDER` comment. All Quadlet bind-mount paths verified consistent.
+- **Task 2 (helper.conf):** Added `daemon_mode = true` (was missing from placeholder). Removed `PLACEHOLDER` comment. All other fields were already correct in the placeholder.
+- **Task 3 (cert-manager Issuer):** Created two-tier CA chain: self-signed root Issuer → CA Certificate (10-year, `spire-bootstrap-ca-keypair` Secret) → CA Issuer. All resources namespace-scoped to `spire-vault-demo`.
+- **Task 4 (cert-manager Certificate):** Created 1-year leaf Certificate with `digital signature` + `key encipherment` usages (x509pop requirement). Secret name `spire-bootstrap-cert` matches Story 6d cloud-init references.
+- **Task 5 (SPIRE Server Route):** Created passthrough Route in `zero-trust-workload-identity-manager` namespace targeting `spire-server` service port `grpc`. Uses `${CLUSTER_BASE_DOMAIN}` envsubst (correct — this is an ArgoCD-rendered manifest).
+- **Task 6 (x509pop patching):** Full bash procedure documented in readme.md covering: create-only annotation, CA Secret creation, StatefulSet volume mount, ConfigMap plugin addition, rollout restart, verification, and fingerprint extraction.
+- **Task 7 (image rebuild):** Documented in readme.md with build/push commands.
+- **Namespace:** Created `namespace.yaml` with ArgoCD managed-by label and Delete=false annotation to ensure cert-manager resources can be deployed before Story 6d.
+
 ### File List
+
+- `clusters/etl7/overlays/spire-vault-demo/image/files/etc/spire/agent.conf` (updated — replaced placeholder)
+- `clusters/etl7/overlays/spire-vault-demo/image/files/etc/spiffe-helper/helper.conf` (updated — replaced placeholder)
+- `clusters/etl7/overlays/spire-vault-demo/namespace.yaml` (new)
+- `clusters/etl7/overlays/spire-vault-demo/cert-issuer.yaml` (new)
+- `clusters/etl7/overlays/spire-vault-demo/cert-bootstrap.yaml` (new)
+- `clusters/etl7/overlays/spire-vault-demo/spire-server-route.yaml` (new)
+- `clusters/etl7/overlays/spire-vault-demo/readme.md` (updated — added Story 6b docs, patching procedure, file layout)
+
+### Change Log
+
+- 2026-09-15: Story 1.6b implemented — finalized SPIRE agent and spiffe-helper configs, created cert-manager CA chain, bootstrap leaf cert, SPIRE Server passthrough Route, and namespace manifest. x509pop server-side patching procedure documented in readme.
+
+## Suggested Review Order
+
+**SPIRE Agent Identity (Entry Point)**
+
+- Replaces placeholder with literal server address, port 443 (Route), insecure_bootstrap for experiment
+  [`agent.conf:1`](../../clusters/etl7/overlays/spire-vault-demo/image/files/etc/spire/agent.conf#L1)
+
+**SVID & JWT Extraction**
+
+- Adds daemon_mode for continuous renewal; jwt_audience "vault" matches Story 1.5 Vault role
+  [`helper.conf:1`](../../clusters/etl7/overlays/spire-vault-demo/image/files/etc/spiffe-helper/helper.conf#L1)
+
+**Certificate Chain (PKI)**
+
+- Two-tier CA: self-signed root → 10-year CA cert → CA issuer for multi-VM scalability
+  [`cert-issuer.yaml:1`](../../clusters/etl7/overlays/spire-vault-demo/cert-issuer.yaml#L1)
+
+- 1-year leaf cert with digitalSignature usage required by x509pop attestation
+  [`cert-bootstrap.yaml:1`](../../clusters/etl7/overlays/spire-vault-demo/cert-bootstrap.yaml#L1)
+
+**Network Connectivity**
+
+- Passthrough Route exposes SPIRE Server gRPC; TLS termination would break mTLS
+  [`spire-server-route.yaml:1`](../../clusters/etl7/overlays/spire-vault-demo/spire-server-route.yaml#L1)
+
+**Supporting Infrastructure**
+
+- Namespace created early so cert-manager resources deploy before Story 6d's VM
+  [`namespace.yaml:1`](../../clusters/etl7/overlays/spire-vault-demo/namespace.yaml#L1)
+
+- Full x509pop patching procedure, fingerprint extraction, image rebuild instructions
+  [`readme.md:140`](../../clusters/etl7/overlays/spire-vault-demo/readme.md#L140)

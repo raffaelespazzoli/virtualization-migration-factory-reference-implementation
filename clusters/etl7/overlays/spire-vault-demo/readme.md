@@ -82,20 +82,178 @@ The vault-agent placeholder config connects to Vault over HTTPS. For this experi
 
 ## Configuration
 
-The following config files are **placeholders** embedded in the image:
+The following config files are embedded in the image:
 
-| File | Finalized By |
+| File | Status |
 |---|---|
-| `/etc/spire/agent.conf` | Story 1.6b |
-| `/etc/spiffe-helper/helper.conf` | Story 1.6b |
-| `/etc/vault-agent/agent.hcl` | Story 1.6c |
+| `/etc/spire/agent.conf` | ✅ Finalized (Story 1.6b) |
+| `/etc/spiffe-helper/helper.conf` | ✅ Finalized (Story 1.6b) |
+| `/etc/vault-agent/agent.hcl` | Placeholder — Story 1.6c finalizes |
 
 After updating configuration files, rebuild and push the image.
+
+### SPIRE Agent Configuration (`agent.conf`)
+
+- **trust_domain**: `etl7.ocp.rht-labs.com`
+- **server_address**: `spire-server.apps.etl7.ocp.rht-labs.com` (literal — not envsubst; baked into the bootc image)
+- **server_port**: `443` (OpenShift Route)
+- **insecure_bootstrap**: `true` — experiment trade-off to avoid pre-provisioning the SPIRE trust bundle. For production, fetch the trust bundle and inject via cloud-init.
+- **NodeAttestor**: `x509pop` — uses bootstrap cert/key from `/etc/spire/bootstrap/` (injected by cloud-init in Story 6d)
+- **WorkloadAttestor**: `unix` — attests spiffe-helper by UID
+
+### SPIFFE Helper Configuration (`helper.conf`)
+
+- **daemon_mode**: `true` — continuously fetches and renews SVIDs
+- **cert_dir**: `/var/run/secrets/spiffe` — SVID output directory
+- **jwt_audience**: `vault` — must match `bound_audiences` in Story 1.5's Vault JWT role
+- **File modes**: `0640` — owner (spiffe-helper, UID 10002) + group (spiffe-consumers, GID 10003) read access
+
+## Kubernetes Manifests (Story 1.6b)
+
+The following manifests are deployed by ArgoCD (Story 6d creates the ArgoCD Application entry):
+
+| File | Kind | Namespace | Purpose |
+|---|---|---|---|
+| `namespace.yaml` | Namespace | — | Creates `spire-vault-demo` namespace |
+| `cert-issuer.yaml` | Issuer, Certificate, Issuer | spire-vault-demo | Two-tier CA: self-signed root → CA cert → CA issuer |
+| `cert-bootstrap.yaml` | Certificate | spire-vault-demo | 1-year leaf cert for x509pop attestation (`spire-bootstrap-cert` Secret) |
+| `spire-server-route.yaml` | Route | zero-trust-workload-identity-manager | Passthrough Route exposing SPIRE Server gRPC for VM agent |
+
+### cert-manager Certificate Chain
+
+```
+spire-bootstrap-selfsigned (self-signed Issuer)
+  └── spire-bootstrap-ca (CA Certificate, 10-year, Secret: spire-bootstrap-ca-keypair)
+        └── spire-bootstrap-ca-issuer (CA Issuer)
+              └── spire-bootstrap-cert (Leaf Certificate, 1-year, Secret: spire-bootstrap-cert)
+```
+
+The leaf cert Secret (`spire-bootstrap-cert`) provides:
+- `tls.crt` → cloud-init injects as `/etc/spire/bootstrap/agent.crt.pem`
+- `tls.key` → cloud-init injects as `/etc/spire/bootstrap/agent.key.pem`
+- `ca.crt` → used for x509pop server-side patching
+
+### SPIRE Server Route
+
+The passthrough Route exposes the SPIRE Server's gRPC API at `spire-server.apps.${CLUSTER_BASE_DOMAIN}`. This is separate from the OIDC Discovery Provider Route created by Story 1.2. TLS termination is `passthrough` because SPIRE agent ↔ server use their own mTLS.
+
+## x509pop Server-Side Patching (Manual Procedure)
+
+The SpireServer CRD does **not** support configuring additional NodeAttestor plugins like x509pop. Server-side configuration requires manual patching after:
+
+1. Story 1.2 has deployed the SPIRE Server
+2. This story's cert-manager resources have been deployed and the CA cert is available
+
+```bash
+#!/bin/bash
+# x509pop server-side patching for SPIRE Server on etl7
+# Run after: SPIRE Server deployed (Story 1.2) AND cert-manager certs issued (Story 6b)
+
+ZTWIM_NS="zero-trust-workload-identity-manager"
+DEMO_NS="spire-vault-demo"
+
+# Step 1: Enable create-only mode on SpireServer CR
+oc annotate spireserver cluster -n "${ZTWIM_NS}" \
+  ztwim.openshift.io/create-only=true --overwrite
+
+# Step 2: Extract CA cert from cert-manager and create Secret in ZTWIM namespace
+CA_CRT=$(oc get secret spire-bootstrap-ca-keypair -n "${DEMO_NS}" \
+  -o jsonpath='{.data.ca\.crt}' | base64 -d)
+
+cat <<EOF | oc apply -f -
+apiVersion: v1
+kind: Secret
+metadata:
+  name: x509pop-ca
+  namespace: ${ZTWIM_NS}
+stringData:
+  ca.crt.pem: |
+$(echo "${CA_CRT}" | sed 's/^/    /')
+EOF
+
+# Step 3: Mount the CA Secret into the spire-server StatefulSet
+oc patch statefulset spire-server -n "${ZTWIM_NS}" --type=strategic --patch '
+spec:
+  template:
+    spec:
+      volumes:
+      - name: x509pop-ca
+        secret:
+          secretName: x509pop-ca
+      containers:
+      - name: spire-server
+        volumeMounts:
+        - name: x509pop-ca
+          mountPath: /tmp/x509pop-ca
+          readOnly: true
+'
+
+# Step 4: Add x509pop NodeAttestor plugin to spire-server ConfigMap
+NEW_ATTESTOR='{"x509pop": {"plugin_data": {"ca_bundle_path": "/tmp/x509pop-ca/ca.crt.pem"}}}'
+
+oc get configmap spire-server -n "${ZTWIM_NS}" -o json | \
+jq --argjson new "${NEW_ATTESTOR}" \
+   '.data["server.conf"] |= (fromjson |
+    if (.plugins.NodeAttestor | any(has("x509pop")))
+    then .
+    else .plugins.NodeAttestor += [$new]
+    end | tojson)' | \
+oc apply -f -
+
+# Step 5: Restart SPIRE Server to pick up changes
+oc rollout restart statefulset spire-server -n "${ZTWIM_NS}"
+oc rollout status statefulset/spire-server -n "${ZTWIM_NS}" --timeout=300s
+
+echo "x509pop server-side patching complete"
+
+# Step 6: Verify x509pop is configured
+oc exec spire-server-0 -c spire-server -n "${ZTWIM_NS}" -- \
+  cat /opt/spire/conf/server/server.conf | jq '.plugins.NodeAttestor'
+
+# Step 7: Extract the bootstrap cert fingerprint for Story 1.5 bound_subject
+FINGERPRINT=$(oc get secret spire-bootstrap-cert -n "${DEMO_NS}" \
+  -o jsonpath='{.data.tls\.crt}' | base64 -d | \
+  openssl x509 -fingerprint -sha1 -noout | tr -d ':' | awk -F= '{print tolower($2)}')
+echo "Agent SPIFFE ID: spiffe://etl7.ocp.rht-labs.com/spire/agent/x509pop/${FINGERPRINT}"
+echo "Use this as bound_subject in Story 1.5 JWTOIDCAuthEngineRole"
+```
+
+**Source**: Adapted from [Sky Computing Part 2](https://developers.redhat.com/blog/2026/04/23/sky-computing-openshift-service-mesh-spire-multicloud-integration).
+
+### Cross-Story Fingerprint Coordination
+
+After the cert-manager Certificate is issued, the bootstrap cert's SHA1 fingerprint determines the agent's SPIFFE ID:
+
+```
+spiffe://etl7.ocp.rht-labs.com/spire/agent/x509pop/<sha1-fingerprint>
+```
+
+Extract the fingerprint:
+```bash
+oc get secret spire-bootstrap-cert -n spire-vault-demo -o jsonpath='{.data.tls\.crt}' | \
+  base64 -d | openssl x509 -fingerprint -sha1 -noout | tr -d ':' | awk -F= '{print tolower($2)}'
+```
+
+This value must be used as `bound_subject` in Story 1.5's `JWTOIDCAuthEngineRole`.
+
+## Image Rebuild Required
+
+After Story 1.6b finalized `agent.conf` and `helper.conf`, the bootc image **must be rebuilt and re-pushed** before the VM can work:
+
+```bash
+cd clusters/etl7/overlays/spire-vault-demo/image
+podman build -t quay.io/<org>/rhel10-spire-vault-demo:latest -f Containerfile .
+podman push quay.io/<org>/rhel10-spire-vault-demo:latest
+```
 
 ## File Layout
 
 ```
 clusters/etl7/overlays/spire-vault-demo/
+├── cert-bootstrap.yaml          # Story 6b — leaf Certificate for x509pop
+├── cert-issuer.yaml             # Story 6b — self-signed CA chain (Issuer + CA Cert + CA Issuer)
+├── namespace.yaml               # Story 6b — spire-vault-demo namespace
+├── spire-server-route.yaml      # Story 6b — passthrough Route for SPIRE Server gRPC
 ├── image/
 │   ├── Containerfile
 │   └── files/
@@ -107,9 +265,9 @@ clusters/etl7/overlays/spire-vault-demo/
 │           │       ├── vault-agent.container
 │           │       └── httpd.container
 │           ├── spire/
-│           │   └── agent.conf
+│           │   └── agent.conf             # Finalized by Story 6b
 │           ├── spiffe-helper/
-│           │   └── helper.conf
+│           │   └── helper.conf            # Finalized by Story 6b
 │           ├── tmpfiles.d/
 │           │   └── spire-vault-demo.conf
 │           └── vault-agent/
