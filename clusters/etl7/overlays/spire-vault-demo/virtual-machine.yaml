@@ -18,6 +18,7 @@ spec:
         storage:
           accessModes:
             - ReadWriteOnce
+          volumeMode: Filesystem
           resources:
             requests:
               storage: 20Gi
