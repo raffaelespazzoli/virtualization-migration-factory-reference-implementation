@@ -4,7 +4,7 @@ Deploys the **Zero Trust Workload Identity Manager (ZTWIM)** operand CRs that cr
 
 ## What It Does
 
-This component creates five singleton operand CRs (all named `cluster`) in the `zero-trust-workload-identity-manager` namespace:
+This component creates five cluster-scoped singleton operand CRs (all named `cluster`). The operator's managed workloads (Deployments, StatefulSets, Routes) run in the `zero-trust-workload-identity-manager` namespace:
 
 | CR | Purpose |
 |---|---|
@@ -35,7 +35,7 @@ The base component uses `PLACEHOLDER` values that **must** be patched via a clus
 | `jwtIssuer` | SpireServer, SpireOIDCDiscoveryProvider | `https://oidc-discovery.apps.<cluster-domain>` |
 | `storageClass` | SpireServer | `ontap-san` |
 
-> **⚠️ Immutable fields:** `trustDomain`, `clusterName`, and all `persistence` fields on SpireServer are immutable after creation (CEL-enforced). If set incorrectly, the CRs must be deleted and recreated.
+> **⚠️ Immutable fields:** `trustDomain`, `clusterName`, and `bundleConfigMap` on ZeroTrustWorkloadIdentityManager, and all `persistence` fields on SpireServer, are immutable after creation (CEL-enforced). If set incorrectly, the CRs must be deleted and recreated.
 
 > **⚠️ jwtIssuer consistency:** The `jwtIssuer` value MUST be identical on both `SpireServer` and `SpireOIDCDiscoveryProvider`. A mismatch causes JWT validation failures.
 
@@ -48,4 +48,5 @@ This component runs at sync-wave **15** (instance tier), after the `ztwim-operat
 - **Epic:** Zero-Trust Secret Delivery to VM Workloads via SPIFFE/Vault on etl7
 - **Depends on:** `ztwim-operator` (Story 1.1) — operator must be installed for CRDs to exist
 - **Next in chain:** Story 1.5 (SPIRE↔Vault Trust) uses the OIDC discovery Route URL
-- **SpireAgent and SpiffeCSIDriver** are deployed with defaults as part of the standard operand set but are not functionally used in the current experiment (the VM uses x509pop attestation separately)
+- **Create-only mode:** Stories 1.5/1.6b set `ztwim.openshift.io/create-only=true` on SpireServer to allow manual x509pop patching. Without create-only mode, ArgoCD self-heal reverts those mutations.
+- **SpireAgent and SpiffeCSIDriver** are deployed with defaults as part of the standard operand set. They are not used by the VM in this experiment (the VM uses x509pop attestation separately), but the OIDC Discovery Provider depends on the CSI driver and SpireAgent for its own ClusterSPIFFEID identity.

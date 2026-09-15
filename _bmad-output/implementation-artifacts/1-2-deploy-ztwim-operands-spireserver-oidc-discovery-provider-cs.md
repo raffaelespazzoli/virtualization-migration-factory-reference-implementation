@@ -57,6 +57,14 @@ so that workloads can receive SPIFFE identities and external services can valida
 - [x] Task 9: Add application entry to `clusters/etl7/values.yaml` (AC: #5, #6)
 - [x] Task 10: Create `components/ztwim-instance/readme.md` (AC: #8)
 
+### Review Findings
+
+- [x] [Review][Patch] Readme says operand CRs live in the operator namespace; they are cluster-scoped singletons [`readme.md:7`]
+- [x] [Review][Patch] Readme says SpireAgent/SpiffeCSIDriver are unused; OIDC provider needs them (operator creates ClusterSPIFFEID) [`readme.md:51`]
+- [x] [Review][Patch] Immutable-fields warning omits `bundleConfigMap` on ZeroTrustWorkloadIdentityManager [`readme.md:38`]
+- [x] [Review][Patch] Note that Stories 1.5/1.6b will use create-only mode; ArgoCD will otherwise revert x509pop mutations [`readme.md:47`]
+- [x] [Review][Patch] Operator readme still says the next component deploys ClusterSPIFFEID operands [`ztwim-operator/readme.md:32`]
+
 ## Dev Notes
 
 ### SpireAgent and SpiffeCSIDriver — Deployed with Defaults, Not Used in This Experiment
