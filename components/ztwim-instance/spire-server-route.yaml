@@ -1,11 +1,7 @@
-# WARNING: This Route targets the ZTWIM namespace, NOT spire-vault-demo.
-# If the overlay kustomization.yaml sets a global "namespace:", this Route
-# MUST be excluded from namespace transformation or it will break.
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
   name: spire-server
-  namespace: zero-trust-workload-identity-manager
   annotations:
     haproxy.router.openshift.io/timeout: 3600s
 spec:

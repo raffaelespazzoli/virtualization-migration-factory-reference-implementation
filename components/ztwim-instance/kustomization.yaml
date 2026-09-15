@@ -9,3 +9,4 @@ resources:
   - spire-agent.yaml
   - spiffe-csi-driver.yaml
   - spire-oidc-discovery-provider.yaml
+  - spire-server-route.yaml

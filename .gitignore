@@ -34,3 +34,5 @@ components/gitops.zip
 .bmad-loop/policy.toml
 _bmad/render/
 clusters/etl7/overlays/spire-vault-demo/redhat-registry-account.txt
+clusters/etl7/overlays/spire-vault-demo/image/output/
+clusters/etl7/overlays/spire-vault-demo/image/Containerfile.disk

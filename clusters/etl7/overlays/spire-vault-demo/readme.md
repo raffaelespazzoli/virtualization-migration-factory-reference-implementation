@@ -51,6 +51,13 @@ A bootc OCI image contains a filesystem tree, NOT a disk image. KubeVirt require
 Use `bootc-image-builder` (requires privileged execution on an entitled RHEL host):
 
 ```bash
+# Copy the bootc image from rootless (user) storage to root storage —
+# bootc-image-builder runs as root and cannot see rootless images
+podman save quay.io/<org>/rhel10-spire-vault-demo:latest | sudo podman load
+
+# Create the output directory (bootc-image-builder bind-mounts it)
+mkdir -p output
+
 sudo podman run --rm -it --privileged \
   --pull=newer \
   --security-opt label=type:unconfined_t \
