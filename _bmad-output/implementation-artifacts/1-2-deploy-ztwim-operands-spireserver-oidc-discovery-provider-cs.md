@@ -1,6 +1,7 @@
 # Story 1.2: Deploy ZTWIM Operands (SpireServer, OIDC Discovery Provider, CSI Driver)
 
-Status: ready-for-dev
+Status: done
+baseline_commit: efe45306d63c30e5ad9ece0713df828815be234b
 
 ## Story
 
@@ -30,31 +31,31 @@ so that workloads can receive SPIFFE identities and external services can valida
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create `components/ztwim-instance/` directory (AC: #1)
-- [ ] Task 2: Create `zero-trust-workload-identity-manager.yaml` (AC: #2)
-  - [ ] 2.1: apiVersion `operator.openshift.io/v1alpha1`, kind `ZeroTrustWorkloadIdentityManager`, name `cluster`
-  - [ ] 2.2: Placeholder `trustDomain` and `clusterName` (patched by overlay)
-- [ ] Task 3: Create `spire-server.yaml` (AC: #2)
-  - [ ] 3.1: `jwtIssuer` placeholder (patched by overlay)
-  - [ ] 3.2: `caSubject` with org "Red Hat Labs", commonName "SPIRE Server CA"
-  - [ ] 3.3: `persistence` with `size: "1Gi"`, `accessMode: "ReadWriteOnce"` (storageClass patched by overlay)
-  - [ ] 3.4: `datastore` with sqlite3, standard connection string
-- [ ] Task 4: Create `spire-agent.yaml` — all defaults, not used in this experiment (AC: #2)
-  - [ ] 4.1: Copy verbatim from Red Hat docs example (k8sPSAT, k8s workload attestor)
-- [ ] Task 5: Create `spiffe-csi-driver.yaml` — all defaults, not used in this experiment (AC: #2)
-  - [ ] 5.1: Copy verbatim from Red Hat docs example (standard socket path and plugin name)
-- [ ] Task 6: Create `spire-oidc-discovery-provider.yaml` (AC: #2)
-  - [ ] 6.1: `csiDriverName: "csi.spiffe.io"` matching SpiffeCSIDriver
-  - [ ] 6.2: `jwtIssuer` placeholder (patched by overlay, must match SpireServer)
-  - [ ] 6.3: `managedRoute: "true"` for automatic OpenShift Route
-  - [ ] 6.4: `replicaCount: 1`
-- [ ] Task 7: Create `kustomization.yaml` for the base component (AC: #3)
-  - [ ] 7.1: Set `namespace: zero-trust-workload-identity-manager` (matches existing `*-instance` pattern)
-- [ ] Task 8: Create overlay `clusters/etl7/overlays/ztwim-instance/` (AC: #4)
-  - [ ] 8.1: `kustomization.yaml` referencing base component and applying patches
-  - [ ] 8.2: Patches for trust domain, cluster name, JWT issuer, storage class
-- [ ] Task 9: Add application entry to `clusters/etl7/values.yaml` (AC: #5, #6)
-- [ ] Task 10: Create `components/ztwim-instance/readme.md` (AC: #8)
+- [x] Task 1: Create `components/ztwim-instance/` directory (AC: #1)
+- [x] Task 2: Create `zero-trust-workload-identity-manager.yaml` (AC: #2)
+  - [x] 2.1: apiVersion `operator.openshift.io/v1alpha1`, kind `ZeroTrustWorkloadIdentityManager`, name `cluster`
+  - [x] 2.2: Placeholder `trustDomain` and `clusterName` (patched by overlay)
+- [x] Task 3: Create `spire-server.yaml` (AC: #2)
+  - [x] 3.1: `jwtIssuer` placeholder (patched by overlay)
+  - [x] 3.2: `caSubject` with org "Red Hat Labs", commonName "SPIRE Server CA"
+  - [x] 3.3: `persistence` with `size: "1Gi"`, `accessMode: "ReadWriteOnce"` (storageClass patched by overlay)
+  - [x] 3.4: `datastore` with sqlite3, standard connection string
+- [x] Task 4: Create `spire-agent.yaml` — all defaults, not used in this experiment (AC: #2)
+  - [x] 4.1: Copy verbatim from Red Hat docs example (k8sPSAT, k8s workload attestor)
+- [x] Task 5: Create `spiffe-csi-driver.yaml` — all defaults, not used in this experiment (AC: #2)
+  - [x] 5.1: Copy verbatim from Red Hat docs example (standard socket path and plugin name)
+- [x] Task 6: Create `spire-oidc-discovery-provider.yaml` (AC: #2)
+  - [x] 6.1: `csiDriverName: "csi.spiffe.io"` matching SpiffeCSIDriver
+  - [x] 6.2: `jwtIssuer` placeholder (patched by overlay, must match SpireServer)
+  - [x] 6.3: `managedRoute: "true"` for automatic OpenShift Route
+  - [x] 6.4: `replicaCount: 1`
+- [x] Task 7: Create `kustomization.yaml` for the base component (AC: #3)
+  - [x] 7.1: Set `namespace: zero-trust-workload-identity-manager` (matches existing `*-instance` pattern)
+- [x] Task 8: Create overlay `clusters/etl7/overlays/ztwim-instance/` (AC: #4)
+  - [x] 8.1: `kustomization.yaml` referencing base component and applying patches
+  - [x] 8.2: Patches for trust domain, cluster name, JWT issuer, storage class
+- [x] Task 9: Add application entry to `clusters/etl7/values.yaml` (AC: #5, #6)
+- [x] Task 10: Create `components/ztwim-instance/readme.md` (AC: #8)
 
 ## Dev Notes
 
@@ -361,3 +362,40 @@ Follow the `*-instance` component pattern established in the repo. Key conventio
 ### Completion Notes List
 
 ### File List
+
+## Suggested Review Order
+
+**Cluster overlay — how etl7 customizes the base**
+
+- JSON patches for trust domain, cluster name, jwtIssuer, and storageClass
+  [`kustomization.yaml:7`](../../clusters/etl7/overlays/ztwim-instance/kustomization.yaml#L7)
+
+**Base component — the reusable operand set**
+
+- Resource list in CRD deployment order, namespace set
+  [`kustomization.yaml:1`](../../components/ztwim-instance/kustomization.yaml#L1)
+
+- Primary manager CR — immutable trustDomain and clusterName
+  [`zero-trust-workload-identity-manager.yaml:1`](../../components/ztwim-instance/zero-trust-workload-identity-manager.yaml#L1)
+
+- SpireServer CR — CA config, immutable persistence, sqlite3 datastore
+  [`spire-server.yaml:1`](../../components/ztwim-instance/spire-server.yaml#L1)
+
+- OIDC Discovery Provider — jwtIssuer must match SpireServer exactly
+  [`spire-oidc-discovery-provider.yaml:1`](../../components/ztwim-instance/spire-oidc-discovery-provider.yaml#L1)
+
+- SpireAgent CR — defaults only, not used in experiment
+  [`spire-agent.yaml:1`](../../components/ztwim-instance/spire-agent.yaml#L1)
+
+- SpiffeCSIDriver CR — defaults only, not used in experiment
+  [`spiffe-csi-driver.yaml:1`](../../components/ztwim-instance/spiffe-csi-driver.yaml#L1)
+
+**Integration — ArgoCD app-of-apps wiring**
+
+- Application entry at sync-wave 15 with manifest-generate-paths
+  [`values.yaml:50`](../../clusters/etl7/values.yaml#L50)
+
+**Documentation**
+
+- Component readme with customization table and immutability warnings
+  [`readme.md:1`](../../components/ztwim-instance/readme.md#L1)

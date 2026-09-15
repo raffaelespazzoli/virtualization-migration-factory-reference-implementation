@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-14-2026 19:33
-last_updated: 09-15-2026 07:16
+last_updated: 09-15-2026 09:15
 project: virtualization-migration-factory-reference-implementation
 project_key: NOKEY
 tracking_system: file-system
@@ -37,12 +37,12 @@ story_location: _bmad-output/implementation-artifacts
 development_status:
   epic-1: in-progress
   1-1-install-zero-trust-workload-identity-manager-operator-on-etl: done
-  1-2-deploy-ztwim-operands-spireserver-oidc-discovery-provider-cs: ready-for-dev
+  1-2-deploy-ztwim-operands-spireserver-oidc-discovery-provider-cs: review
   1-3-deploy-vault-on-etl7-with-latest-images: done
   1-4-deploy-vault-config-operator-on-etl7: done
   1-5-configure-spire-vault-oidc-trust-via-vault-config-operator: ready-for-dev
   1-6a-build-rhel-10-image-mode-bootc-image: done
-  1-6b-configure-spire-agent-and-spiffe-helper-on-the-vm: ready-for-dev
+  1-6b-configure-spire-agent-and-spiffe-helper-on-the-vm: review
   1-6c-configure-vault-agent-and-httpd-on-the-vm: ready-for-dev
   1-6d-deploy-the-rhel-10-image-mode-vm-on-openshift-virtualization: ready-for-dev
   epic-1-retrospective: optional

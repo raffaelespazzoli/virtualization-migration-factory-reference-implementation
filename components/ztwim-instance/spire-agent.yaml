@@ -1,0 +1,16 @@
+apiVersion: operator.openshift.io/v1alpha1
+kind: SpireAgent
+metadata:
+  name: cluster
+spec:
+  socketPath: "/run/spire/agent-sockets"
+  logLevel: "info"
+  logFormat: "text"
+  nodeAttestor:
+    k8sPSATEnabled: "true"
+  workloadAttestors:
+    k8sEnabled: "true"
+    workloadAttestorsVerification:
+      type: "auto"
+    disableContainerSelectors: "false"
+    useNewContainerLocator: "true"

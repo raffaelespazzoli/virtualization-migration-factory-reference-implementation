@@ -47,6 +47,13 @@ applications:
     source:
       path: components/ztwim-operator
 
+  ztwim-instance:
+    annotations:
+      argocd.argoproj.io/sync-wave: '15'
+      argocd.argoproj.io/manifest-generate-paths: ".;/components/ztwim-instance"
+    source:
+      path: clusters/etl7/overlays/ztwim-instance
+
   vault:
     annotations:
       argocd.argoproj.io/sync-wave: '15'
