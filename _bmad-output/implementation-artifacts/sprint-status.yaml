@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-14-2026 19:33
-last_updated: 09-15-2026 10:59
+last_updated: 09-15-2026 14:30
 project: virtualization-migration-factory-reference-implementation
 project_key: NOKEY
 tracking_system: file-system
@@ -44,5 +44,5 @@ development_status:
   1-6a-build-rhel-10-image-mode-bootc-image: done
   1-6b-configure-spire-agent-and-spiffe-helper-on-the-vm: done
   1-6c-configure-vault-agent-and-httpd-on-the-vm: done
-  1-6d-deploy-the-rhel-10-image-mode-vm-on-openshift-virtualization: ready-for-dev
+  1-6d-deploy-the-rhel-10-image-mode-vm-on-openshift-virtualization: review
   epic-1-retrospective: optional

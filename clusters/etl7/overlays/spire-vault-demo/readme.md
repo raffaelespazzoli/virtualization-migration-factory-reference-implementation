@@ -39,7 +39,51 @@ Replace `<org>` with the actual quay.io organization.
 
 ## Image Reference
 
-`quay.io/<org>/rhel10-spire-vault-demo:latest`
+- **Bootc OCI image:** `quay.io/<org>/rhel10-spire-vault-demo:latest`
+- **containerDisk QCOW2 image:** `quay.io/<org>/rhel10-spire-vault-demo-disk:latest`
+
+## QCOW2 Conversion and containerDisk Packaging
+
+A bootc OCI image contains a filesystem tree, NOT a disk image. KubeVirt requires a QCOW2 or RAW disk image at `/disk/` inside the container image. The conversion pipeline is:
+
+### Step 1: Convert bootc image to QCOW2
+
+Use `bootc-image-builder` (requires privileged execution on an entitled RHEL host):
+
+```bash
+sudo podman run --rm -it --privileged \
+  --pull=newer \
+  --security-opt label=type:unconfined_t \
+  -v $(pwd)/output:/output \
+  -v /var/lib/containers/storage:/var/lib/containers/storage \
+  registry.redhat.io/rhel10/bootc-image-builder:latest \
+  --type qcow2 \
+  quay.io/<org>/rhel10-spire-vault-demo:latest
+```
+
+The output QCOW2 is written to `output/qcow2/disk.qcow2`.
+
+### Step 2: Package QCOW2 as containerDisk OCI image
+
+Create `Containerfile.disk`:
+
+```dockerfile
+FROM scratch
+ADD --chown=107:107 output/qcow2/disk.qcow2 /disk/
+```
+
+UID 107 and mode 0440 are required by KubeVirt's containerDisk convention (the `qemu` user inside the virt-launcher pod needs read access).
+
+### Step 3: Build and push the containerDisk image
+
+```bash
+podman build -t quay.io/<org>/rhel10-spire-vault-demo-disk:latest -f Containerfile.disk .
+podman push quay.io/<org>/rhel10-spire-vault-demo-disk:latest
+```
+
+The `VirtualMachine` CR's `dataVolumeTemplates.source.registry.url` references this containerDisk image. CDI (Containerized Data Importer) automatically pulls it, extracts the QCOW2, converts to raw, and creates the PVC.
+
+**Reference:** [Build and deploy image mode for RHEL on OpenShift Virtualization](https://developers.redhat.com/articles/2024/11/11/deploy-image-mode-rhel-openshift-virtualization)
 
 ## Service Architecture
 
@@ -261,6 +305,93 @@ oc get secret spire-bootstrap-cert -n spire-vault-demo -o jsonpath='{.data.tls\.
 >
 > For this experiment the 1-year leaf duration is sufficient; production deployments should automate this rotation.
 
+## SPIRE Registration Entries (Manual)
+
+After the VM boots and the spire-agent attests via x509pop, workload registration entries must be created manually. The SPIRE Controller Manager's `ClusterSPIFFEID` CRD only targets **pods** — the VM's agent uses x509pop attestation, so entries must be created directly.
+
+```bash
+# 1. Get the spire-server pod name
+SPIRE_POD=$(oc get pods -n zero-trust-workload-identity-manager \
+  -l app=spire-server -o jsonpath='{.items[0].metadata.name}')
+
+# 2. List attested agents to find the VM agent's SPIFFE ID
+oc exec -n zero-trust-workload-identity-manager $SPIRE_POD -c spire-server -- \
+  /opt/spire/bin/spire-server agent list
+
+# 3. Extract the agent's SPIFFE ID (contains the x509pop SHA1 fingerprint)
+#    Format: spiffe://etl7.ocp.rht-labs.com/spire/agent/x509pop/<sha1-fingerprint>
+#    Use the fingerprint extraction command from the x509pop patching section above.
+
+# 4. Create workload registration entry for spiffe-helper
+#    Replace <FINGERPRINT> with the actual SHA1 fingerprint from step 3.
+oc exec -n zero-trust-workload-identity-manager $SPIRE_POD -c spire-server -- \
+  /opt/spire/bin/spire-server entry create \
+  -parentID "spiffe://etl7.ocp.rht-labs.com/spire/agent/x509pop/<FINGERPRINT>" \
+  -spiffeID "spiffe://etl7.ocp.rht-labs.com/spire-vault-demo/workload" \
+  -selector "unix:uid:10002" \
+  -jwt-svid-ttl 3600
+```
+
+**Notes:**
+- `-selector "unix:uid:10002"` matches spiffe-helper (UID 10002) inside the VM
+- `-jwt-svid-ttl 3600` sets a 1-hour JWT-SVID TTL matching the Vault role's `token_ttl` from Story 1.5
+- The **workload** SPIFFE ID (`spiffe://etl7.ocp.rht-labs.com/spire-vault-demo/workload`) must match the `bound_subject` in the Vault JWT role (Story 1.5). If Story 1.5 used a different `bound_subject`, update either the registration entry or the Vault role.
+
+## End-to-End Verification
+
+After deployment, verify the complete zero-trust secret delivery chain:
+
+```bash
+# 1. Verify VM is running
+oc get vm spire-vault-demo-vm -n spire-vault-demo
+
+# 2. SSH into the VM
+virtctl ssh cloud-user@spire-vault-demo-vm -n spire-vault-demo
+# Or serial console fallback:
+virtctl console spire-vault-demo-vm -n spire-vault-demo
+
+# 3. Inside the VM — check bootstrap cert was injected
+ls -la /etc/spire/bootstrap/
+
+# 4. Check spire-agent is running and attested
+sudo podman logs spire-agent
+# Look for: "Successfully attested" and "Node attestation was successful"
+
+# 5. Check spiffe-helper is extracting SVIDs
+ls -la /var/run/secrets/spiffe/
+# Should contain: svid.crt.pem, svid.key.pem, bundle.crt.pem, jwt-svid.token
+cat /var/run/secrets/spiffe/jwt-svid.token | cut -d. -f2 | base64 -d 2>/dev/null | python3 -m json.tool
+# Verify the 'sub' field matches the registration entry's SPIFFE ID
+
+# 6. Check vault-agent authenticated and wrote the secret
+cat /var/www/html/secret.txt
+# Should contain: "Hello from Vault via SPIFFE zero-trust!"
+sudo podman logs vault-agent
+# Look for: "successfully authenticated" and "rendered"
+
+# 7. Check httpd is serving the secret
+curl http://localhost:8080/secret.txt
+# Should return: "Hello from Vault via SPIFFE zero-trust!"
+
+# 8. From outside the VM — verify via Route
+curl https://spire-vault-demo.apps.etl7.ocp.rht-labs.com/secret.txt
+# Should return: "Hello from Vault via SPIFFE zero-trust!"
+```
+
+## SSH Access
+
+Access the VM for debugging and verification:
+
+```bash
+# Primary: SSH via virtctl (requires raffa-key Secret in spire-vault-demo namespace)
+virtctl ssh cloud-user@spire-vault-demo-vm -n spire-vault-demo
+
+# Fallback: Serial console (no SSH key needed, use cloud-user / spire-vault-demo)
+virtctl console spire-vault-demo-vm -n spire-vault-demo
+```
+
+> **Note:** The `raffa-key` Secret must exist in the `spire-vault-demo` namespace. This is the same SSH key pattern used by other VMs in this repo (e.g., `fedora-vm1` in `clusters/etl6/`). If it doesn't exist, create it from the existing secret in another namespace or from the SSH public key.
+
 ## Image Rebuild Required
 
 After Story 1.6b finalized `agent.conf` and `helper.conf`, the bootc image **must be rebuilt and re-pushed** before the VM can work:
@@ -277,8 +408,12 @@ podman push quay.io/<org>/rhel10-spire-vault-demo:latest
 clusters/etl7/overlays/spire-vault-demo/
 ├── cert-bootstrap.yaml          # Story 6b — leaf Certificate for x509pop
 ├── cert-issuer.yaml             # Story 6b — self-signed CA chain (Issuer + CA Cert + CA Issuer)
+├── kustomization.yaml           # Story 6d — Kustomize overlay root
 ├── namespace.yaml               # Story 6b — spire-vault-demo namespace
+├── route.yaml                   # Story 6d — Route for httpd external access
+├── service.yaml                 # Story 6d — Service targeting VM httpd (port 8080)
 ├── spire-server-route.yaml      # Story 6b — passthrough Route for SPIRE Server gRPC
+├── virtual-machine.yaml         # Story 6d — VirtualMachine CR with DataVolume + cloud-init
 ├── image/
 │   ├── Containerfile
 │   └── files/
@@ -300,8 +435,20 @@ clusters/etl7/overlays/spire-vault-demo/
 └── readme.md
 ```
 
+## Post-Deployment Manual Steps Summary
+
+After ArgoCD syncs the manifests:
+
+1. **Wait for DataVolume import** — CDI imports the QCOW2 from quay.io (may take 5–10 minutes): `oc get dv -n spire-vault-demo`
+2. **Wait for VM boot** — `oc get vmi -n spire-vault-demo`
+3. **Enable SPIRE Server x509pop** — run the create-only mode patching procedure (see "x509pop Server-Side Patching" above)
+4. **Create SPIRE registration entries** — run the `spire-server entry create` commands (see "SPIRE Registration Entries" above)
+5. **Verify end-to-end** — follow the verification procedure (see "End-to-End Verification" above)
+
+These manual steps are acceptable for an experiment. A production implementation would automate them via Jobs or Operators.
+
 ## Related Stories
 
 - **Story 1.6b** — Finalizes SPIRE agent and spiffe-helper configuration
 - **Story 1.6c** — Finalizes Vault agent configuration
-- **Story 1.6d** — Deploys the VM on OpenShift Virtualization using this image
+- **Story 1.6d** — Deploys the VM on OpenShift Virtualization (VirtualMachine CR, Service, Route, kustomization)

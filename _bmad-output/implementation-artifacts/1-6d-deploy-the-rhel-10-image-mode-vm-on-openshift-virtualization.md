@@ -1,6 +1,7 @@
 # Story 1.6d: Deploy the RHEL 10 Image-Mode VM on OpenShift Virtualization
 
-Status: ready-for-dev
+Status: done
+baseline_commit: 697ec4dece05ae2a4a6cfe031f6fddf9c591d355
 
 ## Story
 
@@ -26,39 +27,39 @@ so that the complete zero-trust secret delivery pipeline is running end-to-end.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create QCOW2 conversion and containerDisk packaging documentation (AC: #1)
-  - [ ] 1.1: Document `bootc-image-builder` conversion from bootc OCI image to QCOW2
-  - [ ] 1.2: Document Containerfile that packages QCOW2 as `/disk/disk.qcow2` (UID 107, mode 0440)
-  - [ ] 1.3: Document push to quay.io as `quay.io/<org>/rhel10-spire-vault-demo-disk:latest`
-- [ ] Task 2: Create cert-manager resources (AC: #2)
-  - [ ] 2.1: `self-signed-issuer.yaml` — SelfSigned Issuer
-  - [ ] 2.2: `spire-bootstrap-ca.yaml` — CA Certificate signed by SelfSigned Issuer (isCA: true, 10yr)
-  - [ ] 2.3: `spire-bootstrap-ca-issuer.yaml` — Issuer referencing the CA secret
-  - [ ] 2.4: `spire-bootstrap-cert.yaml` — 1-year leaf Certificate for the VM (digitalSignature usage)
-- [ ] Task 3: Create SPIRE Server x509pop trust configuration (AC: #3)
-  - [ ] 3.1: Document `ztwim.openshift.io/create-only=true` annotation on SpireServer CR
-  - [ ] 3.2: Create `spire-x509pop-ca-secret.yaml` — Secret containing the CA cert for x509pop
-  - [ ] 3.3: Document manual steps to patch the spire-server ConfigMap and mount the CA bundle
-- [ ] Task 4: Create VirtualMachine CR (AC: #4)
-  - [ ] 4.1: `virtual-machine.yaml` with DataVolumeTemplate importing from registry
-  - [ ] 4.2: cloud-init `write_files` for bootstrap cert + key + config overrides
-  - [ ] 4.3: Secret-backed disk for injecting cert-manager certificate into the VM
-  - [ ] 4.4: SSH access credential for debugging
-- [ ] Task 5: Create networking resources (AC: #5, #6)
-  - [ ] 5.1: `service.yaml` — Service with `kubevirt.io/domain` selector on port 8080
-  - [ ] 5.2: `route.yaml` — Route exposing the httpd endpoint
-- [ ] Task 6: Document SPIRE registration entries (AC: #7)
-  - [ ] 6.1: Node registration for x509pop agent
-  - [ ] 6.2: Workload registration for spiffe-helper (unix:uid:10002)
-- [ ] Task 7: Create kustomization.yaml for the overlay (AC: #8)
-  - [ ] 7.1: Reference all new resources
-  - [ ] 7.2: Set namespace `spire-vault-demo`
-- [ ] Task 8: Add application entry to clusters/etl7/values.yaml (AC: #8)
-- [ ] Task 9: Document end-to-end verification (AC: #9)
-- [ ] Task 10: Document SSH access procedure in readme.md (AC: #10)
-  - [ ] 10.1: `virtctl ssh cloud-user@spire-vault-demo-vm -n spire-vault-demo`
-  - [ ] 10.2: `virtctl console spire-vault-demo-vm -n spire-vault-demo` (serial console fallback)
-  - [ ] 10.3: Note that `raffa-key` Secret must exist in the `spire-vault-demo` namespace
+- [x] Task 1: Create QCOW2 conversion and containerDisk packaging documentation (AC: #1)
+  - [x] 1.1: Document `bootc-image-builder` conversion from bootc OCI image to QCOW2
+  - [x] 1.2: Document Containerfile that packages QCOW2 as `/disk/disk.qcow2` (UID 107, mode 0440)
+  - [x] 1.3: Document push to quay.io as `quay.io/<org>/rhel10-spire-vault-demo-disk:latest`
+- [x] Task 2: Create cert-manager resources (AC: #2)
+  - [x] 2.1: `self-signed-issuer.yaml` — SelfSigned Issuer (in cert-issuer.yaml from Story 6b)
+  - [x] 2.2: `spire-bootstrap-ca.yaml` — CA Certificate signed by SelfSigned Issuer (isCA: true, 10yr) (in cert-issuer.yaml from Story 6b)
+  - [x] 2.3: `spire-bootstrap-ca-issuer.yaml` — Issuer referencing the CA secret (in cert-issuer.yaml from Story 6b)
+  - [x] 2.4: `spire-bootstrap-cert.yaml` — 1-year leaf Certificate for the VM (digitalSignature usage) (cert-bootstrap.yaml from Story 6b)
+- [x] Task 3: Create SPIRE Server x509pop trust configuration (AC: #3)
+  - [x] 3.1: Document `ztwim.openshift.io/create-only=true` annotation on SpireServer CR
+  - [x] 3.2: Create `spire-x509pop-ca-secret.yaml` — Secret containing the CA cert for x509pop (documented as script in readme.md)
+  - [x] 3.3: Document manual steps to patch the spire-server ConfigMap and mount the CA bundle
+- [x] Task 4: Create VirtualMachine CR (AC: #4)
+  - [x] 4.1: `virtual-machine.yaml` with DataVolumeTemplate importing from registry
+  - [x] 4.2: cloud-init `write_files` for bootstrap cert + key + config overrides
+  - [x] 4.3: Secret-backed disk for injecting cert-manager certificate into the VM
+  - [x] 4.4: SSH access credential for debugging
+- [x] Task 5: Create networking resources (AC: #5, #6)
+  - [x] 5.1: `service.yaml` — Service with `kubevirt.io/domain` selector on port 8080
+  - [x] 5.2: `route.yaml` — Route exposing the httpd endpoint
+- [x] Task 6: Document SPIRE registration entries (AC: #7)
+  - [x] 6.1: Node registration for x509pop agent
+  - [x] 6.2: Workload registration for spiffe-helper (unix:uid:10002)
+- [x] Task 7: Create kustomization.yaml for the overlay (AC: #8)
+  - [x] 7.1: Reference all new resources
+  - [x] 7.2: Set namespace `spire-vault-demo` (per-resource, not global — see kustomization.yaml comment)
+- [x] Task 8: Add application entry to clusters/etl7/values.yaml (AC: #8)
+- [x] Task 9: Document end-to-end verification (AC: #9)
+- [x] Task 10: Document SSH access procedure in readme.md (AC: #10)
+  - [x] 10.1: `virtctl ssh cloud-user@spire-vault-demo-vm -n spire-vault-demo`
+  - [x] 10.2: `virtctl console spire-vault-demo-vm -n spire-vault-demo` (serial console fallback)
+  - [x] 10.3: Note that `raffa-key` Secret must exist in the `spire-vault-demo` namespace
 
 ## Dev Notes
 
@@ -786,14 +787,63 @@ clusters/etl7/overlays/spire-vault-demo/
 - [Pattern reference: clusters/etl6/overlays/sm-on-udn/vms.yaml] — VM with cloud-init runcmd and Service
 - [Pattern reference: clusters/hub/overlays/soteria-root-cert/] — cert-manager self-signed CA chain pattern
 
+## Suggested Review Order
+
+**VM Deployment Core**
+
+- VirtualMachine CR: DataVolume registry import, Secret-backed cert disk, cloud-init with error-guarded mount + all 4 Quadlet services
+  [`virtual-machine.yaml:1`](../../clusters/etl7/overlays/spire-vault-demo/virtual-machine.yaml#L1)
+
+- Kustomize overlay root: references all 7 resources, no global namespace (cross-namespace Route)
+  [`kustomization.yaml:1`](../../clusters/etl7/overlays/spire-vault-demo/kustomization.yaml#L1)
+
+**Networking**
+
+- Service targeting VM httpd via kubevirt.io/domain label selector on port 8080
+  [`service.yaml:1`](../../clusters/etl7/overlays/spire-vault-demo/service.yaml#L1)
+
+- Route with TLS edge termination exposing httpd externally
+  [`route.yaml:1`](../../clusters/etl7/overlays/spire-vault-demo/route.yaml#L1)
+
+**ArgoCD Integration**
+
+- Application entry at sync-wave 25 in etl7 values
+  [`values.yaml:97`](../../clusters/etl7/values.yaml#L97)
+
+**Documentation**
+
+- QCOW2 conversion, SPIRE registration, x509pop patching, E2E verification, SSH access
+  [`readme.md:42`](../../clusters/etl7/overlays/spire-vault-demo/readme.md#L42)
+
+**Peripheral**
+
+- Containerfile base image pinned to 10.2
+  [`Containerfile:1`](../../clusters/etl7/overlays/spire-vault-demo/image/Containerfile#L1)
+
+- .gitignore entry for redhat-registry-account.txt
+  [`.gitignore:36`](../../.gitignore#L36)
+
 ## Dev Agent Record
 
 ### Agent Model Used
 
-
+Claude Opus 4.6
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Review patches applied: (1) all 4 Quadlet services started in cloud-init, (2) Route TLS edge termination added, (3) mount error guard added
+- Deviations from spec: cert-manager files reuse Story 6b naming (cert-issuer.yaml/cert-bootstrap.yaml, secret name spire-bootstrap-ca-keypair); PLACEHOLDER_SPIRE_SERVER_ADDRESS sed omitted (Story 6b hardcoded the server address)
+- `quay.io/<org>` placeholder must be replaced before deployment
+
 ### File List
+
+- clusters/etl7/overlays/spire-vault-demo/virtual-machine.yaml (NEW)
+- clusters/etl7/overlays/spire-vault-demo/service.yaml (NEW)
+- clusters/etl7/overlays/spire-vault-demo/route.yaml (NEW)
+- clusters/etl7/overlays/spire-vault-demo/kustomization.yaml (NEW)
+- clusters/etl7/overlays/spire-vault-demo/readme.md (MODIFIED)
+- clusters/etl7/overlays/spire-vault-demo/image/Containerfile (MODIFIED)
+- clusters/etl7/values.yaml (MODIFIED)
+- .gitignore (MODIFIED)

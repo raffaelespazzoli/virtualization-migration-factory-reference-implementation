@@ -1,0 +1,113 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: spire-vault-demo-vm
+  namespace: spire-vault-demo
+  labels:
+    app: spire-vault-demo
+spec:
+  dataVolumeTemplates:
+    - apiVersion: cdi.kubevirt.io/v1beta1
+      kind: DataVolume
+      metadata:
+        name: spire-vault-demo-vm-rootdisk
+      spec:
+        source:
+          registry:
+            url: docker://quay.io/<org>/rhel10-spire-vault-demo-disk:latest
+        storage:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 20Gi
+          storageClassName: ontap-san
+  running: true
+  template:
+    metadata:
+      annotations:
+        vm.kubevirt.io/os: rhel10
+        vm.kubevirt.io/workload: server
+      labels:
+        kubevirt.io/domain: spire-vault-demo-vm
+        app: spire-vault-demo
+    spec:
+      architecture: amd64
+      domain:
+        cpu:
+          cores: 2
+          sockets: 1
+          threads: 1
+        devices:
+          disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+            - disk:
+                bus: virtio
+              name: cloudinitdisk
+            - disk:
+                bus: virtio
+              name: bootstrap-cert-disk
+              serial: SPIREBOOTCERT
+          interfaces:
+            - masquerade: {}
+              name: default
+              ports:
+                - port: 8080
+          rng: {}
+        features:
+          acpi: {}
+          smm:
+            enabled: true
+        firmware:
+          bootloader:
+            efi: {}
+        machine:
+          type: pc-q35-rhel9.6.0
+        memory:
+          guest: 4Gi
+        resources: {}
+      networks:
+        - name: default
+          pod: {}
+      terminationGracePeriodSeconds: 180
+      accessCredentials:
+        - sshPublicKey:
+            source:
+              secret:
+                secretName: raffa-key
+            propagationMethod:
+              noCloud: {}
+      volumes:
+        - dataVolume:
+            name: spire-vault-demo-vm-rootdisk
+          name: rootdisk
+        - secret:
+            secretName: spire-bootstrap-cert
+          name: bootstrap-cert-disk
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              user: cloud-user
+              password: spire-vault-demo
+              chpasswd: { expire: False }
+              runcmd:
+                # Mount the bootstrap cert disk (ISO9660) and copy certs
+                - mkdir -p /mnt/bootstrap-cert
+                - sh -c 'mount /dev/disk/by-id/virtio-SPIREBOOTCERT /mnt/bootstrap-cert || { echo "FATAL: bootstrap cert disk mount failed" >&2; exit 1; }'
+                - cp /mnt/bootstrap-cert/tls.crt /etc/spire/bootstrap/agent.crt.pem
+                - cp /mnt/bootstrap-cert/tls.key /etc/spire/bootstrap/agent.key.pem
+                - chown spire:spire /etc/spire/bootstrap/agent.crt.pem /etc/spire/bootstrap/agent.key.pem
+                - chmod 0400 /etc/spire/bootstrap/agent.crt.pem /etc/spire/bootstrap/agent.key.pem
+                - umount /mnt/bootstrap-cert
+                # Update Vault agent config with actual cluster domain (envsubst resolves this)
+                - sed -i 's/PLACEHOLDER_CLUSTER_BASE_DOMAIN/${CLUSTER_BASE_DOMAIN}/' /etc/vault-agent/agent.hcl
+                # Create spire-agent data directory (needed for KeyManager "disk")
+                - mkdir -p /opt/spire/data
+                - chown spire:spire /opt/spire/data
+                # Enable and start all four Quadlet services (daemon-reload regenerates units;
+                # multi-user.target is already reached so WantedBy alone won't start them)
+                - systemctl daemon-reload
+                - systemctl enable --now spire-agent.service spiffe-helper.service vault-agent.service httpd.service
+          name: cloudinitdisk

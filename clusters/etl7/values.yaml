@@ -94,6 +94,12 @@ applications:
           jsonPointers:
             - /data
 
+  spire-vault-demo:
+    annotations:
+      argocd.argoproj.io/sync-wave: '25'
+    source:
+      path: clusters/etl7/overlays/spire-vault-demo
+
   # odf-operator:
   #   annotations:
   #     argocd.argoproj.io/compare-options: IgnoreExtraneous
