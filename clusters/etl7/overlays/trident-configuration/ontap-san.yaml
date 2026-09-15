@@ -32,5 +32,6 @@ volumeBindingMode: Immediate
 parameters:
   backendType: "ontap-san"
   provisioningType: "thin"
+  fsType: "xfs"
   snapshots: "true"     
   clones: "true"
