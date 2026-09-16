@@ -4,5 +4,6 @@ kind: Kustomization
 resources:
   - ../../../../components/ztwim-instance
   - x509pop-setup-job.yaml
+  - spire-registration-rbac.yaml
 
 

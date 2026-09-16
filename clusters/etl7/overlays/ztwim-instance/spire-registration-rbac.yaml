@@ -1,0 +1,37 @@
+# RBAC for the spire-registration Job (runs in spire-vault-demo namespace)
+# to exec into spire-server pods in the ZTWIM namespace.
+#
+# Placed here (not in spire-vault-demo overlay) because the spire-vault-demo
+# kustomization uses `namespace: spire-vault-demo` which would override
+# these resources' namespace.
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: spire-registration-exec
+  namespace: zero-trust-workload-identity-manager
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: spire-registration-exec
+  namespace: zero-trust-workload-identity-manager
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+subjects:
+  - kind: ServiceAccount
+    name: spire-registration
+    namespace: spire-vault-demo
+roleRef:
+  kind: Role
+  name: spire-registration-exec
+  apiGroup: rbac.authorization.k8s.io
