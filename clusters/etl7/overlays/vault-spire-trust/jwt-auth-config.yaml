@@ -8,7 +8,7 @@ spec:
     role: vault-admin
     serviceAccount:
       name: default
-  path: spire-jwt
+  path: spire-jwt/spire-jwt
   OIDCDiscoveryURL: "https://oidc-discovery.apps.${CLUSTER_BASE_DOMAIN}"
     # PLACEHOLDER — replace with output of:
     # oc get secret -n openshift-ingress-operator router-ca -o jsonpath='{.data.tls\.crt}' | base64 -d  

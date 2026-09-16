@@ -8,7 +8,7 @@ spec:
     role: vault-admin
     serviceAccount:
       name: default
-  path: spire-jwt
+  path: spire-jwt/spire-jwt
   name: spire-vm-role
   roleType: jwt
   userClaim: sub

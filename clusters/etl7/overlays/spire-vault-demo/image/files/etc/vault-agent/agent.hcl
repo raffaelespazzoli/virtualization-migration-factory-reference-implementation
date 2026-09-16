@@ -5,7 +5,7 @@ vault {
 
 auto_auth {
   method "jwt" {
-    mount_path = "auth/spire-jwt"
+    mount_path = "auth/spire-jwt/spire-jwt"
     config = {
       path                     = "/var/run/secrets/spiffe/jwt-svid.token"
       role                     = "spire-vm-role"
