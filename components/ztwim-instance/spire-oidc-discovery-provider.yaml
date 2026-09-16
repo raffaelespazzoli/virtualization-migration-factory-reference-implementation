@@ -6,6 +6,6 @@ spec:
   logLevel: "info"
   logFormat: "text"
   csiDriverName: "csi.spiffe.io"
-  jwtIssuer: "PLACEHOLDER"
+  jwtIssuer: "https://oidc-discovery.apps.${CLUSTER_BASE_DOMAIN}"
   replicaCount: 1
   managedRoute: "true"

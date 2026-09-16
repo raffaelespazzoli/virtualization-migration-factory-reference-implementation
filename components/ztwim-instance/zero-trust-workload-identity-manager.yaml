@@ -3,6 +3,6 @@ kind: ZeroTrustWorkloadIdentityManager
 metadata:
   name: cluster
 spec:
-  trustDomain: "PLACEHOLDER"
-  clusterName: "PLACEHOLDER"
+  trustDomain: "${CLUSTER_BASE_DOMAIN}"
+  clusterName: "${CLUSTER_NAME}"
   bundleConfigMap: "spire-bundle"

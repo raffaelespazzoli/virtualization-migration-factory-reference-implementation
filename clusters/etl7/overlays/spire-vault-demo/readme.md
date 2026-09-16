@@ -223,10 +223,11 @@ The Job performs four steps:
 | Resource | Created by | Available at |
 |---|---|---|
 | `reflector-operator` | etl7 values.yaml (wave 5) | Before ztwim-instance (wave 15) |
+| `CREATE_ONLY_MODE=true` | ztwim-operator overlay (wave 5) | Before ztwim-instance (wave 15) |
 | SpireServer StatefulSet | ZTWIM operator (after SpireServer CR) | Wave 0 within ztwim-instance |
 | `spire-root-ca-secret` | cert-manager (root CA Certificate in component) | Wave 0 within ztwim-instance |
 
-> **Note:** The `create-only=true` annotation is applied declaratively on the SpireServer CR via the overlay patch — the ZTWIM operator will not revert the Job's patches. The Job uses `argocd.argoproj.io/hook: PostSync` and `hook-delete-policy: BeforeHookCreation` to re-run on each sync.
+> **Note:** `CREATE_ONLY_MODE=true` is set on the operator Subscription via the `ztwim-operator` overlay (see OCP 4.22 ZTWIM docs §12.12). This prevents the operator from reconciling (overwriting) the Job's patches. The Job uses `argocd.argoproj.io/hook: PostSync` and `hook-delete-policy: BeforeHookCreation` to re-run on each sync.
 
 The bootstrap cert (`spire-bootstrap-cert`) is issued directly in the `spire-vault-demo` namespace by the ClusterIssuer — no cross-namespace copying is needed.
 
@@ -380,6 +381,9 @@ clusters/etl7/overlays/spire-vault-demo/
 # cert-manager + x509pop resources (deployed by ztwim-instance, not this overlay):
 components/ztwim-instance/
 └── spire-cert-manager-ca.yaml        # ClusterIssuers + root CA cert (Reflector-mirrored)
+
+clusters/etl7/overlays/ztwim-operator/
+└── kustomization.yaml                # Adds CREATE_ONLY_MODE=true to operator Subscription
 
 clusters/etl7/overlays/ztwim-instance/
 └── x509pop-setup-job.yaml            # Job + RBAC: patches SPIRE Server for x509pop

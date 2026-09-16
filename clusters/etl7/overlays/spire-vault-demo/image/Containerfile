@@ -8,8 +8,9 @@ RUN dnf install -y \
       policycoreutils-python-utils \
       qemu-guest-agent \
       openssh-server \
+      cloud-init \
     && dnf clean all \
-    && systemctl enable qemu-guest-agent sshd
+    && systemctl enable qemu-guest-agent sshd cloud-init-local cloud-init cloud-config cloud-final
 
 # ── Enable all guest-agent commands (exec, file ops) for diagnostics ─
 RUN mkdir -p /etc/sysconfig && \

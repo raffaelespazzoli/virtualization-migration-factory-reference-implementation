@@ -40,7 +40,7 @@ The base component uses `PLACEHOLDER` values that **must** be patched via a clus
 
 > **⚠️ cert-manager resources:** The root CA Certificate is created in `zero-trust-workload-identity-manager` (via the component's namespace transformer). The resulting Secret (`spire-root-ca-secret`) is directly mountable by the SPIRE Server StatefulSet for x509pop. Reflector mirrors it to `cert-manager` namespace for the ClusterIssuers. **Requires `reflector-operator` to be deployed** (sync-wave 5).
 
-> **⚠️ create-only annotation:** The etl7 overlay applies `ztwim.openshift.io/create-only=true` to the SpireServer CR to freeze operator reconciliation. This is needed because x509pop NodeAttestor configuration requires patching the SPIRE Server StatefulSet and ConfigMap (automated by the `x509pop-setup` Job) — the ZTWIM operator would otherwise revert those changes.
+> **⚠️ CREATE_ONLY_MODE:** The etl7 `ztwim-operator` overlay sets `CREATE_ONLY_MODE=true` on the operator Subscription (via `OperatorPolicy.spec.subscription.config.env`). This prevents the operator from reconciling (overwriting) the x509pop patches applied by the `x509pop-setup` Job. See OCP 4.22 ZTWIM docs §12.12.
 
 > **⚠️ Immutable fields:** `trustDomain`, `clusterName`, and `bundleConfigMap` on ZeroTrustWorkloadIdentityManager, and all `persistence` fields on SpireServer, are immutable after creation (CEL-enforced). If set incorrectly, the CRs must be deleted and recreated.
 
@@ -57,5 +57,5 @@ This component runs at sync-wave **15** (instance tier), after the `ztwim-operat
 - **Epic:** Zero-Trust Secret Delivery to VM Workloads via SPIFFE/Vault on etl7
 - **Depends on:** `ztwim-operator` (Story 1.1) — operator must be installed for CRDs to exist
 - **Next in chain:** Story 1.5 (SPIRE↔Vault Trust) uses the OIDC discovery Route URL
-- **Create-only mode:** Stories 1.5/1.6b set `ztwim.openshift.io/create-only=true` on SpireServer to allow manual x509pop patching. Without create-only mode, ArgoCD self-heal reverts those mutations.
+- **Create-only mode:** The `ztwim-operator` overlay sets `CREATE_ONLY_MODE=true` on the Subscription to prevent the operator from overwriting x509pop patches. Without create-only mode, the operator reverts those mutations.
 - **SpireAgent and SpiffeCSIDriver** are deployed with defaults as part of the standard operand set. They are not used by the VM in this experiment (the VM uses x509pop attestation separately), but the OIDC Discovery Provider depends on the CSI driver and SpireAgent for its own ClusterSPIFFEID identity.

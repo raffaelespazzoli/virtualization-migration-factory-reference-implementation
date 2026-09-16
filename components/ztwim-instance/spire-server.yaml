@@ -5,12 +5,18 @@ metadata:
 spec:
   logLevel: "info"
   logFormat: "text"
-  jwtIssuer: "PLACEHOLDER"
+  jwtIssuer: "https://oidc-discovery.apps.${CLUSTER_BASE_DOMAIN}"
   caValidity: "24h"
   defaultX509Validity: "1h"
   defaultJWTValidity: "5m"
   caKeyType: "rsa-2048"
   jwtKeyType: "rsa-2048"
+  upstreamAuthority:
+    certManager:
+      namespace: zero-trust-workload-identity-manager
+      issuerName: spire-root-ca-issuer
+      issuerKind: ClusterIssuer
+      issuerGroup: cert-manager.io
   caSubject:
     country: "US"
     organization: "Red Hat Labs"
@@ -18,7 +24,7 @@ spec:
   persistence:
     size: "1Gi"
     accessMode: "ReadWriteOnce"
-    storageClass: "PLACEHOLDER"
+    storageClass: "ontap-nas"
   datastore:
     databaseType: "sqlite3"
     connectionString: "/run/spire/data/datastore.sqlite3"

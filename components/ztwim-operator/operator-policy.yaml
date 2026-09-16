@@ -24,5 +24,9 @@ spec:
     source: redhat-operators
     sourceNamespace: openshift-marketplace
     startingCSV: zero-trust-workload-identity-manager.v1.1.1
+    config:
+      env:
+        - name: CREATE_ONLY_MODE
+          value: "true"
   versions:
     - zero-trust-workload-identity-manager.v1.1.1

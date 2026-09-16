@@ -1,7 +1,8 @@
 # x509pop setup Job — automates SPIRE Server patching for x509pop NodeAttestor.
 #
 # The SpireServer CRD does not support configuring x509pop. This Job patches
-# the SPIRE Server StatefulSet (mount root CA) and ConfigMap (add x509pop plugin).
+# the SPIRE Server ConfigMap (add x509pop plugin) and StatefulSet (mount root
+# CA). The StatefulSet patch triggers an automatic rolling restart.
 #
 # Sync-wave 10 (PostSync hook): runs after all other ztwim-instance resources
 # (wave 0 default) have been created, including the SpireServer StatefulSet
@@ -10,7 +11,7 @@
 # Prerequisites (handled by sync-wave ordering):
 #   - SpireServer deployed and StatefulSet running
 #   - spire-root-ca-secret exists in ZTWIM namespace (cert-manager Certificate)
-#   - create-only=true annotation on SpireServer (applied declaratively via overlay patch)
+#   - CREATE_ONLY_MODE=true on the operator Subscription (ztwim-operator overlay)
 
 # ── RBAC ──────────────────────────────────────────────────────────────
 
@@ -32,7 +33,7 @@ metadata:
 rules:
   - apiGroups: [""]
     resources: ["configmaps"]
-    verbs: ["get", "patch", "update"]
+    verbs: ["get", "list", "create", "patch", "update"]
   - apiGroups: ["apps"]
     resources: ["statefulsets"]
     verbs: ["get", "list", "watch", "patch"]
@@ -111,7 +112,73 @@ spec:
                 sleep 10
               done
 
-              # ── Step 1: Mount spire-root-ca-secret into spire-server ──
+              # ── Step 1: Add x509pop NodeAttestor to ConfigMap ──────
+              # Patch ConfigMap FIRST (before StatefulSet) so the new
+              # pods pick up the updated config on the restart triggered
+              # by the StatefulSet patch in Step 2.
+              echo "Checking spire-server ConfigMap for x509pop..."
+
+              oc get configmap spire-server -n "${ZTWIM_NS}" \
+                -o jsonpath='{.data.server\.conf}' > /tmp/server-conf.json
+
+              if grep -q '"x509pop"' /tmp/server-conf.json; then
+                echo "x509pop NodeAttestor already present — skipping ConfigMap patch"
+              else
+                echo "Adding x509pop NodeAttestor to ConfigMap..."
+                X509POP='{"x509pop":{"plugin_data":{"ca_bundle_path":"/tmp/x509pop-ca/ca.crt.pem"}}}'
+
+                # Insert x509pop into the NodeAttestor array.
+                # Uses bracket-counting to find the correct closing ],
+                # handling nested objects safely.
+                tr '\n' '\001' < /tmp/server-conf.json | awk -v entry="${X509POP}" '{
+                  s = $0
+                  target = "\"NodeAttestor\""
+                  idx = index(s, target)
+                  if (idx > 0) {
+                    rest = substr(s, idx)
+                    bi = index(rest, "[")
+                    if (bi > 0) {
+                      abs = idx + bi - 1
+                      depth = 0
+                      for (i = abs; i <= length(s); i++) {
+                        c = substr(s, i, 1)
+                        if (c == "[") depth++
+                        else if (c == "]") {
+                          depth--
+                          if (depth == 0) {
+                            s = substr(s, 1, i-1) "," entry substr(s, i)
+                            break
+                          }
+                        }
+                      }
+                    }
+                  }
+                  printf "%s", s
+                }' | tr '\001' '\n' > /tmp/server-conf-updated.json
+
+                # Build a properly JSON-encoded merge patch using awk.
+                awk '
+                  BEGIN { printf "{\"data\":{\"server.conf\":\"" }
+                  {
+                    gsub(/\\/, "\\\\")
+                    gsub(/"/, "\\\"")
+                    gsub(/\t/, "\\t")
+                    gsub(/\r/, "\\r")
+                    if (NR > 1) printf "\\n"
+                    printf "%s", $0
+                  }
+                  END { print "\"}}" }
+                ' /tmp/server-conf-updated.json > /tmp/cm-patch.json
+
+                oc patch configmap spire-server -n "${ZTWIM_NS}" \
+                  --type=merge --patch-file /tmp/cm-patch.json
+
+                echo "ConfigMap patched successfully"
+              fi
+
+              # ── Step 2: Mount spire-root-ca-secret into spire-server ─
+              # Patching spec.template triggers an automatic rolling
+              # restart — no explicit rollout restart needed.
               echo "Patching spire-server StatefulSet to mount x509pop CA..."
               oc patch statefulset spire-server -n "${ZTWIM_NS}" --type=strategic --patch '
               spec:
@@ -132,37 +199,8 @@ spec:
                         readOnly: true
               '
 
-              # ── Step 2: Add x509pop NodeAttestor to ConfigMap ──────
-              echo "Patching spire-server ConfigMap to add x509pop NodeAttestor..."
-
-              oc get configmap spire-server -n "${ZTWIM_NS}" \
-                -o jsonpath='{.data.server\.conf}' > /tmp/server-conf.json
-
-              python3 << 'PYEOF'
-              import json, pathlib
-
-              conf_path = pathlib.Path("/tmp/server-conf.json")
-              conf = json.loads(conf_path.read_text())
-
-              x509pop = {"x509pop": {"plugin_data": {"ca_bundle_path": "/tmp/x509pop-ca/ca.crt.pem"}}}
-              attestors = conf.setdefault("plugins", {}).setdefault("NodeAttestor", [])
-
-              if any("x509pop" in a for a in attestors):
-                  print("x509pop NodeAttestor already present — skipping")
-              else:
-                  attestors.append(x509pop)
-                  print("Added x509pop NodeAttestor")
-
-              patch = {"data": {"server.conf": json.dumps(conf)}}
-              pathlib.Path("/tmp/cm-patch.json").write_text(json.dumps(patch))
-              PYEOF
-
-              oc patch configmap spire-server -n "${ZTWIM_NS}" \
-                --type=merge --patch-file /tmp/cm-patch.json
-
-              # ── Step 3: Restart SPIRE Server ───────────────────────
-              echo "Restarting spire-server StatefulSet..."
-              oc rollout restart statefulset spire-server -n "${ZTWIM_NS}"
+              # ── Step 3: Wait for rollout ───────────────────────────
+              echo "Waiting for spire-server rollout..."
               oc rollout status statefulset/spire-server -n "${ZTWIM_NS}" --timeout=300s
 
               echo "Waiting for spire-server-0 to be ready..."
@@ -171,8 +209,8 @@ spec:
               # ── Step 4: Verify ─────────────────────────────────────
               echo "Verifying x509pop configuration..."
               oc exec spire-server-0 -c spire-server -n "${ZTWIM_NS}" -- \
-                cat /opt/spire/conf/server/server.conf | \
-                python3 -c "import json,sys; print(json.dumps(json.load(sys.stdin).get('plugins',{}).get('NodeAttestor',[]), indent=2))"
+                grep -c x509pop /opt/spire/conf/server/server.conf
+              echo "x509pop entries found in server.conf (expected >= 1)"
 
               echo ""
               echo "=== x509pop setup Job complete ==="
