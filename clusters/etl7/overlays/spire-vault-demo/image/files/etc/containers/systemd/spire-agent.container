@@ -2,6 +2,7 @@
 Description=SPIRE Agent (x509pop attestation)
 Wants=network-online.target
 After=network-online.target
+ConditionPathExists=/etc/spire/bootstrap/agent.crt.pem
 
 [Container]
 Image=ghcr.io/spiffe/spire-agent:1.14.7
@@ -16,6 +17,7 @@ Exec=-config /etc/spire/agent.conf
 
 [Service]
 Restart=on-failure
+RestartSec=10s
 
 [Install]
 WantedBy=multi-user.target default.target

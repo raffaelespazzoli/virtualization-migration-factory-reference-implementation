@@ -109,8 +109,13 @@ spec:
                 # Create spire-agent data directory under /var (bootc rootfs is read-only)
                 - mkdir -p /var/lib/spire/data
                 - chown spire:spire /var/lib/spire/data
-                # Restart Quadlet services (daemon-reload regenerates units;
-                # cannot "enable" Quadlet-generated units — they are transient)
+                # Pre-pull container images that are not cached in the bootc image
+                - podman pull ghcr.io/spiffe/spiffe-helper:0.11.0
+                - podman pull docker.io/hashicorp/vault:1.20.4
+                - podman pull registry.access.redhat.com/ubi10/httpd-24:latest
+                # Restart Quadlet services (reset-failed clears rate limiter from
+                # any early crash-loops before cloud-init ran)
                 - systemctl daemon-reload
+                - systemctl reset-failed spire-agent.service spiffe-helper.service vault-agent.service httpd.service
                 - systemctl restart spire-agent.service spiffe-helper.service vault-agent.service httpd.service
           name: cloudinitdisk

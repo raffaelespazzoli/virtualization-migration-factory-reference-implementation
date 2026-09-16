@@ -15,6 +15,7 @@ Exec=-config /etc/spiffe-helper/helper.conf
 
 [Service]
 Restart=on-failure
+RestartSec=10s
 
 [Install]
 WantedBy=multi-user.target default.target
