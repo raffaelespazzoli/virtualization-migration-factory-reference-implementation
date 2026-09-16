@@ -36,6 +36,10 @@ RUN mkdir -p /etc/spire/bootstrap && \
     chown spire:spire /run/spire/sockets && \
     chmod 0755 /run/spire/sockets
 
+# spire-agent: runtime data (KeyManager "disk") — must be under /var for bootc writability
+RUN mkdir -p /var/lib/spire/data && \
+    chown spire:spire /var/lib/spire/data
+
 # spiffe-helper: SVID output directory
 RUN mkdir -p /var/run/secrets/spiffe && \
     chown spiffe-helper:spiffe-consumers /var/run/secrets/spiffe && \

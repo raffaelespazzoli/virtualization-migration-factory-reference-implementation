@@ -11,6 +11,7 @@ User=10001:10001
 Volume=/etc/spire/bootstrap:/etc/spire/bootstrap:ro,z
 Volume=/run/spire/sockets:/run/spire/sockets:z
 Volume=/etc/spire/agent.conf:/etc/spire/agent.conf:ro,z
+Volume=/var/lib/spire/data:/opt/spire/data:z
 Exec=-config /etc/spire/agent.conf
 
 [Service]

@@ -106,11 +106,11 @@ spec:
                 - umount /mnt/bootstrap-cert
                 # Update Vault agent config with actual cluster domain (envsubst resolves this)
                 - sed -i 's/PLACEHOLDER_CLUSTER_BASE_DOMAIN/${CLUSTER_BASE_DOMAIN}/' /etc/vault-agent/agent.hcl
-                # Create spire-agent data directory (needed for KeyManager "disk")
-                - mkdir -p /opt/spire/data
-                - chown spire:spire /opt/spire/data
-                # Enable and start all four Quadlet services (daemon-reload regenerates units;
-                # multi-user.target is already reached so WantedBy alone won't start them)
+                # Create spire-agent data directory under /var (bootc rootfs is read-only)
+                - mkdir -p /var/lib/spire/data
+                - chown spire:spire /var/lib/spire/data
+                # Restart Quadlet services (daemon-reload regenerates units;
+                # cannot "enable" Quadlet-generated units — they are transient)
                 - systemctl daemon-reload
-                - systemctl enable --now spire-agent.service spiffe-helper.service vault-agent.service httpd.service
+                - systemctl restart spire-agent.service spiffe-helper.service vault-agent.service httpd.service
           name: cloudinitdisk

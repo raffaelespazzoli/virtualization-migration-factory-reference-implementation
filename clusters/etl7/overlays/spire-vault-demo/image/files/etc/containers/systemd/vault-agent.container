@@ -6,6 +6,7 @@ Requires=spiffe-helper.container
 [Container]
 Image=docker.io/hashicorp/vault:1.20.4
 ContainerName=vault-agent
+Environment=SKIP_SETCAP=1
 User=10004
 GroupAdd=10003
 Volume=/var/run/secrets/spiffe:/var/run/secrets/spiffe:ro,z
