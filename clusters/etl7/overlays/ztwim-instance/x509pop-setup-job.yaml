@@ -131,16 +131,31 @@ spec:
 
               # ── Step 2: Add x509pop NodeAttestor to ConfigMap ──────
               echo "Patching spire-server ConfigMap to add x509pop NodeAttestor..."
-              NEW_ATTESTOR='{"x509pop": {"plugin_data": {"ca_bundle_path": "/tmp/x509pop-ca/ca.crt.pem"}}}'
 
-              oc get configmap spire-server -n "${ZTWIM_NS}" -o json | \
-              jq --argjson new "${NEW_ATTESTOR}" \
-                 '.data["server.conf"] |= (fromjson |
-                  if (.plugins.NodeAttestor | any(has("x509pop")))
-                  then .
-                  else .plugins.NodeAttestor += [$new]
-                  end | tojson)' | \
-              oc apply -f -
+              oc get configmap spire-server -n "${ZTWIM_NS}" \
+                -o jsonpath='{.data.server\.conf}' > /tmp/server-conf.json
+
+              python3 << 'PYEOF'
+              import json, pathlib
+
+              conf_path = pathlib.Path("/tmp/server-conf.json")
+              conf = json.loads(conf_path.read_text())
+
+              x509pop = {"x509pop": {"plugin_data": {"ca_bundle_path": "/tmp/x509pop-ca/ca.crt.pem"}}}
+              attestors = conf.setdefault("plugins", {}).setdefault("NodeAttestor", [])
+
+              if any("x509pop" in a for a in attestors):
+                  print("x509pop NodeAttestor already present — skipping")
+              else:
+                  attestors.append(x509pop)
+                  print("Added x509pop NodeAttestor")
+
+              patch = {"data": {"server.conf": json.dumps(conf)}}
+              pathlib.Path("/tmp/cm-patch.json").write_text(json.dumps(patch))
+              PYEOF
+
+              oc patch configmap spire-server -n "${ZTWIM_NS}" \
+                --type=merge --patch-file /tmp/cm-patch.json
 
               # ── Step 3: Restart SPIRE Server ───────────────────────
               echo "Restarting spire-server StatefulSet..."
@@ -153,7 +168,8 @@ spec:
               # ── Step 4: Verify ─────────────────────────────────────
               echo "Verifying x509pop configuration..."
               oc exec spire-server-0 -c spire-server -n "${ZTWIM_NS}" -- \
-                cat /opt/spire/conf/server/server.conf | jq '.plugins.NodeAttestor'
+                cat /opt/spire/conf/server/server.conf | \
+                python3 -c "import json,sys; print(json.dumps(json.load(sys.stdin).get('plugins',{}).get('NodeAttestor',[]), indent=2))"
 
               echo ""
               echo "=== x509pop setup Job complete ==="
