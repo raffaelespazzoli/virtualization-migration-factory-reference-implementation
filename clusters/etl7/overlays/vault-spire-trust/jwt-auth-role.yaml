@@ -8,13 +8,13 @@ spec:
     role: vault-admin
     serviceAccount:
       name: default
-  path: spire-jwt/spire-jwt
+  path: spire-jwt
   name: spire-vm-role
   roleType: jwt
   userClaim: sub
   boundAudiences:
     - vault
-  boundSubject: "spiffe://etl7.ocp.rht-labs.com/experiment/demo-vm"
+  boundSubject: "spiffe://etl7.ocp.rht-labs.com/spire-vault-demo/workload"
   tokenPolicies:
     - experiment-read
   tokenTTL: "1h"
