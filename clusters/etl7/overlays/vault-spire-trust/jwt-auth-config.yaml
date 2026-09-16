@@ -10,28 +10,7 @@ spec:
       name: default
   path: spire-jwt/spire-jwt
   OIDCDiscoveryURL: "https://oidc-discovery.apps.${CLUSTER_BASE_DOMAIN}"
-    # PLACEHOLDER — replace with output of:
-    # oc get secret -n openshift-ingress-operator router-ca -o jsonpath='{.data.tls\.crt}' | base64 -d  
-  OIDCDiscoveryCAPEM: |
-    -----BEGIN CERTIFICATE-----
-    MIIDDDCCAfSgAwIBAgIBATANBgkqhkiG9w0BAQsFADAmMSQwIgYDVQQDDBtpbmdy
-    ZXNzLW9wZXJhdG9yQDE3MzA0MTMxNTMwHhcNMjQxMDMxMjIxOTEzWhcNMjYxMDMx
-    MjIxOTE0WjAmMSQwIgYDVQQDDBtpbmdyZXNzLW9wZXJhdG9yQDE3MzA0MTMxNTMw
-    ggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCt7PuNt+vAPS+qcxhsVUJj
-    ncEb0YI263KddxCCNf6PhvMjumKYa1eRUznwiZvo2pfvEGEPNN2fCHUE/8B9v9SK
-    H4FgWfgqeGtzCmkjDmR/iw5jpbdzw8rg2OKvLieJQqqRJCzux8uCMH6C6x2H9kAv
-    0qfUwefV5MygrzsJ66wWnYXqJvz1DaKrFkVweq5S1RyZUSUARtgQAATlO0k/rlFk
-    5/KaxEAWmzfqsx5e65Z/ls+PmajdyEm9xziVDu9m+6fTx8AWnv3v8N3saVM3MZxu
-    45VbucZS++/Z2W2OZbnX/swq+GPs9QJVM8pHuFa6OOMLL1Nhm0DQG5GvoBMllyCz
-    AgMBAAGjRTBDMA4GA1UdDwEB/wQEAwICpDASBgNVHRMBAf8ECDAGAQH/AgEAMB0G
-    A1UdDgQWBBTkoLdOiEgXwyunMrv3PRSCrvibZTANBgkqhkiG9w0BAQsFAAOCAQEA
-    MU2cQr2ij+zeminxJfuOuFfZcBK1UUEdSSoC0pIS1/Qy72aXZSuTxyOh4m59L9kW
-    ddJIz95IzZSqTv9x8a8qjMtlBEMBDuFTv//wPytFEQLfamOTlX+YP8JrPeW4K1CM
-    i8mYQaxrITRtoXWBJHpZc70mY8HqbpF1VmWyk+I/3yqFoUIfaZ2rOYtj50HT91uz
-    FQ8OIAS9jbW14BWZrH4aLu9pb9XvghecXyjh1Bzt/6MXjrEny2/A3O8yNW8IwZhl
-    hfaw83FNKQxEc+Ux6+u7oKaopWSuRCZ/sE8TH8A0/5ZqPS30ovPKbqAMN2W+Hix1
-    VzWH9AkFEL2pAobUbMrpvA==
-    -----END CERTIFICATE-----
+  # OIDCDiscoveryCAPEM not needed — the route uses a publicly-trusted Let's Encrypt wildcard cert
   boundIssuer: "https://oidc-discovery.apps.${CLUSTER_BASE_DOMAIN}"
   JWTSupportedAlgs:
     - RS256
