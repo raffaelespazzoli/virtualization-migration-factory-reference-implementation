@@ -157,7 +157,7 @@ spec:
                 -parentID "${PARENT_ID}" \
                 -spiffeID "${WORKLOAD_SPIFFE_ID}" 2>&1 || true)
 
-              if echo "${EXISTING}" | grep -q "Found"; then
+              if echo "${EXISTING}" | grep -q "Found [1-9]"; then
                 echo "Registration entry already exists — skipping creation"
                 echo "${EXISTING}"
               else
@@ -168,7 +168,7 @@ spec:
                   -parentID "${PARENT_ID}" \
                   -spiffeID "${WORKLOAD_SPIFFE_ID}" \
                   -selector "unix:uid:${SPIFFE_HELPER_UID}" \
-                  -jwt-svid-ttl "${JWT_SVID_TTL}"
+                  -jwtSVIDTTL "${JWT_SVID_TTL}"
               fi
 
               # ── Verify ─────────────────────────────────────────────
