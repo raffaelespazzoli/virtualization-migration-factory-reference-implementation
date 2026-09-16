@@ -98,7 +98,7 @@ spec:
               runcmd:
                 # Mount the bootstrap cert disk (ISO9660) and copy certs
                 - mkdir -p /mnt/bootstrap-cert
-                - sh -c 'mount /dev/disk/by-id/virtio-SPIREBOOTCERT /mnt/bootstrap-cert || { echo "FATAL: bootstrap cert disk mount failed" >&2; exit 1; }'
+                - mount /dev/disk/by-id/virtio-SPIREBOOTCERT /mnt/bootstrap-cert
                 - cp /mnt/bootstrap-cert/tls.crt /etc/spire/bootstrap/agent.crt.pem
                 - cp /mnt/bootstrap-cert/tls.key /etc/spire/bootstrap/agent.key.pem
                 - chown spire:spire /etc/spire/bootstrap/agent.crt.pem /etc/spire/bootstrap/agent.key.pem

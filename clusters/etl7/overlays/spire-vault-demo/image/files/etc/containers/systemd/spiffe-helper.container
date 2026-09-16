@@ -6,12 +6,12 @@ Requires=spire-agent.container
 [Container]
 Image=ghcr.io/spiffe/spiffe-helper:0.11.0
 ContainerName=spiffe-helper
-PidHost=true
+PodmanArgs=--pid=host
 User=10002:10003
 Volume=/run/spire/sockets:/run/spire/sockets:ro,z
 Volume=/var/run/secrets/spiffe:/var/run/secrets/spiffe:z
 Volume=/etc/spiffe-helper/helper.conf:/etc/spiffe-helper/helper.conf:ro,z
-Exec=/spiffe-helper -config /etc/spiffe-helper/helper.conf
+Exec=-config /etc/spiffe-helper/helper.conf
 
 [Service]
 Restart=on-failure

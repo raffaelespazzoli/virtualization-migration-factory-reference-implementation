@@ -6,12 +6,12 @@ After=network-online.target
 [Container]
 Image=ghcr.io/spiffe/spire-agent:1.14.7
 ContainerName=spire-agent
-PidHost=true
+PodmanArgs=--pid=host
 User=10001:10001
 Volume=/etc/spire/bootstrap:/etc/spire/bootstrap:ro,z
 Volume=/run/spire/sockets:/run/spire/sockets:z
 Volume=/etc/spire/agent.conf:/etc/spire/agent.conf:ro,z
-Exec=/opt/spire/bin/spire-agent run -config /etc/spire/agent.conf
+Exec=-config /etc/spire/agent.conf
 
 [Service]
 Restart=on-failure
