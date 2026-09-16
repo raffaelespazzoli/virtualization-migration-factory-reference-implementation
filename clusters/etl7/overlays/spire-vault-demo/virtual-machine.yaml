@@ -81,7 +81,9 @@ spec:
               secret:
                 secretName: raffa-key
             propagationMethod:
-              noCloud: {}
+              qemuGuestAgent:
+                users:
+                  - cloud-user
       volumes:
         - dataVolume:
             name: spire-vault-demo-vm-rootdisk
