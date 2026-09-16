@@ -1,0 +1,159 @@
+# x509pop setup Job — automates SPIRE Server patching for x509pop NodeAttestor.
+#
+# The SpireServer CRD does not support configuring x509pop. This Job patches
+# the SPIRE Server StatefulSet (mount root CA) and ConfigMap (add x509pop plugin).
+#
+# Sync-wave 10 (PostSync hook): runs after all other ztwim-instance resources
+# (wave 0 default) have been created, including the SpireServer StatefulSet
+# and cert-manager Certificates.
+#
+# Prerequisites (handled by sync-wave ordering):
+#   - SpireServer deployed and StatefulSet running
+#   - spire-root-ca-secret exists in ZTWIM namespace (cert-manager Certificate)
+#   - create-only=true annotation on SpireServer (applied declaratively via overlay patch)
+
+# ── RBAC ──────────────────────────────────────────────────────────────
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: x509pop-setup
+  namespace: zero-trust-workload-identity-manager
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: x509pop-setup
+  namespace: zero-trust-workload-identity-manager
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "patch", "update"]
+  - apiGroups: ["apps"]
+    resources: ["statefulsets"]
+    verbs: ["get", "patch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: x509pop-setup
+  namespace: zero-trust-workload-identity-manager
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+subjects:
+  - kind: ServiceAccount
+    name: x509pop-setup
+    namespace: zero-trust-workload-identity-manager
+roleRef:
+  kind: Role
+  name: x509pop-setup
+  apiGroup: rbac.authorization.k8s.io
+
+# ── Job ───────────────────────────────────────────────────────────────
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: x509pop-setup
+  namespace: zero-trust-workload-identity-manager
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 10
+  activeDeadlineSeconds: 600
+  template:
+    spec:
+      serviceAccountName: x509pop-setup
+      restartPolicy: OnFailure
+      containers:
+        - name: setup
+          image: registry.redhat.io/openshift4/ose-cli:latest
+          env:
+            - name: ZTWIM_NS
+              value: zero-trust-workload-identity-manager
+          command:
+            - /bin/bash
+            - -euo
+            - pipefail
+            - -c
+            - |
+              echo "=== x509pop setup Job starting ==="
+
+              # ── Wait for prerequisites ──────────────────────────────
+              echo "Waiting for spire-server StatefulSet..."
+              until oc get statefulset spire-server -n "${ZTWIM_NS}" &>/dev/null; do
+                echo "  StatefulSet not found yet, retrying in 10s..."
+                sleep 10
+              done
+
+              echo "Waiting for spire-root-ca-secret..."
+              until oc get secret spire-root-ca-secret -n "${ZTWIM_NS}" &>/dev/null; do
+                echo "  Secret not found yet, retrying in 10s..."
+                sleep 10
+              done
+
+              # ── Step 1: Mount spire-root-ca-secret into spire-server ──
+              echo "Patching spire-server StatefulSet to mount x509pop CA..."
+              oc patch statefulset spire-server -n "${ZTWIM_NS}" --type=strategic --patch '
+              spec:
+                template:
+                  spec:
+                    volumes:
+                    - name: x509pop-ca
+                      secret:
+                        secretName: spire-root-ca-secret
+                        items:
+                        - key: tls.crt
+                          path: ca.crt.pem
+                    containers:
+                    - name: spire-server
+                      volumeMounts:
+                      - name: x509pop-ca
+                        mountPath: /tmp/x509pop-ca
+                        readOnly: true
+              '
+
+              # ── Step 2: Add x509pop NodeAttestor to ConfigMap ──────
+              echo "Patching spire-server ConfigMap to add x509pop NodeAttestor..."
+              NEW_ATTESTOR='{"x509pop": {"plugin_data": {"ca_bundle_path": "/tmp/x509pop-ca/ca.crt.pem"}}}'
+
+              oc get configmap spire-server -n "${ZTWIM_NS}" -o json | \
+              jq --argjson new "${NEW_ATTESTOR}" \
+                 '.data["server.conf"] |= (fromjson |
+                  if (.plugins.NodeAttestor | any(has("x509pop")))
+                  then .
+                  else .plugins.NodeAttestor += [$new]
+                  end | tojson)' | \
+              oc apply -f -
+
+              # ── Step 3: Restart SPIRE Server ───────────────────────
+              echo "Restarting spire-server StatefulSet..."
+              oc rollout restart statefulset spire-server -n "${ZTWIM_NS}"
+              oc rollout status statefulset/spire-server -n "${ZTWIM_NS}" --timeout=300s
+
+              echo "Waiting for spire-server-0 to be ready..."
+              oc wait --for=condition=Ready pod/spire-server-0 -n "${ZTWIM_NS}" --timeout=120s
+
+              # ── Step 4: Verify ─────────────────────────────────────
+              echo "Verifying x509pop configuration..."
+              oc exec spire-server-0 -c spire-server -n "${ZTWIM_NS}" -- \
+                cat /opt/spire/conf/server/server.conf | jq '.plugins.NodeAttestor'
+
+              echo ""
+              echo "=== x509pop setup Job complete ==="

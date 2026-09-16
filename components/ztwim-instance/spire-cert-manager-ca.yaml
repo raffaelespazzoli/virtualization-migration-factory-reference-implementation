@@ -1,15 +1,19 @@
-# cert-manager ClusterIssuers for SPIRE UpstreamAuthority + VM bootstrap certs.
-# This establishes a single root of trust used by:
-#   1. SPIRE Server intermediate signing CA (via UpstreamAuthority cert-manager plugin)
-#   2. VM x509pop bootstrap certificate signing CA
+# cert-manager resources for SPIRE UpstreamAuthority and x509pop trust.
 #
-# The root CA Certificate (which creates the backing Secret in cert-manager
-# namespace) must be deployed via the cluster overlay because this component's
-# namespace transformer would override it to zero-trust-workload-identity-manager.
+# Architecture:
+#   selfsigned-bootstrap (ClusterIssuer) → issues root CA cert
+#   spire-root-ca (Certificate, in ZTWIM ns) → creates spire-root-ca-secret
+#     Reflector mirrors the Secret to cert-manager ns for the ClusterIssuer
+#   spire-root-ca-issuer (ClusterIssuer) → reads mirrored secret from cert-manager ns
 #
-# Reference: OCP 4.22 ZTWIM docs §12.13.2 — Preparing cert-manager for SPIRE Server
+# This single root CA serves:
+#   1. SPIRE Server intermediate signing CA (UpstreamAuthority cert-manager plugin)
+#   2. VM x509pop bootstrap certificate signing
+#   3. x509pop server-side CA bundle (Secret directly mountable by SPIRE Server)
+#
+# Reference: OCP 4.22 ZTWIM docs §12.13.2
 
-# Self-signed bootstrap ClusterIssuer — issues the root CA certificate
+# Self-signed ClusterIssuer — bootstraps the root CA
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
@@ -17,9 +21,32 @@ metadata:
 spec:
   selfSigned: {}
 ---
-# ClusterIssuer backed by the root CA Secret (created by overlay's Certificate CR).
-# Accessible from any namespace — used by both SpireServer upstreamAuthority and
-# the spire-vault-demo VM bootstrap Certificate.
+# Root CA Certificate — created in ZTWIM namespace (via component namespace transformer).
+# The resulting Secret is:
+#   - directly mountable by SPIRE Server for x509pop CA bundle
+#   - mirrored to cert-manager namespace by Reflector for the ClusterIssuer
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: spire-root-ca
+spec:
+  isCA: true
+  duration: 87600h  # 10 years
+  commonName: "SPIRE Root CA"
+  secretName: spire-root-ca-secret
+  issuerRef:
+    name: selfsigned-bootstrap
+    kind: ClusterIssuer
+  secretTemplate:
+    annotations:
+      reflector.v1.k8s.emberstack.com/reflection-allowed: "true"
+      reflector.v1.k8s.emberstack.com/reflection-allowed-namespaces: "cert-manager"
+      reflector.v1.k8s.emberstack.com/reflection-auto-enabled: "true"
+      reflector.v1.k8s.emberstack.com/reflection-auto-namespaces: "cert-manager"
+---
+# ClusterIssuer backed by the root CA Secret (mirrored copy in cert-manager ns).
+# Accessible from any namespace — used by SpireServer upstreamAuthority and
+# the VM bootstrap Certificate in spire-vault-demo namespace.
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:

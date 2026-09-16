@@ -172,21 +172,23 @@ The following manifests are deployed by ArgoCD (Story 6d creates the ArgoCD Appl
 | `namespace.yaml` | Namespace | — | Creates `spire-vault-demo` namespace |
 | `cert-bootstrap.yaml` | Certificate | spire-vault-demo | 1-year leaf cert for x509pop attestation (`spire-bootstrap-cert` Secret) |
 
-The root CA infrastructure is deployed by the `ztwim-instance` component/overlay:
+The root CA infrastructure and x509pop automation are deployed by the `ztwim-instance` component/overlay:
 
 | File | Kind | Scope | Purpose |
 |---|---|---|---|
-| `components/ztwim-instance/spire-cert-manager-ca.yaml` | ClusterIssuer × 2 | Cluster | Self-signed bootstrap + root CA ClusterIssuer |
-| `clusters/etl7/overlays/ztwim-instance/spire-cert-manager-ca.yaml` | Certificate | cert-manager ns | Root CA cert (creates `spire-root-ca-secret`) |
+| `components/ztwim-instance/spire-cert-manager-ca.yaml` | ClusterIssuer × 2, Certificate | Cluster + ztwim ns | Self-signed bootstrap, root CA cert (Reflector-mirrored), CA ClusterIssuer |
+| `clusters/etl7/overlays/ztwim-instance/x509pop-setup-job.yaml` | Job, SA, RBAC | ztwim ns | Patches SPIRE Server for x509pop NodeAttestor |
 
 ### cert-manager Certificate Chain
 
-A single root CA serves both SPIRE Server's UpstreamAuthority (intermediate signing CA) and the VM's x509pop bootstrap cert:
+A single root CA serves SPIRE Server's UpstreamAuthority (intermediate signing CA), the x509pop CA bundle, and the VM's bootstrap cert. ClusterIssuers allow cross-namespace cert issuance:
 
 ```
 selfsigned-bootstrap (ClusterIssuer, self-signed)
-  └── spire-root-ca (Certificate, 10-year, ns: cert-manager, Secret: spire-root-ca-secret)
-        └── spire-root-ca-issuer (ClusterIssuer, backed by spire-root-ca-secret)
+  └── spire-root-ca (Certificate, 10-year, ns: ztwim, Secret: spire-root-ca-secret)
+        │   Reflector mirrors Secret → cert-manager ns (for ClusterIssuer)
+        │   Original Secret stays in ztwim ns (for SPIRE Server direct mount)
+        └── spire-root-ca-issuer (ClusterIssuer, reads mirrored secret from cert-manager ns)
               ├── SpireServer upstreamAuthority.certManager (intermediate signing cert — declarative)
               └── spire-bootstrap-cert (Leaf Certificate, 1-year, ns: spire-vault-demo, Secret: spire-bootstrap-cert)
 ```
@@ -194,9 +196,11 @@ selfsigned-bootstrap (ClusterIssuer, self-signed)
 The leaf cert Secret (`spire-bootstrap-cert`) provides:
 - `tls.crt` → cloud-init injects as `/etc/spire/bootstrap/agent.crt.pem`
 - `tls.key` → cloud-init injects as `/etc/spire/bootstrap/agent.key.pem`
-- `ca.crt` → used for x509pop server-side patching
+- `ca.crt` → available for x509pop verification
 
 The SPIRE Server's UpstreamAuthority is configured declaratively via the `SpireServer` CR's `spec.upstreamAuthority.certManager` field (patched in the etl7 ztwim-instance overlay). ZTWIM reconciles the SPIRE Server StatefulSet automatically — no manual intermediate cert provisioning is needed.
+
+The `create-only=true` annotation is applied declaratively on the SpireServer CR (via overlay patch) so the ZTWIM operator does not revert the x509pop patches made by the Job.
 
 ### SPIRE Server Route
 
@@ -204,108 +208,29 @@ The passthrough Route exposes the SPIRE Server's gRPC API at `spire-server.apps.
 
 > **⚠️ Kustomize namespace trap:** This Route lives in `zero-trust-workload-identity-manager`, not `spire-vault-demo`. If the overlay `kustomization.yaml` sets a global `namespace: spire-vault-demo`, this Route **must** be excluded from namespace transformation (e.g., via `configurations:` or by moving it to the `ztwim-instance` overlay).
 
-## x509pop Server-Side Patching (Manual Procedure)
+## x509pop Server-Side Patching (Automated via Job)
 
-The SpireServer CRD does **not** support configuring additional NodeAttestor plugins like x509pop. Server-side configuration requires manual patching after:
+The SpireServer CRD does **not** support configuring additional NodeAttestor plugins like x509pop. The `x509pop-setup` Job (`clusters/etl7/overlays/ztwim-instance/x509pop-setup-job.yaml`) automates this patching as an ArgoCD PostSync hook at sync-wave 10 within the `ztwim-instance` Application.
 
-1. Story 1.2 has deployed the SPIRE Server
-2. This story's cert-manager resources have been deployed and the CA cert is available
+The Job performs four steps:
+1. **Mount** `spire-root-ca-secret` into the SPIRE Server StatefulSet (projects `tls.crt` as `ca.crt.pem`) — the Secret is in the same namespace, no cross-namespace copying needed
+2. **Patch** the SPIRE Server ConfigMap to add the x509pop NodeAttestor plugin (idempotent — skips if already present)
+3. **Restart** the SPIRE Server StatefulSet and wait for readiness
+4. **Verify** x509pop configuration
 
-```bash
-#!/bin/bash
-set -euo pipefail
-# x509pop server-side patching for SPIRE Server on etl7
-# Run after: SPIRE Server deployed (Story 1.2) AND cert-manager certs issued (Story 6b)
+### Prerequisites (handled by sync-wave ordering)
 
-ZTWIM_NS="zero-trust-workload-identity-manager"
-CERTMGR_NS="cert-manager"
+| Resource | Created by | Available at |
+|---|---|---|
+| `reflector-operator` | etl7 values.yaml (wave 5) | Before ztwim-instance (wave 15) |
+| SpireServer StatefulSet | ZTWIM operator (after SpireServer CR) | Wave 0 within ztwim-instance |
+| `spire-root-ca-secret` | cert-manager (root CA Certificate in component) | Wave 0 within ztwim-instance |
 
-# Step 1: Enable create-only mode on SpireServer CR
-# WARNING: create-only freezes ALL SpireServer-managed resources (ConfigMap,
-# StatefulSet, etc.), not just the x509pop-related ones. While this annotation
-# is active, ZTWIM operator upgrades will NOT reconcile server-side changes.
-# Remove the annotation when manual patching is no longer needed.
-oc annotate spireserver cluster -n "${ZTWIM_NS}" \
-  ztwim.openshift.io/create-only=true --overwrite
+> **Note:** The `create-only=true` annotation is applied declaratively on the SpireServer CR via the overlay patch — the ZTWIM operator will not revert the Job's patches. The Job uses `argocd.argoproj.io/hook: PostSync` and `hook-delete-policy: BeforeHookCreation` to re-run on each sync.
 
-# Step 2: Extract root CA cert from the cert-manager namespace
-# The spire-root-ca-secret is created by the ztwim-instance overlay's Certificate CR
-CA_CRT=$(oc get secret spire-root-ca-secret -n "${CERTMGR_NS}" \
-  -o jsonpath='{.data.ca\.crt}' | base64 -d)
-if [[ -z "${CA_CRT}" ]]; then
-  # Fall back to tls.crt if ca.crt is not populated (self-signed root CA)
-  CA_CRT=$(oc get secret spire-root-ca-secret -n "${CERTMGR_NS}" \
-    -o jsonpath='{.data.tls\.crt}' | base64 -d)
-fi
-if [[ -z "${CA_CRT}" ]]; then
-  echo "ERROR: CA cert is empty in spire-root-ca-secret — is the Certificate issued?" >&2
-  exit 1
-fi
+The bootstrap cert (`spire-bootstrap-cert`) is issued directly in the `spire-vault-demo` namespace by the ClusterIssuer — no cross-namespace copying is needed.
 
-cat <<EOF | oc apply -f -
-apiVersion: v1
-kind: Secret
-metadata:
-  name: x509pop-ca
-  namespace: ${ZTWIM_NS}
-stringData:
-  ca.crt.pem: |
-$(echo "${CA_CRT}" | sed 's/^/    /')
-EOF
-
-# Step 3: Mount the CA Secret into the spire-server StatefulSet
-oc patch statefulset spire-server -n "${ZTWIM_NS}" --type=strategic --patch '
-spec:
-  template:
-    spec:
-      volumes:
-      - name: x509pop-ca
-        secret:
-          secretName: x509pop-ca
-      containers:
-      - name: spire-server
-        volumeMounts:
-        - name: x509pop-ca
-          mountPath: /tmp/x509pop-ca
-          readOnly: true
-'
-
-# Step 4: Add x509pop NodeAttestor plugin to spire-server ConfigMap
-NEW_ATTESTOR='{"x509pop": {"plugin_data": {"ca_bundle_path": "/tmp/x509pop-ca/ca.crt.pem"}}}'
-
-oc get configmap spire-server -n "${ZTWIM_NS}" -o json | \
-jq --argjson new "${NEW_ATTESTOR}" \
-   '.data["server.conf"] |= (fromjson |
-    if (.plugins.NodeAttestor | any(has("x509pop")))
-    then .
-    else .plugins.NodeAttestor += [$new]
-    end | tojson)' | \
-oc apply -f -
-
-# Step 5: Restart SPIRE Server and wait for readiness
-oc rollout restart statefulset spire-server -n "${ZTWIM_NS}"
-oc rollout status statefulset/spire-server -n "${ZTWIM_NS}" --timeout=300s
-oc wait --for=condition=Ready pod/spire-server-0 -n "${ZTWIM_NS}" --timeout=120s
-
-echo "x509pop server-side patching complete"
-
-# Step 6: Verify x509pop is configured
-oc exec spire-server-0 -c spire-server -n "${ZTWIM_NS}" -- \
-  cat /opt/spire/conf/server/server.conf | jq '.plugins.NodeAttestor'
-
-# Step 7: Extract the bootstrap cert fingerprint (needed as parentID for workload registration)
-DEMO_NS="spire-vault-demo"
-FINGERPRINT=$(oc get secret spire-bootstrap-cert -n "${DEMO_NS}" \
-  -o jsonpath='{.data.tls\.crt}' | base64 -d | \
-  openssl x509 -fingerprint -sha1 -noout | tr -d ':' | awk -F= '{print tolower($2)}')
-if [[ -z "${FINGERPRINT}" ]]; then
-  echo "ERROR: Failed to extract fingerprint — is the bootstrap cert issued?" >&2
-  exit 1
-fi
-echo "Agent SPIFFE ID (parentID): spiffe://etl7.ocp.rht-labs.com/spire/agent/x509pop/${FINGERPRINT}"
-echo "NOTE: Vault bound_subject must be the WORKLOAD SPIFFE ID (from the registration entry), NOT the agent ID."
-echo "See Story 1.5 and Story 6d for the workload registration entry that sets -spiffeID."
-```
+The SPIRE registration entry (see below) still requires manual execution since it depends on the VM being booted and attested.
 
 **Source**: Adapted from [Sky Computing Part 2](https://developers.redhat.com/blog/2026/04/23/sky-computing-openshift-service-mesh-spire-multicloud-integration).
 
@@ -332,37 +257,30 @@ oc get secret spire-bootstrap-cert -n spire-vault-demo -o jsonpath='{.data.tls\.
 >
 > For this experiment the 1-year leaf duration is sufficient; production deployments should automate this rotation.
 
-## SPIRE Registration Entries (Manual)
+## SPIRE Registration Entries (Automated)
 
-After the VM boots and the spire-agent attests via x509pop, workload registration entries must be created manually. The SPIRE Controller Manager's `ClusterSPIFFEID` CRD only targets **pods** — the VM's agent uses x509pop attestation, so entries must be created directly.
+Workload registration entries are created automatically by the `spire-registration` Job, which runs as an ArgoCD **PostSync** hook within the `spire-vault-demo` Application.
 
-```bash
-# 1. Get the spire-server pod name
-SPIRE_POD=$(oc get pods -n zero-trust-workload-identity-manager \
-  -l app=spire-server -o jsonpath='{.items[0].metadata.name}')
+The SPIRE Controller Manager's `ClusterSPIFFEID` CRD only targets **pods** — the VM's agent uses x509pop attestation, so entries must be created via the `spire-server entry create` CLI. The Job automates this by:
 
-# 2. List attested agents to find the VM agent's SPIFFE ID
-oc exec -n zero-trust-workload-identity-manager $SPIRE_POD -c spire-server -- \
-  /opt/spire/bin/spire-server agent list
+1. Reading the `spire-bootstrap-cert` Secret and extracting the SHA1 fingerprint
+2. Computing the agent's `parentID`: `spiffe://etl7.ocp.rht-labs.com/spire/agent/x509pop/<fingerprint>`
+3. Creating the workload registration entry (idempotent — skips if it already exists)
+4. Listing all entries for verification
 
-# 3. Extract the agent's SPIFFE ID (contains the x509pop SHA1 fingerprint)
-#    Format: spiffe://etl7.ocp.rht-labs.com/spire/agent/x509pop/<sha1-fingerprint>
-#    Use the fingerprint extraction command from the x509pop patching section above.
+The entry is **pre-created before the VM boots** — SPIRE Server stores it and matches it once the agent attests.
 
-# 4. Create workload registration entry for spiffe-helper
-#    Replace <FINGERPRINT> with the actual SHA1 fingerprint from step 3.
-oc exec -n zero-trust-workload-identity-manager $SPIRE_POD -c spire-server -- \
-  /opt/spire/bin/spire-server entry create \
-  -parentID "spiffe://etl7.ocp.rht-labs.com/spire/agent/x509pop/<FINGERPRINT>" \
-  -spiffeID "spiffe://etl7.ocp.rht-labs.com/spire-vault-demo/workload" \
-  -selector "unix:uid:10002" \
-  -jwt-svid-ttl 3600
-```
+**Registration entry details:**
+- **parentID**: `spiffe://etl7.ocp.rht-labs.com/spire/agent/x509pop/<sha1-fingerprint>` (from bootstrap cert)
+- **spiffeID**: `spiffe://etl7.ocp.rht-labs.com/spire-vault-demo/workload`
+- **selector**: `unix:uid:10002` (matches spiffe-helper UID inside the VM)
+- **jwt-svid-ttl**: `3600` (1-hour JWT-SVID TTL matching the Vault role's `token_ttl` from Story 1.5)
 
 **Notes:**
-- `-selector "unix:uid:10002"` matches spiffe-helper (UID 10002) inside the VM
-- `-jwt-svid-ttl 3600` sets a 1-hour JWT-SVID TTL matching the Vault role's `token_ttl` from Story 1.5
-- The **workload** SPIFFE ID (`spiffe://etl7.ocp.rht-labs.com/spire-vault-demo/workload`) must match the `bound_subject` in the Vault JWT role (Story 1.5). If Story 1.5 used a different `bound_subject`, update either the registration entry or the Vault role.
+- The workload SPIFFE ID must match the `bound_subject` in the Vault JWT role (Story 1.5)
+- The Job checks for existing entries before creating, so ArgoCD re-syncs are safe
+- Check Job status: `oc get job spire-registration -n spire-vault-demo`
+- View Job logs: `oc logs job/spire-registration -n spire-vault-demo`
 
 ## End-to-End Verification
 
@@ -433,11 +351,11 @@ podman push quay.io/<org>/rhel10-spire-vault-demo:latest
 
 ```
 clusters/etl7/overlays/spire-vault-demo/
-├── cert-bootstrap.yaml          # Story 6b — leaf Certificate for x509pop (refs ClusterIssuer)
 ├── kustomization.yaml           # Story 6d — Kustomize overlay root
 ├── namespace.yaml               # Story 6b — spire-vault-demo namespace
 ├── route.yaml                   # Story 6d — Route for httpd external access
 ├── service.yaml                 # Story 6d — Service targeting VM httpd (port 8080)
+├── spire-registration-job.yaml  # Job + RBAC: creates SPIRE workload registration entry
 ├── virtual-machine.yaml         # Story 6d — VirtualMachine CR with DataVolume + cloud-init
 ├── image/
 │   ├── Containerfile
@@ -459,25 +377,25 @@ clusters/etl7/overlays/spire-vault-demo/
 │               └── agent.hcl
 └── readme.md
 
-# Root CA resources (deployed by ztwim-instance, not this overlay):
+# cert-manager + x509pop resources (deployed by ztwim-instance, not this overlay):
 components/ztwim-instance/
-└── spire-cert-manager-ca.yaml    # ClusterIssuers: selfsigned-bootstrap + spire-root-ca-issuer
+└── spire-cert-manager-ca.yaml        # ClusterIssuers + root CA cert (Reflector-mirrored)
 
 clusters/etl7/overlays/ztwim-instance/
-└── spire-cert-manager-ca.yaml    # Certificate: spire-root-ca in cert-manager namespace
+└── x509pop-setup-job.yaml            # Job + RBAC: patches SPIRE Server for x509pop
 ```
 
 ## Post-Deployment Manual Steps Summary
 
 After ArgoCD syncs the manifests:
 
-1. **Wait for DataVolume import** — CDI imports the QCOW2 from quay.io (may take 5–10 minutes): `oc get dv -n spire-vault-demo`
-2. **Wait for VM boot** — `oc get vmi -n spire-vault-demo`
-3. **Enable SPIRE Server x509pop** — run the create-only mode patching procedure (see "x509pop Server-Side Patching" above)
-4. **Create SPIRE registration entries** — run the `spire-server entry create` commands (see "SPIRE Registration Entries" above)
+1. **Wait for x509pop-setup Job** — runs automatically as a PostSync hook in the `ztwim-instance` Application. Check status: `oc get job x509pop-setup -n zero-trust-workload-identity-manager`
+2. **Wait for spire-registration Job** — runs automatically as a PostSync hook in the `spire-vault-demo` Application. Check status: `oc get job spire-registration -n spire-vault-demo`
+3. **Wait for DataVolume import** — CDI imports the QCOW2 from quay.io (may take 5–10 minutes): `oc get dv -n spire-vault-demo`
+4. **Wait for VM boot** — `oc get vmi -n spire-vault-demo`
 5. **Verify end-to-end** — follow the verification procedure (see "End-to-End Verification" above)
 
-These manual steps are acceptable for an experiment. A production implementation would automate them via Jobs or Operators.
+All SPIRE configuration (x509pop patching and registration entries) is automated via Jobs. The only manual steps are waiting and verifying.
 
 ## Related Stories
 

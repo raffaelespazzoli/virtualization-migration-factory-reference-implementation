@@ -3,7 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../../../components/ztwim-instance
-  - spire-cert-manager-ca.yaml
+  - x509pop-setup-job.yaml
 
 patches:
   - target:
@@ -32,10 +32,13 @@ patches:
         path: /spec/upstreamAuthority
         value:
           certManager:
-            namespace: cert-manager
+            namespace: zero-trust-workload-identity-manager
             issuerName: spire-root-ca-issuer
             issuerKind: ClusterIssuer
             issuerGroup: cert-manager.io
+      - op: add
+        path: /metadata/annotations/ztwim.openshift.io~1create-only
+        value: 'true'
   - target:
       kind: SpireOIDCDiscoveryProvider
       group: operator.openshift.io

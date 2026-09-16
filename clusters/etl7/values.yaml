@@ -39,6 +39,14 @@ applications:
     source:
       path: clusters/etl7/overlays/trident-configuration  
 
+# Reflector (mirrors Secrets/ConfigMaps across namespaces)
+
+  reflector-operator:
+    annotations:
+      argocd.argoproj.io/sync-wave: '5'
+    source:
+      path: components/reflector-operator
+
 # Zero Trust
 
   ztwim-operator:

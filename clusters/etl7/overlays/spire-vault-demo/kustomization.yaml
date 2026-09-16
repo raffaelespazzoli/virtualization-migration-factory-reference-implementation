@@ -9,3 +9,4 @@ resources:
   - virtual-machine.yaml
   - service.yaml
   - route.yaml
+  - spire-registration-job.yaml

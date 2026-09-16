@@ -1,0 +1,197 @@
+# SPIRE workload registration Job — creates the registration entry for the
+# spiffe-helper process running inside the VM.
+#
+# The entry maps the x509pop-attested agent (identified by bootstrap cert
+# fingerprint) to a workload SPIFFE ID that spiffe-helper can fetch SVIDs for.
+#
+# This Job runs as an ArgoCD PostSync hook within the spire-vault-demo
+# Application (wave 25). By this point:
+#   - x509pop-setup Job has configured SPIRE Server (ztwim-instance PostSync)
+#   - cert-manager has issued spire-bootstrap-cert in this namespace
+#
+# The registration entry is pre-created before the VM boots — SPIRE Server
+# stores it and matches it once the agent attests.
+
+# ── RBAC ──────────────────────────────────────────────────────────────
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: spire-registration
+  namespace: spire-vault-demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+---
+# Read the bootstrap cert secret in this namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: spire-registration
+  namespace: spire-vault-demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: spire-registration
+  namespace: spire-vault-demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+subjects:
+  - kind: ServiceAccount
+    name: spire-registration
+    namespace: spire-vault-demo
+roleRef:
+  kind: Role
+  name: spire-registration
+  apiGroup: rbac.authorization.k8s.io
+---
+# Exec into spire-server pod in ZTWIM namespace to create registration entries
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: spire-registration-exec
+  namespace: zero-trust-workload-identity-manager
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: spire-registration-exec
+  namespace: zero-trust-workload-identity-manager
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+subjects:
+  - kind: ServiceAccount
+    name: spire-registration
+    namespace: spire-vault-demo
+roleRef:
+  kind: Role
+  name: spire-registration-exec
+  apiGroup: rbac.authorization.k8s.io
+
+# ── Job ───────────────────────────────────────────────────────────────
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: spire-registration
+  namespace: spire-vault-demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 10
+  activeDeadlineSeconds: 600
+  template:
+    spec:
+      serviceAccountName: spire-registration
+      restartPolicy: OnFailure
+      containers:
+        - name: register
+          image: registry.redhat.io/openshift4/ose-cli:latest
+          env:
+            - name: ZTWIM_NS
+              value: zero-trust-workload-identity-manager
+            - name: DEMO_NS
+              value: spire-vault-demo
+            - name: TRUST_DOMAIN
+              value: etl7.ocp.rht-labs.com
+            - name: WORKLOAD_SPIFFE_ID
+              value: spiffe://etl7.ocp.rht-labs.com/spire-vault-demo/workload
+            - name: SPIFFE_HELPER_UID
+              value: "10002"
+            - name: JWT_SVID_TTL
+              value: "3600"
+          command:
+            - /bin/bash
+            - -euo
+            - pipefail
+            - -c
+            - |
+              echo "=== SPIRE registration Job starting ==="
+
+              # ── Wait for bootstrap cert ────────────────────────────
+              echo "Waiting for spire-bootstrap-cert secret..."
+              until oc get secret spire-bootstrap-cert -n "${DEMO_NS}" &>/dev/null; do
+                echo "  Secret not found yet, retrying in 10s..."
+                sleep 10
+              done
+
+              # ── Extract fingerprint from bootstrap cert ────────────
+              echo "Extracting SHA1 fingerprint from bootstrap cert..."
+              FINGERPRINT=$(oc get secret spire-bootstrap-cert -n "${DEMO_NS}" \
+                -o jsonpath='{.data.tls\.crt}' | base64 -d | \
+                openssl x509 -fingerprint -sha1 -noout | tr -d ':' | awk -F= '{print tolower($2)}')
+
+              if [[ -z "${FINGERPRINT}" ]]; then
+                echo "ERROR: Failed to extract fingerprint — is the certificate issued?" >&2
+                exit 1
+              fi
+
+              PARENT_ID="spiffe://${TRUST_DOMAIN}/spire/agent/x509pop/${FINGERPRINT}"
+              echo "Agent SPIFFE ID (parentID): ${PARENT_ID}"
+              echo "Workload SPIFFE ID: ${WORKLOAD_SPIFFE_ID}"
+
+              # ── Find spire-server pod ──────────────────────────────
+              echo "Finding spire-server pod..."
+              SPIRE_POD=$(oc get pods -n "${ZTWIM_NS}" \
+                -l app=spire-server -o jsonpath='{.items[0].metadata.name}')
+
+              if [[ -z "${SPIRE_POD}" ]]; then
+                echo "ERROR: spire-server pod not found" >&2
+                exit 1
+              fi
+              echo "Using pod: ${SPIRE_POD}"
+
+              # ── Check if entry already exists ──────────────────────
+              echo "Checking for existing registration entries..."
+              EXISTING=$(oc exec -n "${ZTWIM_NS}" "${SPIRE_POD}" -c spire-server -- \
+                /opt/spire/bin/spire-server entry show \
+                -parentID "${PARENT_ID}" \
+                -spiffeID "${WORKLOAD_SPIFFE_ID}" 2>&1 || true)
+
+              if echo "${EXISTING}" | grep -q "Found"; then
+                echo "Registration entry already exists — skipping creation"
+                echo "${EXISTING}"
+              else
+                # ── Create workload registration entry ───────────────
+                echo "Creating workload registration entry..."
+                oc exec -n "${ZTWIM_NS}" "${SPIRE_POD}" -c spire-server -- \
+                  /opt/spire/bin/spire-server entry create \
+                  -parentID "${PARENT_ID}" \
+                  -spiffeID "${WORKLOAD_SPIFFE_ID}" \
+                  -selector "unix:uid:${SPIFFE_HELPER_UID}" \
+                  -jwt-svid-ttl "${JWT_SVID_TTL}"
+              fi
+
+              # ── Verify ─────────────────────────────────────────────
+              echo ""
+              echo "Listing all registration entries:"
+              oc exec -n "${ZTWIM_NS}" "${SPIRE_POD}" -c spire-server -- \
+                /opt/spire/bin/spire-server entry show
+
+              echo ""
+              echo "=== SPIRE registration Job complete ==="
+              echo "Agent parentID:    ${PARENT_ID}"
+              echo "Workload SPIFFE ID: ${WORKLOAD_SPIFFE_ID}"
+              echo "Selector:          unix:uid:${SPIFFE_HELPER_UID}"
+              echo "JWT-SVID TTL:      ${JWT_SVID_TTL}s"
+              echo ""
+              echo "The VM's spire-agent will match this entry once it attests."
+              echo "Vault bound_subject must be: ${WORKLOAD_SPIFFE_ID}"

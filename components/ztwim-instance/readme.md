@@ -13,7 +13,7 @@ This component creates five cluster-scoped singleton operand CRs (all named `clu
 | `SpireAgent` | Node-level DaemonSet — attests workloads via k8sPSAT |
 | `SpiffeCSIDriver` | CSI driver — mounts SPIFFE credentials into pods |
 | `SpireOIDCDiscoveryProvider` | OIDC endpoint — enables external JWT-SVID validation (e.g. Vault) |
-| `ClusterIssuer` (× 2) | cert-manager self-signed bootstrap + root CA issuer for SPIRE UpstreamAuthority |
+| `ClusterIssuer` (× 2) + `Certificate` | cert-manager self-signed bootstrap + root CA cert + CA ClusterIssuer for SPIRE UpstreamAuthority |
 
 ## Deployment Order
 
@@ -24,7 +24,7 @@ The ZTWIM operator controller handles internal ordering, but resources are liste
 3. `SpireAgent` (node-level agent DaemonSet)
 4. `SpiffeCSIDriver` (CSI driver for workload socket mounting)
 5. `SpireOIDCDiscoveryProvider` (OIDC endpoint for external JWT validation)
-6. `ClusterIssuer` resources for cert-manager UpstreamAuthority (self-signed bootstrap + root CA issuer)
+6. cert-manager `ClusterIssuer` + `Certificate` resources for UpstreamAuthority (self-signed bootstrap, root CA cert, CA ClusterIssuer)
 
 ## Customization
 
@@ -38,7 +38,9 @@ The base component uses `PLACEHOLDER` values that **must** be patched via a clus
 | `storageClass` | SpireServer | `ontap-nas` |
 | `upstreamAuthority.certManager` | SpireServer | issuer name, kind, namespace |
 
-> **⚠️ cert-manager root CA Certificate:** The root CA `Certificate` CR (which creates the `spire-root-ca-secret` Secret in the `cert-manager` namespace) must be deployed via the cluster overlay — not the component — because this component's `namespace:` transformer would override `cert-manager` → `zero-trust-workload-identity-manager`. The component deploys only the `ClusterIssuer` resources (cluster-scoped, unaffected by namespace transformer).
+> **⚠️ cert-manager resources:** The root CA Certificate is created in `zero-trust-workload-identity-manager` (via the component's namespace transformer). The resulting Secret (`spire-root-ca-secret`) is directly mountable by the SPIRE Server StatefulSet for x509pop. Reflector mirrors it to `cert-manager` namespace for the ClusterIssuers. **Requires `reflector-operator` to be deployed** (sync-wave 5).
+
+> **⚠️ create-only annotation:** The etl7 overlay applies `ztwim.openshift.io/create-only=true` to the SpireServer CR to freeze operator reconciliation. This is needed because x509pop NodeAttestor configuration requires patching the SPIRE Server StatefulSet and ConfigMap (automated by the `x509pop-setup` Job) — the ZTWIM operator would otherwise revert those changes.
 
 > **⚠️ Immutable fields:** `trustDomain`, `clusterName`, and `bundleConfigMap` on ZeroTrustWorkloadIdentityManager, and all `persistence` fields on SpireServer, are immutable after creation (CEL-enforced). If set incorrectly, the CRs must be deleted and recreated.
 
