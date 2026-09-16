@@ -207,9 +207,9 @@ spec:
               oc wait --for=condition=Ready pod/spire-server-0 -n "${ZTWIM_NS}" --timeout=120s
 
               # ── Step 4: Verify ─────────────────────────────────────
-              echo "Verifying x509pop configuration..."
-              oc exec spire-server-0 -c spire-server -n "${ZTWIM_NS}" -- \
-                grep -c x509pop /opt/spire/conf/server/server.conf
+              echo "Verifying x509pop configuration in ConfigMap..."
+              oc get configmap spire-server -n "${ZTWIM_NS}" \
+                -o jsonpath='{.data.server\.conf}' | grep -c x509pop
               echo "x509pop entries found in server.conf (expected >= 1)"
 
               echo ""
