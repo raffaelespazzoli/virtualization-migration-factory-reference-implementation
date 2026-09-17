@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ssh-scsi3pr-vm1
+spec:
+  selector:
+    vm.kubevirt.io/name: scsi3pr-vm1
+  ports:
+    - protocol: TCP
+      port: 22
+      targetPort: 22
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ssh-scsi3pr-vm2
+spec:
+  selector:
+    vm.kubevirt.io/name: scsi3pr-vm2
+  ports:
+    - protocol: TCP
+      port: 22
+      targetPort: 22
+  type: LoadBalancer

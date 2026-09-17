@@ -1,0 +1,787 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: scsi3pr-vm1
+  labels:
+    app: scsi3pr-vm1
+spec:
+  dataVolumeTemplates:
+    - apiVersion: cdi.kubevirt.io/v1beta1
+      kind: DataVolume
+      metadata:
+        creationTimestamp: null
+        name: scsi3pr-vm1
+      spec:
+        sourceRef:
+          kind: DataSource
+          name: fedora
+          namespace: openshift-virtualization-os-images
+        storage:
+          resources:
+            requests:
+              storage: 30Gi
+  running: true
+  template:
+    metadata:
+      annotations:
+        vm.kubevirt.io/flavor: small
+        vm.kubevirt.io/os: fedora
+        vm.kubevirt.io/workload: server
+      creationTimestamp: null
+      labels:
+        kubevirt.io/domain: scsi3pr-vm1
+        kubevirt.io/size: small
+        network.kubevirt.io/headlessService: headless
+    spec:
+      evictionStrategy: LiveMigrateIfPossible
+      architecture: amd64
+      domain:
+        cpu:
+          cores: 1
+          sockets: 1
+          threads: 1
+        devices:
+          disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+            - disk:
+                bus: virtio
+              name: cloudinitdisk
+            - name: prdisk
+              lun:
+                reservation: true
+                bus: scsi
+              shareable: true
+          interfaces:
+            - macAddress: '02:a5:cf:00:01:01'
+              masquerade: {}
+              model: virtio
+              name: default
+          rng: {}
+        features:
+          acpi: {}
+          smm:
+            enabled: true
+        firmware:
+          bootloader:
+            efi: {}
+        machine:
+          type: pc-q35-rhel9.4.0
+        memory:
+          guest: 2Gi
+        resources: {}
+      networks:
+        - name: default
+          pod: {}
+      terminationGracePeriodSeconds: 180
+      accessCredentials:
+        - sshPublicKey:
+            source:
+              secret:
+                secretName: raffa-key
+            propagationMethod:
+              noCloud: {}
+      volumes:
+        - dataVolume:
+            name: scsi3pr-vm1
+          name: rootdisk
+        - name: prdisk
+          persistentVolumeClaim:
+            claimName: pr-volume
+        - cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              user: fedora
+              password: scsi3pr-test
+              chpasswd: { expire: False }
+              packages:
+                - sg3-utils
+              write_files:
+                - path: /opt/scsi3pr-fence-test.sh
+                  permissions: '0755'
+                  content: |
+                    #!/usr/bin/env bash
+                    # scsi3pr-fence-test.sh — Symmetric SCSI-3 Persistent Reservation fencing test
+                    #
+                    # Runs the same script on TWO VMs sharing a SCSI LUN. Each iteration both VMs
+                    # register, race to reserve (type 5 — Write Exclusive, Registrants Only), then
+                    # the winner fences the loser via PREEMPT-AND-ABORT. The loser detects fencing,
+                    # re-registers, and both verify recovery.
+                    #
+                    # Usage (run simultaneously on both VMs):
+                    #   VM1: ./scsi3pr-fence-test.sh --device /dev/sda --my-key 0xA001 --peer-key 0xB002 --duration 10m
+                    #   VM2: ./scsi3pr-fence-test.sh --device /dev/sda --my-key 0xB002 --peer-key 0xA001 --duration 10m
+
+                    set -euo pipefail
+
+                    DEVICE=""
+                    MY_KEY=""
+                    PEER_KEY=""
+                    DURATION=""
+                    INTERVAL=5
+                    LABEL="$(hostname 2>/dev/null || echo vm)"
+                    POLL_TIMEOUT=30
+                    RACE_JITTER_MAX=500
+
+                    RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'
+                    CYAN='\033[0;36m'; NC='\033[0m'
+
+                    ts() { date -u '+%Y-%m-%dT%H:%M:%SZ'; }
+                    log_pass()  { printf "  ${GREEN}[PASS]${NC} %s\n" "$*"; }
+                    log_fail()  { printf "  ${RED}[FAIL]${NC} %s\n" "$*"; }
+                    log_info()  { printf "  ${CYAN}[INFO]${NC} %s\n" "$*"; }
+                    log_header(){ printf "${YELLOW}[%s %s] === Iteration %d (elapsed %ds / %ds) ===${NC}\n" \
+                                  "$LABEL" "$(ts)" "$1" "$2" "$DURATION_SECS"; }
+                    die() { log_fail "$@"; do_cleanup_best_effort; exit 1; }
+
+                    parse_duration() {
+                        local val="$1" num="${val%[smhSMH]}" unit="${val##*[0-9]}"
+                        case "${unit,,}" in
+                            s|"") echo "$num" ;; m) echo $((num * 60)) ;;
+                            h) echo $((num * 3600)) ;; *) echo "$num" ;;
+                        esac
+                    }
+                    epoch_secs() { date +%s; }
+
+                    pr_register()       { sg_persist --out --register --param-sark="$1" "$DEVICE" 2>&1; }
+                    pr_reserve()        { sg_persist --out --reserve --param-rk="$1" --prout-type=5 "$DEVICE" 2>&1; }
+                    pr_read_keys()      { sg_persist --in --read-keys --no-inquiry "$DEVICE" 2>&1; }
+                    pr_read_reservation() { sg_persist --in --read-reservation --no-inquiry "$DEVICE" 2>&1; }
+                    pr_preempt_abort()  { sg_persist --out --preempt-abort --param-rk="$1" --param-sark="$2" --prout-type=5 "$DEVICE" 2>&1; }
+                    pr_clear()          { sg_persist --out --clear --param-rk="$1" "$DEVICE" 2>&1; }
+                    pr_unregister()     { sg_persist --out --register --param-rk="$1" --param-sark=0 "$DEVICE" 2>&1; }
+                    test_unit_ready()   { sg_turs "$DEVICE" >/dev/null 2>&1; }
+                    try_write()         { dd if=/dev/zero of="$DEVICE" bs=512 count=1 oflag=direct 2>&1; }
+
+                    key_is_registered() {
+                        local keys_output
+                        keys_output="$(pr_read_keys)"
+                        echo "$keys_output" | grep -qi "$(printf '%x' "$1")"
+                    }
+
+                    do_cleanup_best_effort() {
+                        pr_clear "$MY_KEY" >/dev/null 2>&1 || \
+                        pr_clear "$PEER_KEY" >/dev/null 2>&1 || \
+                        { pr_unregister "$MY_KEY" >/dev/null 2>&1; pr_unregister "$PEER_KEY" >/dev/null 2>&1; } || true
+                    }
+
+                    ITERATION=0; FAILURES=0; HOLDER_COUNT=0; VICTIM_COUNT=0
+
+                    assert_key_registered() {
+                        if key_is_registered "$1"; then log_pass "$2"; return 0
+                        else log_fail "$2"; log_fail "  Key $1 not in keys: $(pr_read_keys)"; FAILURES=$((FAILURES+1)); return 1; fi
+                    }
+                    assert_key_not_registered() {
+                        if ! key_is_registered "$1"; then log_pass "$2"; return 0
+                        else log_fail "$2"; log_fail "  Key $1 still in keys: $(pr_read_keys)"; FAILURES=$((FAILURES+1)); return 1; fi
+                    }
+                    assert_write_succeeds() {
+                        local output
+                        if output=$(try_write 2>&1); then log_pass "$1"; return 0
+                        else log_fail "$1"; log_fail "  Output: $output"; FAILURES=$((FAILURES+1)); return 1; fi
+                    }
+                    assert_write_fails() {
+                        local output
+                        if output=$(try_write 2>&1); then log_fail "$1"; log_fail "  Write unexpectedly succeeded"; FAILURES=$((FAILURES+1)); return 1
+                        else log_pass "$1"; return 0; fi
+                    }
+
+                    poll_until() {
+                        local desc="$1" timeout_secs="$2"; shift 2
+                        local deadline=$(( $(epoch_secs) + timeout_secs ))
+                        while [ "$(epoch_secs)" -lt "$deadline" ]; do
+                            if "$@" >/dev/null 2>&1; then return 0; fi; sleep 1
+                        done
+                        log_fail "Timeout (${timeout_secs}s) waiting for: $desc"; return 1
+                    }
+
+                    peer_key_gone()    { ! key_is_registered "$PEER_KEY"; }
+                    my_key_gone()      { ! key_is_registered "$MY_KEY"; }
+                    peer_key_present() { key_is_registered "$PEER_KEY"; }
+                    both_keys_present(){ key_is_registered "$MY_KEY" && key_is_registered "$PEER_KEY"; }
+
+                    run_holder_path() {
+                        log_info "Holder: waiting for peer key $PEER_KEY to appear..."
+                        poll_until "peer registers $PEER_KEY" "$POLL_TIMEOUT" peer_key_present || die "Peer never registered"
+
+                        assert_key_registered "$MY_KEY"   "Steady-state: my key $MY_KEY registered" || return 1
+                        assert_key_registered "$PEER_KEY" "Steady-state: peer key $PEER_KEY registered" || return 1
+                        assert_write_succeeds             "Steady-state: holder write succeeded" || return 1
+                        sleep 2
+
+                        local pa_output
+                        pa_output=$(pr_preempt_abort "$MY_KEY" "$PEER_KEY" 2>&1)
+                        if [ $? -eq 0 ]; then log_pass "Fence: preempt-and-abort of $PEER_KEY succeeded"
+                        else log_fail "Fence: preempt-and-abort failed: $pa_output"; FAILURES=$((FAILURES+1)); return 1; fi
+
+                        assert_key_registered     "$MY_KEY"   "Verify: my key $MY_KEY still registered" || return 1
+                        assert_key_not_registered "$PEER_KEY" "Verify: peer key $PEER_KEY removed" || return 1
+                        assert_write_succeeds                 "Verify: holder write after fence" || return 1
+
+                        log_info "Holder: waiting for peer to re-register..."
+                        poll_until "peer re-registers $PEER_KEY" "$POLL_TIMEOUT" peer_key_present || die "Peer never re-registered"
+
+                        assert_key_registered "$MY_KEY"   "Recovery: my key present" || return 1
+                        assert_key_registered "$PEER_KEY" "Recovery: peer re-registered" || return 1
+                        assert_write_succeeds             "Recovery: holder write after recovery" || return 1
+                    }
+
+                    run_victim_path() {
+                        log_info "Victim: waiting for peer key $PEER_KEY to appear..."
+                        poll_until "peer registers $PEER_KEY" "$POLL_TIMEOUT" peer_key_present || die "Peer never registered"
+
+                        assert_key_registered "$MY_KEY"   "Steady-state: my key $MY_KEY registered" || return 1
+                        assert_key_registered "$PEER_KEY" "Steady-state: peer key $PEER_KEY registered" || return 1
+                        assert_write_succeeds             "Steady-state: victim write succeeded" || return 1
+
+                        log_info "Victim: waiting to be fenced (key $MY_KEY removed)..."
+                        poll_until "my key $MY_KEY removed" "$POLL_TIMEOUT" my_key_gone || die "Never got fenced"
+                        log_pass "Fenced: my key $MY_KEY was removed by peer"
+
+                        assert_write_fails "Fenced: write correctly blocked (reservation conflict)" || return 1
+
+                        local reg_output
+                        reg_output=$(pr_register "$MY_KEY" 2>&1)
+                        if [ $? -eq 0 ]; then log_pass "Recovery: re-registered key $MY_KEY"
+                        else log_fail "Recovery: re-register failed: $reg_output"; FAILURES=$((FAILURES+1)); return 1; fi
+
+                        assert_write_succeeds "Recovery: write succeeds after re-registration" || return 1
+                    }
+
+                    run_iteration() {
+                        local iter_start; iter_start=$(epoch_secs)
+
+                        do_cleanup_best_effort; sleep 1
+                        log_pass "Cleanup: LUN cleared"
+
+                        local reg_output
+                        reg_output=$(pr_register "$MY_KEY" 2>&1)
+                        if [ $? -eq 0 ]; then log_pass "Register: key $MY_KEY registered"
+                        else log_fail "Register: failed: $reg_output"; FAILURES=$((FAILURES+1)); return 1; fi
+
+                        local jitter_ms; jitter_ms=$(shuf -i 0-"$RACE_JITTER_MAX" -n 1)
+                        log_info "Race: sleeping ${jitter_ms}ms before reserve attempt..."
+                        sleep "$(awk "BEGIN{printf \"%.3f\", $jitter_ms/1000}")"
+
+                        local race_output role
+                        race_output=$(pr_reserve "$MY_KEY" 2>&1)
+                        if [ $? -eq 0 ]; then
+                            log_info "Race: RESERVE succeeded — I am the HOLDER"
+                            role="HOLDER"; HOLDER_COUNT=$((HOLDER_COUNT+1))
+                        else
+                            if echo "$race_output" | grep -qi "reservation conflict"; then
+                                log_info "Race: RESERVE got conflict — I am the VICTIM"
+                                role="VICTIM"; VICTIM_COUNT=$((VICTIM_COUNT+1))
+                            else
+                                log_fail "Race: unexpected error: $race_output"; FAILURES=$((FAILURES+1)); return 1
+                            fi
+                        fi
+
+                        if [ "$role" = "HOLDER" ]; then run_holder_path || return 1
+                        else run_victim_path || return 1; fi
+
+                        do_cleanup_best_effort
+                        log_pass "Cleanup: end-of-iteration LUN cleared"
+
+                        local iter_elapsed=$(( $(epoch_secs) - iter_start ))
+                        printf "  Iteration %d completed in %ds (role: %s)\n\n" "$ITERATION" "$iter_elapsed" "$role"
+                        echo "$iter_elapsed"
+                    }
+
+                    preflight() {
+                        echo "=== Preflight Checks ==="
+                        command -v sg_persist &>/dev/null || die "sg_persist not found. Install: sudo dnf install -y sg3-utils"
+                        log_pass "sg_persist found at $(command -v sg_persist)"
+                        command -v sg_turs &>/dev/null || die "sg_turs not found. Install: sudo dnf install -y sg3-utils"
+                        log_pass "sg_turs found at $(command -v sg_turs)"
+                        [ -b "$DEVICE" ] || die "Device $DEVICE is not a block device"
+                        log_pass "Device $DEVICE is a block device"
+                        test_unit_ready || die "Device $DEVICE failed Test Unit Ready"
+                        log_pass "Device $DEVICE passed Test Unit Ready"
+                        local caps; caps=$(sg_persist --in --report-capabilities "$DEVICE" 2>&1)
+                        if echo "$caps" | grep -qi "persist through power loss"; then
+                            log_pass "Device supports Persistent Reservations"
+                        else log_info "Could not confirm PTPL support (non-fatal)"; fi
+                        echo ""
+                    }
+
+                    usage() {
+                        cat <<'USAGE'
+                    Usage: scsi3pr-fence-test.sh [OPTIONS]
+                    Required:
+                      --device <path>       SCSI device path (e.g. /dev/sda)
+                      --my-key <hex>        This VM's registration key (e.g. 0xA001)
+                      --peer-key <hex>      Other VM's registration key (e.g. 0xB002)
+                      --duration <value>    How long to run (e.g. 30s, 10m, 2h)
+                    Optional:
+                      --interval <secs>     Pause between iterations (default: 5)
+                      --hostname <name>     Label for log output
+                      --poll-timeout <sec>  Polling timeout (default: 30)
+                      --jitter-max <ms>     Max jitter before RESERVE (default: 500)
+                      -h, --help            Show this help
+                    USAGE
+                        exit 0
+                    }
+
+                    while [[ $# -gt 0 ]]; do
+                        case "$1" in
+                            --device)       DEVICE="$2"; shift 2 ;;
+                            --my-key)       MY_KEY="$2"; shift 2 ;;
+                            --peer-key)     PEER_KEY="$2"; shift 2 ;;
+                            --duration)     DURATION="$2"; shift 2 ;;
+                            --interval)     INTERVAL="$2"; shift 2 ;;
+                            --hostname)     LABEL="$2"; shift 2 ;;
+                            --poll-timeout) POLL_TIMEOUT="$2"; shift 2 ;;
+                            --jitter-max)   RACE_JITTER_MAX="$2"; shift 2 ;;
+                            -h|--help)      usage ;;
+                            *)              echo "Unknown option: $1"; usage ;;
+                        esac
+                    done
+
+                    [[ -z "$DEVICE" ]]   && { echo "Error: --device required"; usage; }
+                    [[ -z "$MY_KEY" ]]   && { echo "Error: --my-key required"; usage; }
+                    [[ -z "$PEER_KEY" ]] && { echo "Error: --peer-key required"; usage; }
+                    [[ -z "$DURATION" ]] && { echo "Error: --duration required"; usage; }
+                    DURATION_SECS=$(parse_duration "$DURATION")
+
+                    trap 'echo ""; echo "Caught signal, cleaning up..."; do_cleanup_best_effort; exit 130' INT TERM
+                    trap 'do_cleanup_best_effort' EXIT
+
+                    main() {
+                        preflight
+                        local start_time; start_time=$(epoch_secs)
+                        local est_iteration_time=30
+                        echo "=== Starting SCSI-3 PR Fencing Test ==="
+                        echo "  Device:   $DEVICE"
+                        echo "  My key:   $MY_KEY"
+                        echo "  Peer key: $PEER_KEY"
+                        echo "  Duration: ${DURATION_SECS}s"
+                        echo "  Interval: ${INTERVAL}s"
+                        echo "  Hostname: $LABEL"
+                        echo ""
+                        while true; do
+                            local now elapsed remaining
+                            now=$(epoch_secs); elapsed=$((now - start_time)); remaining=$((DURATION_SECS - elapsed))
+                            if [ "$remaining" -lt "$est_iteration_time" ]; then
+                                echo "Not enough time remaining (${remaining}s < est ${est_iteration_time}s). Stopping."; break
+                            fi
+                            ITERATION=$((ITERATION + 1))
+                            log_header "$ITERATION" "$elapsed"
+                            local iter_result; iter_result=$(run_iteration); local iter_rc=$?
+                            if [ $iter_rc -ne 0 ] || [ "$FAILURES" -gt 0 ]; then
+                                printf "\n${RED}=== FAILED at iteration %d ===${NC}\n" "$ITERATION"
+                                printf "  Elapsed:  %ds / %ds\n" "$elapsed" "$DURATION_SECS"
+                                printf "  Failures: %d\n" "$FAILURES"
+                                printf "  Holder:   %d times\n" "$HOLDER_COUNT"
+                                printf "  Victim:   %d times\n" "$VICTIM_COUNT"
+                                exit 1
+                            fi
+                            local last_time; last_time=$(echo "$iter_result" | tail -1)
+                            if [[ "$last_time" =~ ^[0-9]+$ ]]; then est_iteration_time=$last_time; fi
+                            if [ "$INTERVAL" -gt 0 ]; then sleep "$INTERVAL"; fi
+                        done
+                        local total_elapsed=$(( $(epoch_secs) - start_time ))
+                        printf "\n${GREEN}=== SUMMARY (%s) ===${NC}\n" "$LABEL"
+                        printf "  Result:     PASS\n"
+                        printf "  Iterations: %d completed (%d as HOLDER, %d as VICTIM)\n" "$ITERATION" "$HOLDER_COUNT" "$VICTIM_COUNT"
+                        printf "  Duration:   %ds / %ds budget\n" "$total_elapsed" "$DURATION_SECS"
+                        printf "  Failures:   0\n"
+                        exit 0
+                    }
+                    main
+          name: cloudinitdisk
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: scsi3pr-vm2
+  labels:
+    app: scsi3pr-vm2
+spec:
+  dataVolumeTemplates:
+    - apiVersion: cdi.kubevirt.io/v1beta1
+      kind: DataVolume
+      metadata:
+        creationTimestamp: null
+        name: scsi3pr-vm2
+      spec:
+        sourceRef:
+          kind: DataSource
+          name: fedora
+          namespace: openshift-virtualization-os-images
+        storage:
+          resources:
+            requests:
+              storage: 30Gi
+  running: true
+  template:
+    metadata:
+      annotations:
+        vm.kubevirt.io/flavor: small
+        vm.kubevirt.io/os: fedora
+        vm.kubevirt.io/workload: server
+      creationTimestamp: null
+      labels:
+        kubevirt.io/domain: scsi3pr-vm2
+        kubevirt.io/size: small
+        network.kubevirt.io/headlessService: headless
+    spec:
+      evictionStrategy: LiveMigrateIfPossible
+      architecture: amd64
+      domain:
+        cpu:
+          cores: 1
+          sockets: 1
+          threads: 1
+        devices:
+          disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+            - disk:
+                bus: virtio
+              name: cloudinitdisk
+            - name: prdisk
+              lun:
+                reservation: true
+                bus: scsi
+              shareable: true
+          interfaces:
+            - macAddress: '02:a5:cf:00:01:02'
+              masquerade: {}
+              model: virtio
+              name: default
+          rng: {}
+        features:
+          acpi: {}
+          smm:
+            enabled: true
+        firmware:
+          bootloader:
+            efi: {}
+        machine:
+          type: pc-q35-rhel9.4.0
+        memory:
+          guest: 2Gi
+        resources: {}
+      networks:
+        - name: default
+          pod: {}
+      terminationGracePeriodSeconds: 180
+      accessCredentials:
+        - sshPublicKey:
+            source:
+              secret:
+                secretName: raffa-key
+            propagationMethod:
+              noCloud: {}
+      volumes:
+        - dataVolume:
+            name: scsi3pr-vm2
+          name: rootdisk
+        - name: prdisk
+          persistentVolumeClaim:
+            claimName: pr-volume
+        - cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              user: fedora
+              password: scsi3pr-test
+              chpasswd: { expire: False }
+              packages:
+                - sg3-utils
+              write_files:
+                - path: /opt/scsi3pr-fence-test.sh
+                  permissions: '0755'
+                  content: |
+                    #!/usr/bin/env bash
+                    # scsi3pr-fence-test.sh — Symmetric SCSI-3 Persistent Reservation fencing test
+                    #
+                    # Runs the same script on TWO VMs sharing a SCSI LUN. Each iteration both VMs
+                    # register, race to reserve (type 5 — Write Exclusive, Registrants Only), then
+                    # the winner fences the loser via PREEMPT-AND-ABORT. The loser detects fencing,
+                    # re-registers, and both verify recovery.
+                    #
+                    # Usage (run simultaneously on both VMs):
+                    #   VM1: ./scsi3pr-fence-test.sh --device /dev/sda --my-key 0xA001 --peer-key 0xB002 --duration 10m
+                    #   VM2: ./scsi3pr-fence-test.sh --device /dev/sda --my-key 0xB002 --peer-key 0xA001 --duration 10m
+
+                    set -euo pipefail
+
+                    DEVICE=""
+                    MY_KEY=""
+                    PEER_KEY=""
+                    DURATION=""
+                    INTERVAL=5
+                    LABEL="$(hostname 2>/dev/null || echo vm)"
+                    POLL_TIMEOUT=30
+                    RACE_JITTER_MAX=500
+
+                    RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'
+                    CYAN='\033[0;36m'; NC='\033[0m'
+
+                    ts() { date -u '+%Y-%m-%dT%H:%M:%SZ'; }
+                    log_pass()  { printf "  ${GREEN}[PASS]${NC} %s\n" "$*"; }
+                    log_fail()  { printf "  ${RED}[FAIL]${NC} %s\n" "$*"; }
+                    log_info()  { printf "  ${CYAN}[INFO]${NC} %s\n" "$*"; }
+                    log_header(){ printf "${YELLOW}[%s %s] === Iteration %d (elapsed %ds / %ds) ===${NC}\n" \
+                                  "$LABEL" "$(ts)" "$1" "$2" "$DURATION_SECS"; }
+                    die() { log_fail "$@"; do_cleanup_best_effort; exit 1; }
+
+                    parse_duration() {
+                        local val="$1" num="${val%[smhSMH]}" unit="${val##*[0-9]}"
+                        case "${unit,,}" in
+                            s|"") echo "$num" ;; m) echo $((num * 60)) ;;
+                            h) echo $((num * 3600)) ;; *) echo "$num" ;;
+                        esac
+                    }
+                    epoch_secs() { date +%s; }
+
+                    pr_register()       { sg_persist --out --register --param-sark="$1" "$DEVICE" 2>&1; }
+                    pr_reserve()        { sg_persist --out --reserve --param-rk="$1" --prout-type=5 "$DEVICE" 2>&1; }
+                    pr_read_keys()      { sg_persist --in --read-keys --no-inquiry "$DEVICE" 2>&1; }
+                    pr_read_reservation() { sg_persist --in --read-reservation --no-inquiry "$DEVICE" 2>&1; }
+                    pr_preempt_abort()  { sg_persist --out --preempt-abort --param-rk="$1" --param-sark="$2" --prout-type=5 "$DEVICE" 2>&1; }
+                    pr_clear()          { sg_persist --out --clear --param-rk="$1" "$DEVICE" 2>&1; }
+                    pr_unregister()     { sg_persist --out --register --param-rk="$1" --param-sark=0 "$DEVICE" 2>&1; }
+                    test_unit_ready()   { sg_turs "$DEVICE" >/dev/null 2>&1; }
+                    try_write()         { dd if=/dev/zero of="$DEVICE" bs=512 count=1 oflag=direct 2>&1; }
+
+                    key_is_registered() {
+                        local keys_output
+                        keys_output="$(pr_read_keys)"
+                        echo "$keys_output" | grep -qi "$(printf '%x' "$1")"
+                    }
+
+                    do_cleanup_best_effort() {
+                        pr_clear "$MY_KEY" >/dev/null 2>&1 || \
+                        pr_clear "$PEER_KEY" >/dev/null 2>&1 || \
+                        { pr_unregister "$MY_KEY" >/dev/null 2>&1; pr_unregister "$PEER_KEY" >/dev/null 2>&1; } || true
+                    }
+
+                    ITERATION=0; FAILURES=0; HOLDER_COUNT=0; VICTIM_COUNT=0
+
+                    assert_key_registered() {
+                        if key_is_registered "$1"; then log_pass "$2"; return 0
+                        else log_fail "$2"; log_fail "  Key $1 not in keys: $(pr_read_keys)"; FAILURES=$((FAILURES+1)); return 1; fi
+                    }
+                    assert_key_not_registered() {
+                        if ! key_is_registered "$1"; then log_pass "$2"; return 0
+                        else log_fail "$2"; log_fail "  Key $1 still in keys: $(pr_read_keys)"; FAILURES=$((FAILURES+1)); return 1; fi
+                    }
+                    assert_write_succeeds() {
+                        local output
+                        if output=$(try_write 2>&1); then log_pass "$1"; return 0
+                        else log_fail "$1"; log_fail "  Output: $output"; FAILURES=$((FAILURES+1)); return 1; fi
+                    }
+                    assert_write_fails() {
+                        local output
+                        if output=$(try_write 2>&1); then log_fail "$1"; log_fail "  Write unexpectedly succeeded"; FAILURES=$((FAILURES+1)); return 1
+                        else log_pass "$1"; return 0; fi
+                    }
+
+                    poll_until() {
+                        local desc="$1" timeout_secs="$2"; shift 2
+                        local deadline=$(( $(epoch_secs) + timeout_secs ))
+                        while [ "$(epoch_secs)" -lt "$deadline" ]; do
+                            if "$@" >/dev/null 2>&1; then return 0; fi; sleep 1
+                        done
+                        log_fail "Timeout (${timeout_secs}s) waiting for: $desc"; return 1
+                    }
+
+                    peer_key_gone()    { ! key_is_registered "$PEER_KEY"; }
+                    my_key_gone()      { ! key_is_registered "$MY_KEY"; }
+                    peer_key_present() { key_is_registered "$PEER_KEY"; }
+                    both_keys_present(){ key_is_registered "$MY_KEY" && key_is_registered "$PEER_KEY"; }
+
+                    run_holder_path() {
+                        log_info "Holder: waiting for peer key $PEER_KEY to appear..."
+                        poll_until "peer registers $PEER_KEY" "$POLL_TIMEOUT" peer_key_present || die "Peer never registered"
+
+                        assert_key_registered "$MY_KEY"   "Steady-state: my key $MY_KEY registered" || return 1
+                        assert_key_registered "$PEER_KEY" "Steady-state: peer key $PEER_KEY registered" || return 1
+                        assert_write_succeeds             "Steady-state: holder write succeeded" || return 1
+                        sleep 2
+
+                        local pa_output
+                        pa_output=$(pr_preempt_abort "$MY_KEY" "$PEER_KEY" 2>&1)
+                        if [ $? -eq 0 ]; then log_pass "Fence: preempt-and-abort of $PEER_KEY succeeded"
+                        else log_fail "Fence: preempt-and-abort failed: $pa_output"; FAILURES=$((FAILURES+1)); return 1; fi
+
+                        assert_key_registered     "$MY_KEY"   "Verify: my key $MY_KEY still registered" || return 1
+                        assert_key_not_registered "$PEER_KEY" "Verify: peer key $PEER_KEY removed" || return 1
+                        assert_write_succeeds                 "Verify: holder write after fence" || return 1
+
+                        log_info "Holder: waiting for peer to re-register..."
+                        poll_until "peer re-registers $PEER_KEY" "$POLL_TIMEOUT" peer_key_present || die "Peer never re-registered"
+
+                        assert_key_registered "$MY_KEY"   "Recovery: my key present" || return 1
+                        assert_key_registered "$PEER_KEY" "Recovery: peer re-registered" || return 1
+                        assert_write_succeeds             "Recovery: holder write after recovery" || return 1
+                    }
+
+                    run_victim_path() {
+                        log_info "Victim: waiting for peer key $PEER_KEY to appear..."
+                        poll_until "peer registers $PEER_KEY" "$POLL_TIMEOUT" peer_key_present || die "Peer never registered"
+
+                        assert_key_registered "$MY_KEY"   "Steady-state: my key $MY_KEY registered" || return 1
+                        assert_key_registered "$PEER_KEY" "Steady-state: peer key $PEER_KEY registered" || return 1
+                        assert_write_succeeds             "Steady-state: victim write succeeded" || return 1
+
+                        log_info "Victim: waiting to be fenced (key $MY_KEY removed)..."
+                        poll_until "my key $MY_KEY removed" "$POLL_TIMEOUT" my_key_gone || die "Never got fenced"
+                        log_pass "Fenced: my key $MY_KEY was removed by peer"
+
+                        assert_write_fails "Fenced: write correctly blocked (reservation conflict)" || return 1
+
+                        local reg_output
+                        reg_output=$(pr_register "$MY_KEY" 2>&1)
+                        if [ $? -eq 0 ]; then log_pass "Recovery: re-registered key $MY_KEY"
+                        else log_fail "Recovery: re-register failed: $reg_output"; FAILURES=$((FAILURES+1)); return 1; fi
+
+                        assert_write_succeeds "Recovery: write succeeds after re-registration" || return 1
+                    }
+
+                    run_iteration() {
+                        local iter_start; iter_start=$(epoch_secs)
+
+                        do_cleanup_best_effort; sleep 1
+                        log_pass "Cleanup: LUN cleared"
+
+                        local reg_output
+                        reg_output=$(pr_register "$MY_KEY" 2>&1)
+                        if [ $? -eq 0 ]; then log_pass "Register: key $MY_KEY registered"
+                        else log_fail "Register: failed: $reg_output"; FAILURES=$((FAILURES+1)); return 1; fi
+
+                        local jitter_ms; jitter_ms=$(shuf -i 0-"$RACE_JITTER_MAX" -n 1)
+                        log_info "Race: sleeping ${jitter_ms}ms before reserve attempt..."
+                        sleep "$(awk "BEGIN{printf \"%.3f\", $jitter_ms/1000}")"
+
+                        local race_output role
+                        race_output=$(pr_reserve "$MY_KEY" 2>&1)
+                        if [ $? -eq 0 ]; then
+                            log_info "Race: RESERVE succeeded — I am the HOLDER"
+                            role="HOLDER"; HOLDER_COUNT=$((HOLDER_COUNT+1))
+                        else
+                            if echo "$race_output" | grep -qi "reservation conflict"; then
+                                log_info "Race: RESERVE got conflict — I am the VICTIM"
+                                role="VICTIM"; VICTIM_COUNT=$((VICTIM_COUNT+1))
+                            else
+                                log_fail "Race: unexpected error: $race_output"; FAILURES=$((FAILURES+1)); return 1
+                            fi
+                        fi
+
+                        if [ "$role" = "HOLDER" ]; then run_holder_path || return 1
+                        else run_victim_path || return 1; fi
+
+                        do_cleanup_best_effort
+                        log_pass "Cleanup: end-of-iteration LUN cleared"
+
+                        local iter_elapsed=$(( $(epoch_secs) - iter_start ))
+                        printf "  Iteration %d completed in %ds (role: %s)\n\n" "$ITERATION" "$iter_elapsed" "$role"
+                        echo "$iter_elapsed"
+                    }
+
+                    preflight() {
+                        echo "=== Preflight Checks ==="
+                        command -v sg_persist &>/dev/null || die "sg_persist not found. Install: sudo dnf install -y sg3-utils"
+                        log_pass "sg_persist found at $(command -v sg_persist)"
+                        command -v sg_turs &>/dev/null || die "sg_turs not found. Install: sudo dnf install -y sg3-utils"
+                        log_pass "sg_turs found at $(command -v sg_turs)"
+                        [ -b "$DEVICE" ] || die "Device $DEVICE is not a block device"
+                        log_pass "Device $DEVICE is a block device"
+                        test_unit_ready || die "Device $DEVICE failed Test Unit Ready"
+                        log_pass "Device $DEVICE passed Test Unit Ready"
+                        local caps; caps=$(sg_persist --in --report-capabilities "$DEVICE" 2>&1)
+                        if echo "$caps" | grep -qi "persist through power loss"; then
+                            log_pass "Device supports Persistent Reservations"
+                        else log_info "Could not confirm PTPL support (non-fatal)"; fi
+                        echo ""
+                    }
+
+                    usage() {
+                        cat <<'USAGE'
+                    Usage: scsi3pr-fence-test.sh [OPTIONS]
+                    Required:
+                      --device <path>       SCSI device path (e.g. /dev/sda)
+                      --my-key <hex>        This VM's registration key (e.g. 0xA001)
+                      --peer-key <hex>      Other VM's registration key (e.g. 0xB002)
+                      --duration <value>    How long to run (e.g. 30s, 10m, 2h)
+                    Optional:
+                      --interval <secs>     Pause between iterations (default: 5)
+                      --hostname <name>     Label for log output
+                      --poll-timeout <sec>  Polling timeout (default: 30)
+                      --jitter-max <ms>     Max jitter before RESERVE (default: 500)
+                      -h, --help            Show this help
+                    USAGE
+                        exit 0
+                    }
+
+                    while [[ $# -gt 0 ]]; do
+                        case "$1" in
+                            --device)       DEVICE="$2"; shift 2 ;;
+                            --my-key)       MY_KEY="$2"; shift 2 ;;
+                            --peer-key)     PEER_KEY="$2"; shift 2 ;;
+                            --duration)     DURATION="$2"; shift 2 ;;
+                            --interval)     INTERVAL="$2"; shift 2 ;;
+                            --hostname)     LABEL="$2"; shift 2 ;;
+                            --poll-timeout) POLL_TIMEOUT="$2"; shift 2 ;;
+                            --jitter-max)   RACE_JITTER_MAX="$2"; shift 2 ;;
+                            -h|--help)      usage ;;
+                            *)              echo "Unknown option: $1"; usage ;;
+                        esac
+                    done
+
+                    [[ -z "$DEVICE" ]]   && { echo "Error: --device required"; usage; }
+                    [[ -z "$MY_KEY" ]]   && { echo "Error: --my-key required"; usage; }
+                    [[ -z "$PEER_KEY" ]] && { echo "Error: --peer-key required"; usage; }
+                    [[ -z "$DURATION" ]] && { echo "Error: --duration required"; usage; }
+                    DURATION_SECS=$(parse_duration "$DURATION")
+
+                    trap 'echo ""; echo "Caught signal, cleaning up..."; do_cleanup_best_effort; exit 130' INT TERM
+                    trap 'do_cleanup_best_effort' EXIT
+
+                    main() {
+                        preflight
+                        local start_time; start_time=$(epoch_secs)
+                        local est_iteration_time=30
+                        echo "=== Starting SCSI-3 PR Fencing Test ==="
+                        echo "  Device:   $DEVICE"
+                        echo "  My key:   $MY_KEY"
+                        echo "  Peer key: $PEER_KEY"
+                        echo "  Duration: ${DURATION_SECS}s"
+                        echo "  Interval: ${INTERVAL}s"
+                        echo "  Hostname: $LABEL"
+                        echo ""
+                        while true; do
+                            local now elapsed remaining
+                            now=$(epoch_secs); elapsed=$((now - start_time)); remaining=$((DURATION_SECS - elapsed))
+                            if [ "$remaining" -lt "$est_iteration_time" ]; then
+                                echo "Not enough time remaining (${remaining}s < est ${est_iteration_time}s). Stopping."; break
+                            fi
+                            ITERATION=$((ITERATION + 1))
+                            log_header "$ITERATION" "$elapsed"
+                            local iter_result; iter_result=$(run_iteration); local iter_rc=$?
+                            if [ $iter_rc -ne 0 ] || [ "$FAILURES" -gt 0 ]; then
+                                printf "\n${RED}=== FAILED at iteration %d ===${NC}\n" "$ITERATION"
+                                printf "  Elapsed:  %ds / %ds\n" "$elapsed" "$DURATION_SECS"
+                                printf "  Failures: %d\n" "$FAILURES"
+                                printf "  Holder:   %d times\n" "$HOLDER_COUNT"
+                                printf "  Victim:   %d times\n" "$VICTIM_COUNT"
+                                exit 1
+                            fi
+                            local last_time; last_time=$(echo "$iter_result" | tail -1)
+                            if [[ "$last_time" =~ ^[0-9]+$ ]]; then est_iteration_time=$last_time; fi
+                            if [ "$INTERVAL" -gt 0 ]; then sleep "$INTERVAL"; fi
+                        done
+                        local total_elapsed=$(( $(epoch_secs) - start_time ))
+                        printf "\n${GREEN}=== SUMMARY (%s) ===${NC}\n" "$LABEL"
+                        printf "  Result:     PASS\n"
+                        printf "  Iterations: %d completed (%d as HOLDER, %d as VICTIM)\n" "$ITERATION" "$HOLDER_COUNT" "$VICTIM_COUNT"
+                        printf "  Duration:   %ds / %ds budget\n" "$total_elapsed" "$DURATION_SECS"
+                        printf "  Failures:   0\n"
+                        exit 0
+                    }
+                    main
+          name: cloudinitdisk

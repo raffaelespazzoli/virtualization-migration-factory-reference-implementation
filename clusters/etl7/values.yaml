@@ -108,6 +108,11 @@ applications:
     source:
       path: clusters/etl7/overlays/spire-vault-demo
 
+  scsi3pr-test:
+    annotations:
+      argocd.argoproj.io/sync-wave: '25'
+    source:
+      path: clusters/etl7/overlays/scsi3pr-test
   # odf-operator:
   #   annotations:
   #     argocd.argoproj.io/compare-options: IgnoreExtraneous
