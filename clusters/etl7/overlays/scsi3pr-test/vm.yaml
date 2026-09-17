@@ -91,7 +91,7 @@ spec:
           persistentVolumeClaim:
             claimName: pr-volume
         - cloudInitNoCloud:
-            userDataSecretRef:
+            secretRef:
               name: scsi3pr-cloudinit
           name: cloudinitdisk
 ---
@@ -188,6 +188,6 @@ spec:
           persistentVolumeClaim:
             claimName: pr-volume
         - cloudInitNoCloud:
-            userDataSecretRef:
+            secretRef:
               name: scsi3pr-cloudinit
           name: cloudinitdisk
