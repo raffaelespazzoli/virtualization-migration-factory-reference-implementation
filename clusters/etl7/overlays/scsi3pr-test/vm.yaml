@@ -9,7 +9,6 @@ spec:
     - apiVersion: cdi.kubevirt.io/v1beta1
       kind: DataVolume
       metadata:
-        creationTimestamp: null
         name: scsi3pr-vm1
       spec:
         sourceRef:
@@ -27,7 +26,6 @@ spec:
         vm.kubevirt.io/flavor: small
         vm.kubevirt.io/os: fedora
         vm.kubevirt.io/workload: server
-      creationTimestamp: null
       labels:
         kubevirt.io/domain: scsi3pr-vm1
         kubevirt.io/size: small
@@ -106,7 +104,6 @@ spec:
     - apiVersion: cdi.kubevirt.io/v1beta1
       kind: DataVolume
       metadata:
-        creationTimestamp: null
         name: scsi3pr-vm2
       spec:
         sourceRef:
@@ -124,7 +121,6 @@ spec:
         vm.kubevirt.io/flavor: small
         vm.kubevirt.io/os: fedora
         vm.kubevirt.io/workload: server
-      creationTimestamp: null
       labels:
         kubevirt.io/domain: scsi3pr-vm2
         kubevirt.io/size: small
