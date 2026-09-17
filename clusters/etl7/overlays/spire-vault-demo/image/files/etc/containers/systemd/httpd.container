@@ -7,7 +7,7 @@ Requires=vault-agent.container
 Image=registry.access.redhat.com/ubi10/httpd-24:latest
 ContainerName=httpd
 PublishPort=8080:8080
-Volume=/var/www/html:/opt/app-root/src:ro,z
+Volume=/var/www/html:/var/www/html:ro,z
 
 [Service]
 Restart=on-failure
