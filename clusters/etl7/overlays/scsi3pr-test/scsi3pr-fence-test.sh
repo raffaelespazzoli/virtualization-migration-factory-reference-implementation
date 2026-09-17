@@ -49,10 +49,11 @@ log_info()  { printf "  ${CYAN}[INFO]${NC} %s\n" "$*"; }
 log_header(){ printf "${YELLOW}[%s %s] === Iteration %d (elapsed %ds / %ds) ===${NC}\n" \
               "$LABEL" "$(ts)" "$1" "$2" "$DURATION_SECS"; }
 
-die() { log_fail "$@"; do_cleanup_best_effort; exit 1; }
+die() { log_fail "$@"; do_full_cleanup; exit 1; }
 
 parse_duration() {
-    local val="$1"
+    local val
+    val="$1"
     local num="${val%[smhSMH]}"
     local unit="${val##*[0-9]}"
     case "${unit,,}" in
@@ -131,14 +132,23 @@ get_reservation_holder_key() {
 }
 
 # ---------------------------------------------------------------------------
-# Cleanup (best-effort, used in trap and between iterations)
+# Cleanup helpers
 # ---------------------------------------------------------------------------
-do_cleanup_best_effort() {
-    # Try to clear with our key; if that fails try with peer key; if that fails unregister both
+# Full cleanup: clears ALL keys and reservations (only safe when both VMs are idle)
+do_full_cleanup() {
     pr_clear "$MY_KEY" >/dev/null 2>&1 || \
     pr_clear "$PEER_KEY" >/dev/null 2>&1 || \
     { pr_unregister "$MY_KEY" >/dev/null 2>&1; pr_unregister "$PEER_KEY" >/dev/null 2>&1; } || \
     true
+}
+
+# Self-only cleanup: release any reservation I hold, then unregister only my key
+# This is safe to call while the peer is still active
+do_self_cleanup() {
+    # Release reservation if I hold it (no-op if I don't)
+    sg_persist --out --release --param-rk="$MY_KEY" --prout-type=5 "$DEVICE" >/dev/null 2>&1 || true
+    # Unregister my key (no-op if not registered)
+    pr_unregister "$MY_KEY" >/dev/null 2>&1 || true
 }
 
 # ---------------------------------------------------------------------------
@@ -148,6 +158,7 @@ ITERATION=0
 FAILURES=0
 HOLDER_COUNT=0
 VICTIM_COUNT=0
+LAST_ITERATION_SECS=30
 
 assert_pass() {
     local desc="$1"
@@ -273,9 +284,9 @@ run_holder_path() {
     sleep 2
 
     # Fence: preempt-and-abort the peer
-    local pa_output
-    pa_output=$(pr_preempt_abort "$MY_KEY" "$PEER_KEY" 2>&1)
-    if [ $? -eq 0 ]; then
+    local pa_output pa_rc=0
+    pa_output=$(pr_preempt_abort "$MY_KEY" "$PEER_KEY" 2>&1) || pa_rc=$?
+    if [ $pa_rc -eq 0 ]; then
         log_pass "Fence: preempt-and-abort of $PEER_KEY succeeded"
     else
         log_fail "Fence: preempt-and-abort of $PEER_KEY failed"
@@ -284,10 +295,13 @@ run_holder_path() {
         return 1
     fi
 
-    # Verify fencing
-    assert_key_registered     "$MY_KEY"   "Verify: my key $MY_KEY still registered" || return 1
-    assert_key_not_registered "$PEER_KEY" "Verify: peer key $PEER_KEY removed" || return 1
-    assert_write_succeeds                 "Verify: holder write after fence succeeded" || return 1
+    # Verify fencing — confirm we still have access
+    # Note: we do NOT assert peer key is gone here because the victim may have
+    # already re-registered by the time we check (race). The preempt-and-abort
+    # return code above confirms the SCSI operation succeeded, and the VICTIM
+    # independently verifies it was fenced (write blocked, key gone).
+    assert_key_registered "$MY_KEY" "Verify: my key $MY_KEY still registered" || return 1
+    assert_write_succeeds           "Verify: holder write after fence succeeded" || return 1
 
     # Wait for peer to re-register (recovery)
     log_info "Holder: waiting for peer to re-register..."
@@ -295,10 +309,9 @@ run_holder_path() {
         die "Peer never re-registered key $PEER_KEY after fencing"
     fi
 
-    # Verify recovery
-    assert_key_registered "$MY_KEY"   "Recovery: my key $MY_KEY present" || return 1
-    assert_key_registered "$PEER_KEY" "Recovery: peer key $PEER_KEY re-registered" || return 1
-    assert_write_succeeds             "Recovery: holder write after recovery succeeded" || return 1
+    # Verify recovery — peer is back
+    log_pass "Recovery: peer key $PEER_KEY re-registered"
+    assert_write_succeeds "Recovery: holder write after recovery succeeded" || return 1
 }
 
 # ---------------------------------------------------------------------------
@@ -327,9 +340,9 @@ run_victim_path() {
     assert_write_fails "Fenced: write correctly blocked (reservation conflict)" || return 1
 
     # Recovery: re-register
-    local reg_output
-    reg_output=$(pr_register "$MY_KEY" 2>&1)
-    if [ $? -eq 0 ]; then
+    local reg_output reg_rc=0
+    reg_output=$(pr_register "$MY_KEY" 2>&1) || reg_rc=$?
+    if [ $reg_rc -eq 0 ]; then
         log_pass "Recovery: re-registered key $MY_KEY"
     else
         log_fail "Recovery: failed to re-register key $MY_KEY"
@@ -349,15 +362,15 @@ run_iteration() {
     local iter_start
     iter_start=$(epoch_secs)
 
-    # Phase 1: Cleanup leftover state
-    do_cleanup_best_effort
-    sleep 1
-    log_pass "Cleanup: LUN cleared"
+    # Phase 1: Self-cleanup (only my key — safe while peer may still be active)
+    do_self_cleanup
+    sleep 2
+    log_pass "Cleanup: my key unregistered"
 
     # Phase 2: Register my key
-    local reg_output
-    reg_output=$(pr_register "$MY_KEY" 2>&1)
-    if [ $? -eq 0 ]; then
+    local reg_output reg_rc=0
+    reg_output=$(pr_register "$MY_KEY" 2>&1) || reg_rc=$?
+    if [ $reg_rc -eq 0 ]; then
         log_pass "Register: key $MY_KEY registered"
     else
         log_fail "Register: failed to register key $MY_KEY"
@@ -372,9 +385,9 @@ run_iteration() {
     log_info "Race: sleeping ${jitter_ms}ms before reserve attempt..."
     sleep "$(awk "BEGIN{printf \"%.3f\", $jitter_ms/1000}")"
 
-    local race_output role
-    race_output=$(pr_reserve "$MY_KEY" 2>&1)
-    if [ $? -eq 0 ]; then
+    local race_output role race_rc=0
+    race_output=$(pr_reserve "$MY_KEY" 2>&1) || race_rc=$?
+    if [ $race_rc -eq 0 ]; then
         log_info "Race: RESERVE succeeded — I am the HOLDER"
         role="HOLDER"
         HOLDER_COUNT=$((HOLDER_COUNT + 1))
@@ -398,13 +411,8 @@ run_iteration() {
         run_victim_path || return 1
     fi
 
-    # Phase 6: Final cleanup
-    do_cleanup_best_effort
-    log_pass "Cleanup: end-of-iteration LUN cleared"
-
-    local iter_elapsed=$(( $(epoch_secs) - iter_start ))
-    printf "  Iteration %d completed in %ds (role: %s)\n\n" "$ITERATION" "$iter_elapsed" "$role"
-    echo "$iter_elapsed"
+    LAST_ITERATION_SECS=$(( $(epoch_secs) - iter_start ))
+    printf "  Iteration %d completed in %ds (role: %s)\n\n" "$ITERATION" "$LAST_ITERATION_SECS" "$role"
 }
 
 # ---------------------------------------------------------------------------
@@ -497,8 +505,8 @@ DURATION_SECS=$(parse_duration "$DURATION")
 # ---------------------------------------------------------------------------
 # Trap for cleanup on exit
 # ---------------------------------------------------------------------------
-trap 'echo ""; echo "Caught signal, cleaning up..."; do_cleanup_best_effort; exit 130' INT TERM
-trap 'do_cleanup_best_effort' EXIT
+trap 'echo ""; echo "Caught signal, cleaning up..."; do_full_cleanup; exit 130' INT TERM
+trap 'do_full_cleanup' EXIT
 
 # ---------------------------------------------------------------------------
 # Main loop
@@ -534,8 +542,7 @@ main() {
         ITERATION=$((ITERATION + 1))
         log_header "$ITERATION" "$elapsed"
 
-        local iter_result
-        iter_result=$(run_iteration)
+        run_iteration
         local iter_rc=$?
 
         if [ $iter_rc -ne 0 ] || [ "$FAILURES" -gt 0 ]; then
@@ -548,12 +555,7 @@ main() {
             exit 1
         fi
 
-        # Update iteration time estimate from the last line of output (which is the elapsed seconds)
-        local last_time
-        last_time=$(echo "$iter_result" | tail -1)
-        if [[ "$last_time" =~ ^[0-9]+$ ]]; then
-            est_iteration_time=$last_time
-        fi
+        est_iteration_time=$LAST_ITERATION_SECS
 
         # Pause between iterations
         if [ "$INTERVAL" -gt 0 ]; then
