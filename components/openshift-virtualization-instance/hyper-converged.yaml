@@ -4,6 +4,19 @@ metadata:
   name: kubevirt-hyperconverged
   annotations:
     deployOVS: 'false'
+    kubevirt.kubevirt.io/jsonpatch: |
+      [
+        {
+          "op": "add",
+          "path": "/spec/customizeComponents/patches",
+          "value": [{
+              "patch": "{\"spec\":{\"template\":{\"spec\":{\"volumes\":[{\"name\":\"run-udev\",\"hostPath\":{\"path\":\"/run/udev\",\"type\":\"Directory\"}}],\"containers\":[{\"name\":\"pr-helper\",\"volumeMounts\":[{\"name\":\"run-udev\",\"mountPath\":\"/run/udev\",\"readOnly\":true}]}]}}}}",
+              "resourceName": "virt-handler",
+              "resourceType": "DaemonSet",
+              "type": "strategic"
+          }]
+        }
+      ]
   namespace: openshift-cnv
 spec:
   vddkInitImage: quay.io/raffaelespazzoli/vddk:v8.0.3
