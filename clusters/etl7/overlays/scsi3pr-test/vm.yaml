@@ -48,10 +48,11 @@ spec:
             - disk:
                 bus: virtio
               name: cloudinitdisk
-            - name: prdisk
+            - errorPolicy: report
               lun:
-                reservation: true
                 bus: scsi
+                reservation: true
+              name: prdisk
               shareable: true
           interfaces:
             - macAddress: '02:a5:cf:00:01:01'
@@ -144,10 +145,11 @@ spec:
             - disk:
                 bus: virtio
               name: cloudinitdisk
-            - name: prdisk
+            - errorPolicy: report
               lun:
-                reservation: true
                 bus: scsi
+                reservation: true
+              name: prdisk
               shareable: true
           interfaces:
             - macAddress: '02:a5:cf:00:01:02'
