@@ -534,8 +534,11 @@ main() {
         remaining=$((DURATION_SECS - elapsed))
 
         # Check if we have enough time for another iteration
-        if [ "$remaining" -lt "$est_iteration_time" ]; then
-            echo "Not enough time remaining (${remaining}s < est ${est_iteration_time}s). Stopping."
+        # Add 5s tolerance so both VMs stop around the same time
+        # (avoids one VM starting an iteration while the other is about to exit)
+        local min_remaining=$((est_iteration_time + 5))
+        if [ "$remaining" -lt "$min_remaining" ]; then
+            echo "Not enough time remaining (${remaining}s < ${min_remaining}s). Stopping."
             break
         fi
 
