@@ -6,5 +6,6 @@ resources:
   - namespace.yaml
   - vm.yaml
   - ssh-key-secret.yaml
+  - cloudinit-secret.yaml
   - pvc.yaml
   - service.yaml
