@@ -3,9 +3,15 @@ kind: Kustomization
 namespace: scsi3pr-test
 
 resources:
+  # Linux (Fedora) PR test VMs
   - namespace.yaml
   - vm.yaml
   - ssh-key-secret.yaml
   - cloudinit-secret.yaml
   - pvc.yaml
-  - service.yaml
+  #- service.yaml
+  # Windows Server 2019 PR test VMs
+  - win-vm.yaml
+  - win-sysprep.yaml
+  - win-pvc.yaml
+  #- win-service.yaml

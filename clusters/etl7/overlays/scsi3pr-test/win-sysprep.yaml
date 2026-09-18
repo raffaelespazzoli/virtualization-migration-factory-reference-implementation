@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scsi3pr-win-sysprep
+data:
+  Autounattend.xml: |
+    <?xml version="1.0" encoding="utf-8"?>
+    <unattend xmlns="urn:schemas-microsoft-com:unattend">
+      <!-- specialize pass: set hostname, enable RDP -->
+      <settings pass="specialize">
+        <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+          <ComputerName>*</ComputerName>
+        </component>
+        <component name="Microsoft-Windows-TerminalServices-LocalSessionManager" processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+          <fDenyTSConnections>false</fDenyTSConnections>
+        </component>
+        <component name="Networking-MPSSVC-Svc" processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+          <FirewallGroups>
+            <FirewallGroup wcm:action="add" wcm:keyValue="RemoteDesktop"
+                           xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+              <Active>true</Active>
+              <Group>Remote Desktop</Group>
+              <Profile>all</Profile>
+            </FirewallGroup>
+          </FirewallGroups>
+        </component>
+      </settings>
+      <!-- oobeSystem pass: auto-logon, admin password, enable WinRM + OpenSSH -->
+      <settings pass="oobeSystem">
+        <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State">
+          <AutoLogon>
+            <Password>
+              <Value>R3dH@t2024!</Value>
+              <PlainText>true</PlainText>
+            </Password>
+            <Enabled>true</Enabled>
+            <Username>Administrator</Username>
+          </AutoLogon>
+          <OOBE>
+            <HideEULAPage>true</HideEULAPage>
+            <HideLocalAccountScreen>true</HideLocalAccountScreen>
+            <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
+            <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
+            <SkipMachineOOBE>true</SkipMachineOOBE>
+            <SkipUserOOBE>true</SkipUserOOBE>
+          </OOBE>
+          <UserAccounts>
+            <AdministratorPassword>
+              <Value>R3dH@t2024!</Value>
+              <PlainText>true</PlainText>
+            </AdministratorPassword>
+          </UserAccounts>
+          <FirstLogonCommands>
+            <SynchronousCommand wcm:action="add">
+              <CommandLine>powershell -Command "Enable-PSRemoting -Force -SkipNetworkProfileCheck"</CommandLine>
+              <Order>1</Order>
+              <Description>Enable WinRM</Description>
+            </SynchronousCommand>
+            <SynchronousCommand wcm:action="add">
+              <CommandLine>powershell -Command "Set-NetFirewallRule -DisplayGroup 'Windows Remote Management' -RemoteAddress Any -ErrorAction SilentlyContinue"</CommandLine>
+              <Order>2</Order>
+              <Description>Open WinRM firewall</Description>
+            </SynchronousCommand>
+            <SynchronousCommand wcm:action="add">
+              <CommandLine>powershell -Command "Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0; Start-Service sshd; Set-Service -Name sshd -StartupType Automatic"</CommandLine>
+              <Order>3</Order>
+              <Description>Install and start OpenSSH Server</Description>
+            </SynchronousCommand>
+            <SynchronousCommand wcm:action="add">
+              <CommandLine>netsh advfirewall firewall add rule name="OpenSSH-Server-In-TCP" dir=in action=allow protocol=TCP localport=22</CommandLine>
+              <Order>4</Order>
+              <Description>Open SSH firewall port</Description>
+            </SynchronousCommand>
+          </FirstLogonCommands>
+        </component>
+        <component name="Microsoft-Windows-International-Core" processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+          <InputLocale>en-US</InputLocale>
+          <SystemLocale>en-US</SystemLocale>
+          <UILanguage>en-US</UILanguage>
+          <UserLocale>en-US</UserLocale>
+        </component>
+      </settings>
+    </unattend>

@@ -19,6 +19,7 @@ metadata:
       ]
   namespace: openshift-cnv
 spec:
+  deployVmConsoleProxy: true
   vddkInitImage: quay.io/raffaelespazzoli/vddk:v8.0.3
   tuningPolicy: highBurst
   higherWorkloadDensity:

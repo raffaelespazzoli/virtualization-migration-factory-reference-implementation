@@ -1,0 +1,235 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: scsi3pr-win1
+  labels:
+    app: scsi3pr-win1
+spec:
+  dataVolumeTemplates:
+    - apiVersion: cdi.kubevirt.io/v1beta1
+      kind: DataVolume
+      metadata:
+        name: scsi3pr-win1
+      spec:
+        sourceRef:
+          kind: DataSource
+          name: win-server-2019
+          namespace: openshift-virtualization-os-images
+        storage:
+          resources:
+            requests:
+              storage: 60Gi
+  running: true
+  template:
+    metadata:
+      annotations:
+        vm.kubevirt.io/flavor: medium
+        vm.kubevirt.io/os: windows2k19
+        vm.kubevirt.io/workload: server
+      labels:
+        kubevirt.io/domain: scsi3pr-win1
+        kubevirt.io/size: medium
+        network.kubevirt.io/headlessService: headless
+    spec:
+      evictionStrategy: LiveMigrateIfPossible
+      architecture: amd64
+      domain:
+        cpu:
+          cores: 2
+          sockets: 1
+          threads: 1
+        clock:
+          timer:
+            hpet:
+              present: false
+            hyperv: {}
+            pit:
+              tickPolicy: delay
+            rtc:
+              tickPolicy: catchup
+          utc: {}
+        devices:
+          disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+            - cdrom:
+                bus: sata
+              name: sysprep
+            - errorPolicy: report
+              lun:
+                bus: scsi
+                reservation: true
+              name: prdisk
+              shareable: true
+          interfaces:
+            - macAddress: '02:a5:cf:00:02:01'
+              masquerade: {}
+              model: virtio
+              name: default
+          inputs:
+            - type: tablet
+              bus: usb
+              name: tablet
+          rng: {}
+        features:
+          acpi: {}
+          apic: {}
+          hyperv:
+            frequencies: {}
+            ipi: {}
+            reenlightenment: {}
+            relaxed: {}
+            reset: {}
+            runtime: {}
+            spinlocks:
+              spinlocks: 8191
+            synic: {}
+            synictimer:
+              direct: {}
+            tlbflush: {}
+            vapic: {}
+            vpindex: {}
+          smm:
+            enabled: true
+        firmware:
+          bootloader:
+            efi: {}
+        machine:
+          type: pc-q35-rhel9.4.0
+        memory:
+          guest: 4Gi
+        resources: {}
+      networks:
+        - name: default
+          pod: {}
+      terminationGracePeriodSeconds: 300
+      volumes:
+        - dataVolume:
+            name: scsi3pr-win1
+          name: rootdisk
+        - name: prdisk
+          persistentVolumeClaim:
+            claimName: pr-volume-win
+        - sysprep:
+            configMap:
+              name: scsi3pr-win-sysprep
+          name: sysprep
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: scsi3pr-win2
+  labels:
+    app: scsi3pr-win2
+spec:
+  dataVolumeTemplates:
+    - apiVersion: cdi.kubevirt.io/v1beta1
+      kind: DataVolume
+      metadata:
+        name: scsi3pr-win2
+      spec:
+        sourceRef:
+          kind: DataSource
+          name: win-server-2019
+          namespace: openshift-virtualization-os-images
+        storage:
+          resources:
+            requests:
+              storage: 60Gi
+  running: true
+  template:
+    metadata:
+      annotations:
+        vm.kubevirt.io/flavor: medium
+        vm.kubevirt.io/os: windows2k19
+        vm.kubevirt.io/workload: server
+      labels:
+        kubevirt.io/domain: scsi3pr-win2
+        kubevirt.io/size: medium
+        network.kubevirt.io/headlessService: headless
+    spec:
+      evictionStrategy: LiveMigrateIfPossible
+      architecture: amd64
+      domain:
+        cpu:
+          cores: 2
+          sockets: 1
+          threads: 1
+        clock:
+          timer:
+            hpet:
+              present: false
+            hyperv: {}
+            pit:
+              tickPolicy: delay
+            rtc:
+              tickPolicy: catchup
+          utc: {}
+        devices:
+          disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+            - cdrom:
+                bus: sata
+              name: sysprep
+            - errorPolicy: report
+              lun:
+                bus: scsi
+                reservation: true
+              name: prdisk
+              shareable: true
+          interfaces:
+            - macAddress: '02:a5:cf:00:02:02'
+              masquerade: {}
+              model: virtio
+              name: default
+          inputs:
+            - type: tablet
+              bus: usb
+              name: tablet
+          rng: {}
+        features:
+          acpi: {}
+          apic: {}
+          hyperv:
+            frequencies: {}
+            ipi: {}
+            reenlightenment: {}
+            relaxed: {}
+            reset: {}
+            runtime: {}
+            spinlocks:
+              spinlocks: 8191
+            synic: {}
+            synictimer:
+              direct: {}
+            tlbflush: {}
+            vapic: {}
+            vpindex: {}
+          smm:
+            enabled: true
+        firmware:
+          bootloader:
+            efi: {}
+        machine:
+          type: pc-q35-rhel9.4.0
+        memory:
+          guest: 4Gi
+        resources: {}
+      networks:
+        - name: default
+          pod: {}
+      terminationGracePeriodSeconds: 300
+      volumes:
+        - dataVolume:
+            name: scsi3pr-win2
+          name: rootdisk
+        - name: prdisk
+          persistentVolumeClaim:
+            claimName: pr-volume-win
+        - sysprep:
+            configMap:
+              name: scsi3pr-win-sysprep
+          name: sysprep

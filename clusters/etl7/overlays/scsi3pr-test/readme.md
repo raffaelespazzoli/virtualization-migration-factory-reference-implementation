@@ -27,7 +27,9 @@ unpredictably between iterations, exercising both code paths on both VMs.
 - **pr-helper** DaemonSet with `/run/udev` host mount (already configured via the
   `kubevirt.kubevirt.io/jsonpatch` annotation in `hyper-converged.yaml`)
 - **Block-mode RWX storage** supporting SCSI-3 PR (e.g. `ontap-san` with iSCSI/FC)
-- **sg3-utils** package inside the VMs (installed automatically via cloud-init)
+- **sg3-utils** package inside the Linux VMs (installed automatically via cloud-init)
+- **Windows Server 2019 golden image** DataSource (`win-server-2019`) in
+  `openshift-virtualization-os-images` for the Windows VM test
 
 ## Infrastructure
 
@@ -36,14 +38,23 @@ This overlay deploys:
 | Resource | Name | Description |
 |----------|------|-------------|
 | Namespace | `scsi3pr-test` | Isolated test namespace |
+| **Linux (Fedora) VMs** | | |
 | PVC | `pr-volume` | 10Gi RWX Block PVC on `ontap-san` |
 | VirtualMachine | `scsi3pr-vm1` | Fedora VM with shared LUN + test script |
 | VirtualMachine | `scsi3pr-vm2` | Fedora VM with shared LUN + test script |
 | Secret | `raffa-key` | SSH public key for access |
 | Service | `ssh-scsi3pr-vm1` | LoadBalancer for SSH to VM1 |
 | Service | `ssh-scsi3pr-vm2` | LoadBalancer for SSH to VM2 |
+| **Windows Server 2019 VMs** | | |
+| PVC | `pr-volume-win` | 10Gi RWX Block PVC on `ontap-san` |
+| VirtualMachine | `scsi3pr-win1` | Windows 2019 VM with shared LUN |
+| VirtualMachine | `scsi3pr-win2` | Windows 2019 VM with shared LUN |
+| ConfigMap | `scsi3pr-win-sysprep` | Sysprep unattend.xml (admin setup, WinRM, SSH) |
+| Service | `rdp-scsi3pr-win1` | LoadBalancer for RDP + SSH to Win1 |
+| Service | `rdp-scsi3pr-win2` | LoadBalancer for RDP + SSH to Win2 |
 
-Both VMs mount `pr-volume` as a SCSI LUN with `reservation: true` and `shareable: true`.
+All VMs mount their shared PVC as a SCSI LUN with `reservation: true`, `shareable: true`,
+and `errorPolicy: report`.
 
 ## Deploying
 
@@ -211,3 +222,124 @@ sg_persist --out --clear --param-rk=0xA001 /dev/sda
 This would indicate broken SCSI-3 PR support in the storage backend. The RESERVE command
 should return `RESERVATION CONFLICT` if a reservation already exists. Check storage
 vendor documentation for PR support.
+
+---
+
+## Windows Server 2019 Test
+
+The same SCSI-3 PR fencing test runs on Windows VMs using a PowerShell script
+(`scsi3pr-fence-test.ps1`) that issues identical SCSI CDBs via
+`IOCTL_SCSI_PASS_THROUGH` (no external tools required — only built-in .NET / Win32 APIs).
+
+### Windows VM Configuration
+
+The Windows VMs (`scsi3pr-win1`, `scsi3pr-win2`) are cloned from the `win-server-2019`
+golden image DataSource and include:
+- **4 GiB RAM, 2 vCPUs** with Hyper-V enlightenments
+- **Shared SCSI LUN** (`pr-volume-win`) with `reservation: true` and `errorPolicy: report`
+- **Sysprep unattend.xml** that attempts to:
+  - Set Administrator password to `R3dH@t2024!`
+  - Enable auto-logon
+  - Enable RDP and WinRM
+  - Install and start OpenSSH Server
+
+> **Note:** The sysprep only runs if the golden image was generalized (`sysprep /generalize`).
+> If the image is a snapshot of a running system, the unattend.xml is ignored and the VM
+> boots with whatever credentials were already configured.
+
+### Deploying the PowerShell Script
+
+The script is **not** embedded in the VMs (Windows has no cloud-init equivalent as reliable
+as Linux). Copy it after the VMs boot.
+
+**Option A — virtctl (if SSH is available):**
+
+```bash
+# Copy script to Windows VMs
+virtctl -n scsi3pr-test scp clusters/etl7/overlays/scsi3pr-test/scsi3pr-fence-test.ps1 scsi3pr-win1:C:/Users/Administrator/scsi3pr-fence-test.ps1
+virtctl -n scsi3pr-test scp clusters/etl7/overlays/scsi3pr-test/scsi3pr-fence-test.ps1 scsi3pr-win2:C:/Users/Administrator/scsi3pr-fence-test.ps1
+```
+
+**Option B — via RDP/VNC console:**
+
+1. Open a console: `virtctl -n scsi3pr-test vnc scsi3pr-win1`
+2. Copy-paste the script content into a PowerShell ISE window, or download it from a
+   web-accessible location.
+
+**Option C — via LoadBalancer SSH (if OpenSSH was installed by sysprep):**
+
+```bash
+# Get the LoadBalancer IPs
+oc -n scsi3pr-test get svc rdp-scsi3pr-win1 rdp-scsi3pr-win2
+
+# SCP the script
+scp scsi3pr-fence-test.ps1 Administrator@<WIN1_LB_IP>:C:/Users/Administrator/
+scp scsi3pr-fence-test.ps1 Administrator@<WIN2_LB_IP>:C:/Users/Administrator/
+```
+
+### Identify the Shared LUN
+
+In a PowerShell prompt (Run as Administrator):
+
+```powershell
+# List disks to find the shared SCSI LUN
+.\scsi3pr-fence-test.ps1 -ListDisks
+```
+
+Or manually:
+```powershell
+Get-Disk | Format-Table Number, OperationalStatus, @{L='Size(GB)';E={[math]::Round($_.Size/1GB,1)}}, FriendlyName, BusType
+```
+
+The shared LUN is the non-boot SCSI disk (typically `PhysicalDrive1`, ~10 GiB).
+
+### Running the Windows Test
+
+Open two PowerShell windows (as Administrator), one per VM:
+
+**Win1:**
+```powershell
+.\scsi3pr-fence-test.ps1 -Device \\.\PhysicalDrive1 -MyKey 0xC001 -PeerKey 0xD002 -Duration 10m
+```
+
+**Win2** (simultaneously):
+```powershell
+.\scsi3pr-fence-test.ps1 -Device \\.\PhysicalDrive1 -MyKey 0xD002 -PeerKey 0xC001 -Duration 10m
+```
+
+> **Keys must be symmetric**: Win1's `-MyKey` = Win2's `-PeerKey` and vice versa.
+> Use different keys (0xC001/0xD002) from the Linux VMs (0xA001/0xB002) to avoid
+> confusion, even though they use a separate PVC.
+
+### Windows-Specific Parameters
+
+All parameters from the Linux version are supported as PowerShell named parameters:
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `-Device` | Yes | — | Physical drive path (e.g. `\\.\PhysicalDrive1`) |
+| `-MyKey` | Yes | — | This VM's registration key (hex, e.g. `0xC001`) |
+| `-PeerKey` | Yes | — | The other VM's registration key (hex, e.g. `0xD002`) |
+| `-Duration` | Yes | — | Total runtime: `30s`, `10m`, `2h` |
+| `-Interval` | No | `5` | Seconds between iterations |
+| `-ListDisks` | No | — | List available physical drives and exit |
+
+### Windows Troubleshooting
+
+#### "CreateFile failed: Win32 error 5"
+Access denied — the script must run as Administrator. Right-click PowerShell → "Run as Administrator".
+
+#### "CreateFile failed: Win32 error 2"
+The device path is wrong. Use `-ListDisks` to find the correct `\\.\PhysicalDriveN`.
+
+#### Sysprep did not run / VM asks for OOBE
+The golden image was not generalized. Log in with whatever credentials the image has,
+then manually enable WinRM/SSH and copy the script.
+
+#### Disk shows as "Offline" in Windows
+The shared LUN may be set to offline by Windows SAN policy. Bring it online:
+```powershell
+Set-Disk -Number 1 -IsOffline $false
+Set-Disk -Number 1 -IsReadOnly $false
+```
+**Do not** initialize or format the disk — it's a raw shared LUN.
