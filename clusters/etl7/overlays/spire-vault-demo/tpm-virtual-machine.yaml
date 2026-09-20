@@ -1,0 +1,145 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: spire-vault-demo-tpm-vm
+  namespace: spire-vault-demo
+  labels:
+    app: spire-vault-demo-tpm
+spec:
+  dataVolumeTemplates:
+    - apiVersion: cdi.kubevirt.io/v1beta1
+      kind: DataVolume
+      metadata:
+        name: spire-vault-demo-tpm-vm-rootdisk
+      spec:
+        source:
+          registry:
+            url: docker://quay.io/raffaelespazzoli/rhel10-spire-vault-demo-disk:latest
+        storage:
+          accessModes:
+            - ReadWriteMany
+          volumeMode: Block
+          resources:
+            requests:
+              storage: 20Gi
+          storageClassName: ontap-san
+  running: true
+  template:
+    metadata:
+      annotations:
+        vm.kubevirt.io/os: rhel10
+        vm.kubevirt.io/workload: server
+      labels:
+        kubevirt.io/domain: spire-vault-demo-tpm-vm
+        app: spire-vault-demo-tpm
+    spec:
+      architecture: amd64
+      domain:
+        cpu:
+          cores: 2
+          sockets: 1
+          threads: 1
+        devices:
+          disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+            - disk:
+                bus: virtio
+              name: cloudinitdisk
+            - disk:
+                bus: virtio
+              name: bootstrap-cert-disk
+              serial: TPMBOOTCERT
+          interfaces:
+            - macAddress: 02:2e:13:d9:31:c5
+              masquerade: {}
+              name: default
+              ports:
+                - port: 22
+                - port: 8080
+          rng: {}
+          tpm:
+            persistent: true
+        features:
+          acpi: {}
+          smm:
+            enabled: true
+        firmware:
+          bootloader:
+            efi: {}
+        machine:
+          type: pc-q35-rhel9.6.0
+        memory:
+          guest: 4Gi
+        resources: {}
+      networks:
+        - name: default
+          pod: {}
+      terminationGracePeriodSeconds: 180
+      accessCredentials:
+        - sshPublicKey:
+            source:
+              secret:
+                secretName: raffa-key
+            propagationMethod:
+              noCloud: {}
+      volumes:
+        - dataVolume:
+            name: spire-vault-demo-tpm-vm-rootdisk
+          name: rootdisk
+        - secret:
+            secretName: tpm-devid-bootstrap-cert
+          name: bootstrap-cert-disk
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              user: cloud-user
+              password: spire-vault-demo
+              chpasswd: { expire: False }
+              runcmd:
+                # ── 1. Mask x509pop agent, unmask tpm_devid agent ──
+                - systemctl mask spire-agent.service
+                - systemctl unmask spire-agent-tpm-devid.service
+
+                # Override spiffe-helper dependency: point to tpm_devid agent instead of x509pop
+                - mkdir -p /etc/systemd/system/spiffe-helper.service.d
+                - bash -c 'printf "[Unit]\nRequires=spire-agent-tpm-devid.service\nAfter=spire-agent-tpm-devid.service\n" > /etc/systemd/system/spiffe-helper.service.d/tpm-override.conf'
+
+                # ── 2. Wait for and mount bootstrap cert disk ──
+                - bash -c 'for i in $(seq 30); do [ -e /dev/disk/by-id/virtio-TPMBOOTCERT ] && break; sleep 2; done'
+                - bash -c '[ -e /dev/disk/by-id/virtio-TPMBOOTCERT ] || { echo "ERROR: bootstrap cert disk not found after 60s"; exit 1; }'
+                - mkdir -p /mnt/bootstrap-cert
+                - mount /dev/disk/by-id/virtio-TPMBOOTCERT /mnt/bootstrap-cert
+
+                # ── 3. Import cert-manager private key into vTPM ──
+                - tpm2_createprimary -C o -c /tmp/srk.ctx
+                - openssl rsa -in /mnt/bootstrap-cert/tls.key -outform DER -out /tmp/devid.key.der
+                - tpm2_import -C /tmp/srk.ctx -G rsa -i /tmp/devid.key.der -u /tmp/devid.pub.blob -r /tmp/devid.priv.blob
+
+                # ── 4. Store DevID artifacts for SPIRE agent ──
+                - cp /mnt/bootstrap-cert/tls.crt /etc/spire/tpm-devid/devid.crt.pem
+                - cp /tmp/devid.pub.blob /etc/spire/tpm-devid/devid.pub.blob
+                - cp /tmp/devid.priv.blob /etc/spire/tpm-devid/devid.priv.blob
+                - chown -R spire:spire /etc/spire/tpm-devid/
+                - chmod 0400 /etc/spire/tpm-devid/*
+                - chmod 0700 /etc/spire/tpm-devid/
+
+                # ── 5. Clean up temp files and unmount ──
+                - rm -f /tmp/srk.ctx /tmp/devid.key.der /tmp/devid.pub.blob /tmp/devid.priv.blob
+                - umount /mnt/bootstrap-cert
+
+                # ── 6. Update Vault agent config ──
+                - sed -i 's/PLACEHOLDER_CLUSTER_BASE_DOMAIN/${CLUSTER_BASE_DOMAIN}/' /etc/vault-agent/agent.hcl
+
+                # ── 7. Create data directory and start services ──
+                - mkdir -p /var/lib/spire/data
+                - chown spire:spire /var/lib/spire/data
+                - podman pull ghcr.io/spiffe/spire-agent:1.14.7
+                - podman pull ghcr.io/spiffe/spiffe-helper:0.11.0
+                - podman pull docker.io/hashicorp/vault:1.20.4
+                - podman pull registry.access.redhat.com/ubi10/httpd-24:latest
+                - systemctl daemon-reload
+                - systemctl reset-failed spire-agent-tpm-devid.service spiffe-helper.service vault-agent.service httpd.service
+                - systemctl restart spire-agent-tpm-devid.service spiffe-helper.service vault-agent.service httpd.service
+          name: cloudinitdisk

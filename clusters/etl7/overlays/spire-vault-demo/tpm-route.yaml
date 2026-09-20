@@ -1,0 +1,16 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: spire-vault-demo-tpm-httpd
+  namespace: spire-vault-demo
+  labels:
+    app: spire-vault-demo-tpm
+spec:
+  host: spire-vault-demo-tpm.apps.${CLUSTER_BASE_DOMAIN}
+  tls:
+    termination: edge
+  to:
+    kind: Service
+    name: spire-vault-demo-tpm-httpd
+  port:
+    targetPort: http

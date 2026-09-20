@@ -122,7 +122,7 @@ spec:
                 -o jsonpath='{.data.server\.conf}' > /tmp/server-conf.json
 
               if grep -q '"x509pop"' /tmp/server-conf.json; then
-                echo "x509pop NodeAttestor already present — skipping ConfigMap patch"
+                echo "x509pop NodeAttestor already present — skipping x509pop ConfigMap patch"
               else
                 echo "Adding x509pop NodeAttestor to ConfigMap..."
                 X509POP='{"x509pop":{"plugin_data":{"ca_bundle_path":"/tmp/x509pop-ca/ca.crt.pem"}}}'
@@ -173,7 +173,63 @@ spec:
                 oc patch configmap spire-server -n "${ZTWIM_NS}" \
                   --type=merge --patch-file /tmp/cm-patch.json
 
-                echo "ConfigMap patched successfully"
+                echo "x509pop ConfigMap patched successfully"
+              fi
+
+              # ── Step 1b: Add tpm_devid NodeAttestor to ConfigMap ──
+              echo "Checking spire-server ConfigMap for tpm_devid..."
+              oc get configmap spire-server -n "${ZTWIM_NS}" \
+                -o jsonpath='{.data.server\.conf}' > /tmp/server-conf.json
+
+              if grep -q '"tpm_devid"' /tmp/server-conf.json; then
+                echo "tpm_devid NodeAttestor already present — skipping tpm_devid ConfigMap patch"
+              else
+                echo "Adding tpm_devid NodeAttestor to ConfigMap..."
+                TPM_DEVID='{"tpm_devid":{"plugin_data":{"devid_ca_path":"/tmp/x509pop-ca/ca.crt.pem","endorsement_ca_path":"/tmp/x509pop-ca/endorsement-ca.pem"}}}'
+
+                tr '\n' '\001' < /tmp/server-conf.json | awk -v entry="${TPM_DEVID}" '{
+                  s = $0
+                  target = "\"NodeAttestor\""
+                  idx = index(s, target)
+                  if (idx > 0) {
+                    rest = substr(s, idx)
+                    bi = index(rest, "[")
+                    if (bi > 0) {
+                      abs = idx + bi - 1
+                      depth = 0
+                      for (i = abs; i <= length(s); i++) {
+                        c = substr(s, i, 1)
+                        if (c == "[") depth++
+                        else if (c == "]") {
+                          depth--
+                          if (depth == 0) {
+                            s = substr(s, 1, i-1) "," entry substr(s, i)
+                            break
+                          }
+                        }
+                      }
+                    }
+                  }
+                  printf "%s", s
+                }' | tr '\001' '\n' > /tmp/server-conf-updated.json
+
+                awk '
+                  BEGIN { printf "{\"data\":{\"server.conf\":\"" }
+                  {
+                    gsub(/\\/, "\\\\")
+                    gsub(/"/, "\\\"")
+                    gsub(/\t/, "\\t")
+                    gsub(/\r/, "\\r")
+                    if (NR > 1) printf "\\n"
+                    printf "%s", $0
+                  }
+                  END { print "\"}}" }
+                ' /tmp/server-conf-updated.json > /tmp/cm-patch.json
+
+                oc patch configmap spire-server -n "${ZTWIM_NS}" \
+                  --type=merge --patch-file /tmp/cm-patch.json
+
+                echo "tpm_devid ConfigMap patched successfully"
               fi
 
               # ── Step 2: Mount spire-root-ca-secret into spire-server ─
@@ -191,11 +247,22 @@ spec:
                         items:
                         - key: tls.crt
                           path: ca.crt.pem
+                    - name: endorsement-ca
+                      secret:
+                        secretName: swtpm-endorsement-ca
+                        optional: true
+                        items:
+                        - key: ca.pem
+                          path: endorsement-ca.pem
                     containers:
                     - name: spire-server
                       volumeMounts:
                       - name: x509pop-ca
                         mountPath: /tmp/x509pop-ca
+                        readOnly: true
+                      - name: endorsement-ca
+                        mountPath: /tmp/x509pop-ca/endorsement-ca.pem
+                        subPath: endorsement-ca.pem
                         readOnly: true
               '
 
@@ -211,6 +278,11 @@ spec:
               oc get configmap spire-server -n "${ZTWIM_NS}" \
                 -o jsonpath='{.data.server\.conf}' | grep -c x509pop
               echo "x509pop entries found in server.conf (expected >= 1)"
+
+              echo "Verifying tpm_devid configuration in ConfigMap..."
+              oc get configmap spire-server -n "${ZTWIM_NS}" \
+                -o jsonpath='{.data.server\.conf}' | grep -c tpm_devid
+              echo "tpm_devid entries found in server.conf (expected >= 1)"
 
               echo ""
               echo "=== x509pop setup Job complete ==="

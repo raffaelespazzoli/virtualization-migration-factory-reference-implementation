@@ -9,6 +9,8 @@ RUN dnf install -y \
       qemu-guest-agent \
       openssh-server \
       cloud-init \
+      tpm2-tools \
+      tpm2-tss \
     && dnf clean all \
     && systemctl enable qemu-guest-agent sshd cloud-init-local cloud-init cloud-config cloud-final
 
@@ -27,11 +29,13 @@ RUN groupadd -g 10001 spire && \
     usermod  -aG spiffe-consumers vault-agent-user
 
 # ── Directory structure ──────────────────────────────────────────────
-# spire-agent: bootstrap certs (most sensitive), agent config, socket
+# spire-agent: bootstrap certs (most sensitive), agent config, socket, tpm-devid
 RUN mkdir -p /etc/spire/bootstrap && \
+    mkdir -p /etc/spire/tpm-devid && \
     chown -R spire:spire /etc/spire && \
     chmod 0755 /etc/spire && \
     chmod 0500 /etc/spire/bootstrap && \
+    chmod 0700 /etc/spire/tpm-devid && \
     mkdir -p /run/spire/sockets && \
     chown spire:spire /run/spire/sockets && \
     chmod 0755 /run/spire/sockets
@@ -71,15 +75,22 @@ COPY files/etc/tmpfiles.d/spire-vault-demo.conf /etc/tmpfiles.d/spire-vault-demo
 # ── Configuration files ──────────────────────────────────────────────
 # agent.conf and helper.conf are finalized (Story 1.6b).
 # agent.hcl is a placeholder — Story 1.6c finalizes it.
-COPY files/etc/spire/agent.conf         /etc/spire/agent.conf
-COPY files/etc/spiffe-helper/helper.conf /etc/spiffe-helper/helper.conf
-COPY files/etc/vault-agent/agent.hcl     /etc/vault-agent/agent.hcl
+COPY files/etc/spire/agent.conf             /etc/spire/agent.conf
+COPY files/etc/spire/agent-tpm-devid.conf   /etc/spire/agent-tpm-devid.conf
+COPY files/etc/spiffe-helper/helper.conf    /etc/spiffe-helper/helper.conf
+COPY files/etc/vault-agent/agent.hcl        /etc/vault-agent/agent.hcl
 
-RUN chown root:root /etc/spire/agent.conf /etc/spiffe-helper/helper.conf /etc/vault-agent/agent.hcl && \
-    chmod 0644 /etc/spire/agent.conf /etc/spiffe-helper/helper.conf /etc/vault-agent/agent.hcl
+RUN chown root:root /etc/spire/agent.conf /etc/spire/agent-tpm-devid.conf \
+      /etc/spiffe-helper/helper.conf /etc/vault-agent/agent.hcl && \
+    chmod 0644 /etc/spire/agent.conf /etc/spire/agent-tpm-devid.conf \
+      /etc/spiffe-helper/helper.conf /etc/vault-agent/agent.hcl
 
 # ── Quadlet container definitions ────────────────────────────────────
-COPY files/etc/containers/systemd/spire-agent.container    /etc/containers/systemd/
-COPY files/etc/containers/systemd/spiffe-helper.container  /etc/containers/systemd/
-COPY files/etc/containers/systemd/vault-agent.container    /etc/containers/systemd/
-COPY files/etc/containers/systemd/httpd.container          /etc/containers/systemd/
+COPY files/etc/containers/systemd/spire-agent.container              /etc/containers/systemd/
+COPY files/etc/containers/systemd/spire-agent-tpm-devid.container    /etc/containers/systemd/
+COPY files/etc/containers/systemd/spiffe-helper.container            /etc/containers/systemd/
+COPY files/etc/containers/systemd/vault-agent.container              /etc/containers/systemd/
+COPY files/etc/containers/systemd/httpd.container                    /etc/containers/systemd/
+
+# ── Mask tpm_devid agent by default (cloud-init unmasks on tpm VMs) ──
+RUN systemctl mask spire-agent-tpm-devid.service

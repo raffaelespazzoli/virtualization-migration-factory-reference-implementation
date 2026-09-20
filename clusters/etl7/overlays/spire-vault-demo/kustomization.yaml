@@ -10,3 +10,8 @@ resources:
   - service.yaml
   - route.yaml
   - spire-registration-job.yaml
+  - tpm-cert-bootstrap.yaml
+  - tpm-virtual-machine.yaml
+  - tpm-service.yaml
+  - tpm-route.yaml
+  - tpm-spire-registration-job.yaml

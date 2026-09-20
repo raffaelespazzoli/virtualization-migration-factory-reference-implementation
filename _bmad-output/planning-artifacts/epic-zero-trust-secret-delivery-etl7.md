@@ -14,6 +14,7 @@ stories:
   - S6b-spire-agent-helper
   - S6c-vault-agent-httpd
   - S6d-deploy-vm
+  - S7-tpm-devid-vm
 stepsCompleted: []
 ---
 
@@ -57,6 +58,18 @@ An httpd endpoint on the RHEL 10 VM displays a KV2 secret retrieved from Vault, 
 │  │  └──────┬───────┘  └──────────────┘  └────────────┘  └──────────┘│ │
 │  │         │                                                          │ │
 │  │  bootstrap cert (cert-manager, 1yr, via cloud-init)               │ │
+│  └────────────────────────────────────────────────────────────────────┘ │
+│                                                                         │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │  RHEL 10 Image-Mode VM #2 — tpm_devid attestation (Story 1.7)    │ │
+│  │                                                                    │ │
+│  │  ┌─────────────┐  ┌──────────────┐  ┌────────────┐  ┌──────────┐│ │
+│  │  │ spire-agent  │─►│ spiffe-helper │─►│ vault-agent │─►│  httpd   ││ │
+│  │  │ (tpm_devid)  │  │ (JWT+certs)  │  │ (JWT auth) │  │ (secret) ││ │
+│  │  └──────┬───────┘  └──────────────┘  └────────────┘  └──────────┘│ │
+│  │         │                                                          │ │
+│  │  vTPM + DevID cert (cert-manager, cloud-init provisions vTPM)     │ │
+│  │  bootstrap cert removed post-boot (manual demo step)              │ │
 │  └────────────────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -147,16 +160,20 @@ Story 6b (SPIRE Agent + Helper config)──┤
 Story 6c (Vault Agent + httpd config) ──┤
                                         │
                            Story 6d (Deploy VM, end-to-end)
+                                        │
+                           Story 1.7 (tpm_devid VM — same overlay, shared image)
 ```
 
-**Parallelizable starts:** Stories 1, 3, 4, and 6a can all begin simultaneously.
+**Parallelizable starts:** Stories 1, 3, 4, and 6a can all begin simultaneously. Story 1.7 can begin after Story 6d (shares the bootc image and overlay).
 
 ### Future Work
 
 - Investigate the **Vault UpstreamAuthority plugin** (ZTWIM docs §12.13.6) to have Vault's PKI engine serve as the SPIRE root CA, closing the trust circle (cert-manager → Vault PKI → SPIRE).
 - Evaluate **SPIRE federation** across clusters (etl6 ↔ etl7) for cross-cluster identity.
 - Explore replacing the experiment's `containerDisk` VM with a `DataVolume` for persistence.
-- Automate the x509pop SPIRE Server patching (currently manual due to CRD limitation) — potentially via a Kubernetes Job or custom controller.
+- **Automate the tpm_devid bootstrap cleanup** — the manual demo step (remove cert disk + restart) could be automated via a Job or controller in a future iteration.
+- **Investigate Approach A for tpm_devid** — out-of-band vTPM provisioning via a pre-created PVC + Kubernetes Job, eliminating the bootstrap cert exposure entirely (requires KubeVirt PVC adoption testing).
+- **EK-based provisioning** — use the vTPM's auto-generated Endorsement Key for trust establishment, eliminating the need for any bootstrap cert (requires a provisioning webhook service).
 
 ### Key References
 
@@ -169,6 +186,10 @@ Story 6c (Vault Agent + httpd config) ──┤
 - [RHEL 10 image-mode containerizing workloads](https://developers.redhat.com/articles/2025/01/13/containerizing-workloads-image-mode-rhel#managing_workloads_on_image_mode)
 - [Red Hat Ecosystem Catalog - Vault](https://catalog.redhat.com/software/containers/hashicorp/vault/5fda55bd2937386820429e0c)
 - [X.509 Node Attestation walkthrough (Yulia Paterson)](https://medium.com/@yulia.paterson/spire-x-509-node-attestation-033bd157ce0d)
+- [SPIRE tpm_devid agent plugin](https://github.com/spiffe/spire/blob/main/doc/plugin_agent_nodeattestor_tpm_devid.md)
+- [SPIRE tpm_devid server plugin](https://github.com/spiffe/spire/blob/main/doc/plugin_server_nodeattestor_tpm_devid.md)
+- [tpm2-tools documentation](https://github.com/tpm2-software/tpm2-tools)
+- [KubeVirt vTPM documentation](https://kubevirt.io/user-guide/compute/virtual-hardware/#trusted-platform-module-tpm)
 
 ---
 
@@ -739,3 +760,144 @@ None (image build is independent of cluster deployment)
 - Consider using a `Secret` resource and KubeVirt's `cloudInitNoCloud` with `secretRef` for the cert injection
 - The SPIRE registration entry is critical — without it, the agent will attest but workloads won't receive SVIDs
 - Debug workflow: `oc console <vm>` or SSH into the VM, check `systemctl status spire-agent`, `journalctl -u spire-agent`, verify socket exists, check spiffe-helper logs, check vault-agent logs
+
+---
+
+### Story 1.7: Add tpm_devid VM to the SPIRE/Vault Demo
+
+**ID:** S7-tpm-devid-vm
+
+**As a** platform engineer evaluating zero-trust workload identity,
+**I want** a second VM in the `spire-vault-demo` overlay using `tpm_devid` attestation alongside the existing `x509pop` VM,
+**So that** I can compare attestation methods side-by-side and demonstrate hardware-bound identity with vTPM.
+
+### Acceptance Criteria
+
+#### AC1: Shared bootc image supports both attestation methods
+
+- [ ] The existing bootc image is updated to include `tpm2-tools` and `tpm2-tss` RPMs
+- [ ] Ships dual SPIRE agent configs:
+  - `/etc/spire/agent-x509pop.conf` — existing x509pop config (renamed from `agent.conf`)
+  - `/etc/spire/agent-tpm-devid.conf` — new tpm_devid config with:
+    ```hcl
+    NodeAttestor "tpm_devid" {
+        plugin_data {
+            devid_cert_path  = "/etc/spire/tpm-devid/devid.crt.pem"
+            devid_key_handle = "0x81000001"
+        }
+    }
+    ```
+- [ ] Ships dual Quadlet units:
+  - `/etc/containers/systemd/spire-agent-x509pop.container` — enabled by default (renamed from `spire-agent.container`)
+  - `/etc/containers/systemd/spire-agent-tpm-devid.container` — masked by default, includes `PodmanArgs=--device /dev/tpmrm0`
+- [ ] Creates directory `/etc/spire/tpm-devid/` (0500 spire:spire) for DevID cert storage
+- [ ] The existing x509pop VM continues to work unchanged with the updated image
+- [ ] spiffe-helper, vault-agent, and httpd Quadlet units are unchanged and shared by both VMs
+
+#### AC2: New Certificate CR for tpm_devid bootstrap
+
+- [ ] `tpm-cert-bootstrap.yaml` creates a cert-manager `Certificate` in `spire-vault-demo` namespace:
+  - Secret name: `tpm-devid-bootstrap-cert`
+  - Issuer: `spire-root-ca-issuer` ClusterIssuer (same as x509pop)
+  - Duration: 1 year (`8760h`), renewBefore: 30 days (`720h`)
+  - Common name: `spire-vault-demo-tpm-vm.etl7.ocp.rht-labs.com`
+  - Key usages: `digital signature`, `key encipherment`
+
+#### AC3: New VirtualMachine CR with vTPM
+
+- [ ] `tpm-virtual-machine.yaml` deploys `spire-vault-demo-tpm-vm` in `spire-vault-demo` namespace:
+  - Uses the same shared bootc containerDisk image as the x509pop VM
+  - `spec.template.spec.domain.devices.tpm: {}` enables persistent vTPM
+  - Bootstrap cert Secret (`tpm-devid-bootstrap-cert`) mounted as a virtio disk with serial `TPMBOOTCERT`
+  - cloud-init `runcmd` performs the following:
+    1. Mask `spire-agent-x509pop.service`, unmask `spire-agent-tpm-devid.service`
+    2. Mount the bootstrap cert CD-ROM
+    3. Create storage root key: `tpm2_createprimary -C o -c /tmp/srk.ctx`
+    4. Create LDevID key pair: `tpm2_create -C /tmp/srk.ctx -u /tmp/devid.pub -r /tmp/devid.priv`
+    5. Load LDevID: `tpm2_load -C /tmp/srk.ctx -u /tmp/devid.pub -r /tmp/devid.priv -c /tmp/devid.ctx`
+    6. Persist to handle `0x81000001`: `tpm2_evictcontrol -C o -c /tmp/devid.ctx 0x81000001`
+    7. Copy DevID cert from mounted Secret to `/etc/spire/tpm-devid/devid.crt.pem`
+    8. Set ownership: `chown spire:spire /etc/spire/tpm-devid/devid.crt.pem`, mode `0400`
+    9. Unmount bootstrap cert CD-ROM, clean up temp files
+    10. Create data directory, pre-pull images, start Quadlet services
+  - SSH access via `raffa-key` Secret (same as x509pop VM)
+  - Adequate resources: 2 cores, 4Gi memory, 20Gi root disk
+
+#### AC4: Service and Route for the tpm VM
+
+- [ ] `tpm-service.yaml` — Service targeting `spire-vault-demo-tpm-vm` on port 8080
+- [ ] `tpm-route.yaml` — Route at `spire-vault-demo-tpm.apps.${CLUSTER_BASE_DOMAIN}`
+
+#### AC5: x509pop-setup Job updated for tpm_devid attestor
+
+- [ ] The existing `x509pop-setup-job.yaml` in `clusters/etl7/overlays/ztwim-instance/` is updated to also add the `tpm_devid` NodeAttestor plugin to the SPIRE Server ConfigMap:
+  ```json
+  {"tpm_devid":{"plugin_data":{"ca_bundle_path":"/tmp/x509pop-ca/ca.crt.pem"}}}
+  ```
+- [ ] Both attestors share the same root CA bundle (same `spire-root-ca-secret`)
+- [ ] The awk script inserts both entries in a single ConfigMap patch (idempotent — skips if already present)
+
+#### AC6: Separate registration Job for the tpm_devid VM
+
+- [ ] `tpm-spire-registration-job.yaml` in `spire-vault-demo` overlay:
+  - ArgoCD PostSync hook at sync-wave 10
+  - Extracts SHA1 fingerprint from `tpm-devid-bootstrap-cert` Secret
+  - Computes agent parentID: `spiffe://etl7.ocp.rht-labs.com/spire/agent/tpm_devid/<fingerprint>`
+  - Creates workload registration entry with:
+    - `spiffeID`: `spiffe://etl7.ocp.rht-labs.com/spire-vault-demo/tpm-workload`
+    - `selector`: `unix:uid:10002` (spiffe-helper UID)
+    - `jwt-svid-ttl`: `3600`
+  - Idempotent — checks for existing entry before creating
+  - Separate ServiceAccount and RBAC (same pattern as existing registration Job)
+  - Cross-namespace RBAC for exec into ZTWIM namespace (same pattern as `spire-registration-rbac.yaml` in `ztwim-instance` overlay)
+
+#### AC7: ArgoCD ignoreDifferences for the tpm VM
+
+- [ ] The ArgoCD Application for `spire-vault-demo` in `clusters/etl7/values.yaml` includes:
+  ```yaml
+  ignoreDifferences:
+    - group: kubevirt.io
+      kind: VirtualMachine
+      name: spire-vault-demo-tpm-vm
+      jsonPointers:
+        - /spec/template/spec/volumes
+        - /spec/template/spec/domain/devices/disks
+  ```
+- [ ] This allows the manual demo step (remove bootstrap cert disk + restart) without ArgoCD drift
+
+#### AC8: Documentation updated
+
+- [ ] `readme.md` updated with:
+  - tpm_devid VM architecture and cloud-init provisioning script
+  - Manual demo steps: `oc patch vm` to remove bootstrap cert disk, `virtctl restart`
+  - Debug-via-SSH workflow for cloud-init troubleshooting
+  - Side-by-side comparison: x509pop vs tpm_devid (trust properties, key exposure, rotation)
+  - New file layout listing the added files
+  - End-to-end verification procedure for the tpm_devid VM
+
+#### AC9: Manual demo steps documented (not automated)
+
+- [ ] After the VM boots and cloud-init completes, the operator manually:
+  1. Verifies tpm_devid provisioning: `virtctl ssh cloud-user@spire-vault-demo-tpm-vm`, check `/etc/spire/tpm-devid/devid.crt.pem`, `tpm2_getcap handles-persistent`
+  2. Removes bootstrap cert disk: `oc patch vm spire-vault-demo-tpm-vm -n spire-vault-demo --type=json -p '[{"op":"remove","path":"/spec/template/spec/volumes/2"},{"op":"remove","path":"/spec/template/spec/domain/devices/disks/2"}]'`
+  3. Restarts VM: `virtctl restart spire-vault-demo-tpm-vm -n spire-vault-demo`
+  4. Verifies the VM re-attests using the persistent vTPM DevID (no bootstrap cert needed)
+- [ ] These steps are documented in the readme but NOT automated via a Job
+
+### Dependencies
+
+- Story 1.6d (existing x509pop VM deployed and working — proves the shared infrastructure)
+- Story 1.2 (SPIRE Server with x509pop attestor patched — the Job will add tpm_devid to the same server)
+
+### Implementation Notes
+
+- **Debug workflow**: The cloud-init TPM provisioning script is novel integration work. Debug iteratively:
+  1. Deploy the VM with SSH access
+  2. SSH in: `virtctl ssh cloud-user@spire-vault-demo-tpm-vm -n spire-vault-demo`
+  3. Run `tpm2-tools` commands by hand to validate the provisioning sequence
+  4. Once working, copy the validated commands back into the cloud-init `runcmd`
+- **KubeVirt vTPM**: Setting `spec.template.spec.domain.devices.tpm: {}` enables persistent vTPM. KubeVirt creates a VM State PVC automatically. The vTPM device appears as `/dev/tpmrm0` inside the VM.
+- **Shared image**: The Quadlet unit renaming (`spire-agent.container` → `spire-agent-x509pop.container`) requires updating the existing x509pop VM's cloud-init to reference the new service name (`spire-agent-x509pop.service` instead of `spire-agent.service`).
+- **tpm_devid SPIFFE ID**: The agent SPIFFE ID for `tpm_devid` is `spiffe://<trust-domain>/spire/agent/tpm_devid/<fingerprint>`. The fingerprint is the SHA1 of the DevID certificate, which in our case is the same cert-manager leaf cert — so the registration Job can compute it the same way as the x509pop Job.
+- **Vault bound_subject**: The tpm_devid VM uses a different workload SPIFFE ID (`spire-vault-demo/tpm-workload`). The Vault JWT role's `bound_subject` or `bound_claims` must be updated to accept both SPIFFE IDs, or a second role must be created. Evaluate whether `bound_claims_type = "glob"` with a wildcard pattern is acceptable for the demo.
+- **Estimate**: 3-4 days implementation + 1-2 days cloud-init debugging

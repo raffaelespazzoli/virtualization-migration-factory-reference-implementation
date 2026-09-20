@@ -1,0 +1,185 @@
+# SPIRE workload registration Job — creates the registration entry for the
+# spiffe-helper process running inside the tpm_devid VM.
+#
+# The entry maps the tpm_devid-attested agent (identified by DevID cert
+# fingerprint) to a workload SPIFFE ID that spiffe-helper can fetch SVIDs for.
+#
+# This Job runs as an ArgoCD PostSync hook within the spire-vault-demo
+# Application (wave 10). By this point:
+#   - x509pop-setup Job has configured SPIRE Server with tpm_devid attestor
+#   - cert-manager has issued tpm-devid-bootstrap-cert in this namespace
+#
+# The registration entry is pre-created before the VM boots — SPIRE Server
+# stores it and matches it once the agent attests.
+
+# ── RBAC ──────────────────────────────────────────────────────────────
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tpm-spire-registration
+  namespace: spire-vault-demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+---
+# Read the bootstrap cert secret in this namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tpm-spire-registration
+  namespace: spire-vault-demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tpm-spire-registration
+  namespace: spire-vault-demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+subjects:
+  - kind: ServiceAccount
+    name: tpm-spire-registration
+    namespace: spire-vault-demo
+roleRef:
+  kind: Role
+  name: tpm-spire-registration
+  apiGroup: rbac.authorization.k8s.io
+
+# NOTE: The Role/RoleBinding for exec into spire-server pods in the ZTWIM
+# namespace is in clusters/etl7/overlays/ztwim-instance/tpm-registration-rbac.yaml
+# (the spire-vault-demo kustomization's namespace transformer would override
+# the namespace to spire-vault-demo, breaking cross-namespace access).
+
+# ── Job ───────────────────────────────────────────────────────────────
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: tpm-spire-registration
+  namespace: spire-vault-demo
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: 10
+  activeDeadlineSeconds: 600
+  template:
+    spec:
+      serviceAccountName: tpm-spire-registration
+      restartPolicy: OnFailure
+      containers:
+        - name: register
+          image: registry.redhat.io/openshift4/ose-cli:latest
+          env:
+            - name: ZTWIM_NS
+              value: zero-trust-workload-identity-manager
+            - name: DEMO_NS
+              value: spire-vault-demo
+            - name: TRUST_DOMAIN
+              value: etl7.ocp.rht-labs.com
+            - name: WORKLOAD_SPIFFE_ID
+              value: spiffe://etl7.ocp.rht-labs.com/spire-vault-demo/tpm-workload
+            - name: SPIFFE_HELPER_UID
+              value: "10002"
+            - name: JWT_SVID_TTL
+              value: "3600"
+          command:
+            - /bin/bash
+            - -euo
+            - pipefail
+            - -c
+            - |
+              echo "=== TPM SPIRE registration Job starting ==="
+
+              # ── Wait for bootstrap cert ────────────────────────────
+              echo "Waiting for tpm-devid-bootstrap-cert secret..."
+              until oc get secret tpm-devid-bootstrap-cert -n "${DEMO_NS}" &>/dev/null; do
+                echo "  Secret not found yet, retrying in 10s..."
+                sleep 10
+              done
+
+              # ── Extract fingerprint from bootstrap cert ────────────
+              echo "Extracting SHA1 fingerprint from DevID bootstrap cert..."
+              CERT_PEM=$(oc get secret tpm-devid-bootstrap-cert -n "${DEMO_NS}" \
+                -o jsonpath='{.data.tls\.crt}' | base64 -d)
+
+              if command -v openssl &>/dev/null; then
+                FINGERPRINT=$(echo "${CERT_PEM}" | \
+                  openssl x509 -fingerprint -sha1 -noout | tr -d ':' | awk -F= '{print tolower($2)}')
+              else
+                # Fallback: extract first cert's base64 → DER → SHA1
+                FINGERPRINT=$(echo "${CERT_PEM}" | \
+                  awk '/BEGIN CERTIFICATE/{f=1;next}/END CERTIFICATE/{f=0;exit}f' | \
+                  base64 -d | sha1sum | awk '{print $1}')
+              fi
+
+              if [[ -z "${FINGERPRINT}" ]]; then
+                echo "ERROR: Failed to extract fingerprint — is the certificate issued?" >&2
+                exit 1
+              fi
+
+              PARENT_ID="spiffe://${TRUST_DOMAIN}/spire/agent/tpm_devid/${FINGERPRINT}"
+              echo "Agent SPIFFE ID (parentID): ${PARENT_ID}"
+              echo "Workload SPIFFE ID: ${WORKLOAD_SPIFFE_ID}"
+
+              # ── Find spire-server pod and binary ─────────────────
+              SPIRE_POD="spire-server-0"
+              echo "Using pod: ${SPIRE_POD}"
+
+              echo "Waiting for ${SPIRE_POD} to be ready..."
+              oc wait --for=condition=Ready "pod/${SPIRE_POD}" -n "${ZTWIM_NS}" --timeout=120s
+
+              # Discover the spire-server binary path
+              SPIRE_BIN=$(oc exec -n "${ZTWIM_NS}" "${SPIRE_POD}" -c spire-server -- \
+                sh -c 'command -v spire-server 2>/dev/null || find / -name spire-server -type f 2>/dev/null | head -1')
+
+              if [[ -z "${SPIRE_BIN}" ]]; then
+                echo "ERROR: spire-server binary not found in container" >&2
+                exit 1
+              fi
+              echo "spire-server binary: ${SPIRE_BIN}"
+
+              # ── Check if entry already exists ──────────────────────
+              echo "Checking for existing registration entries..."
+              EXISTING=$(oc exec -n "${ZTWIM_NS}" "${SPIRE_POD}" -c spire-server -- \
+                "${SPIRE_BIN}" entry show \
+                -parentID "${PARENT_ID}" \
+                -spiffeID "${WORKLOAD_SPIFFE_ID}" 2>&1 || true)
+
+              if echo "${EXISTING}" | grep -q "Found [1-9]"; then
+                echo "Registration entry already exists — skipping creation"
+                echo "${EXISTING}"
+              else
+                # ── Create workload registration entry ───────────────
+                echo "Creating workload registration entry..."
+                oc exec -n "${ZTWIM_NS}" "${SPIRE_POD}" -c spire-server -- \
+                  "${SPIRE_BIN}" entry create \
+                  -parentID "${PARENT_ID}" \
+                  -spiffeID "${WORKLOAD_SPIFFE_ID}" \
+                  -selector "unix:uid:${SPIFFE_HELPER_UID}" \
+                  -jwtSVIDTTL "${JWT_SVID_TTL}"
+              fi
+
+              # ── Verify ─────────────────────────────────────────────
+              echo ""
+              echo "Listing all registration entries:"
+              oc exec -n "${ZTWIM_NS}" "${SPIRE_POD}" -c spire-server -- \
+                "${SPIRE_BIN}" entry show
+
+              echo ""
+              echo "=== TPM SPIRE registration Job complete ==="
+              echo "Agent parentID:    ${PARENT_ID}"
+              echo "Workload SPIFFE ID: ${WORKLOAD_SPIFFE_ID}"
+              echo "Selector:          unix:uid:${SPIFFE_HELPER_UID}"
+              echo "JWT-SVID TTL:      ${JWT_SVID_TTL}s"
+              echo ""
+              echo "The VM's spire-agent will match this entry once it attests."
+              echo "Vault bound_subject must be: ${WORKLOAD_SPIFFE_ID}"

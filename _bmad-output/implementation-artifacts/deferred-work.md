@@ -19,3 +19,9 @@
 - Story 6d cloud-init still replaces `PLACEHOLDER_SPIRE_SERVER_ADDRESS` with `spire-server.zero-trust-workload-identity-manager.svc` on port 8081. 6b baked `spire-server.apps.etl7.ocp.rht-labs.com:443` into `agent.conf`.
 - Workload SPIFFE ID is `spiffe://etl7.ocp.rht-labs.com/experiment/demo-vm` in Story 1.5 `boundSubject` vs `spiffe://etl7.ocp.rht-labs.com/spire-vault-demo/workload` in Stories 6b/6d registration notes. Pick one before Vault JWT auth.
 - `spire-vault-demo` Namespace has no OpenShift Virtualization / pod-security labels. Story 6d will run a VirtualMachine there; virt-launcher typically needs a privileged (or equivalent) PSA/SCC posture.
+- source_spec: `_bmad-output/implementation-artifacts/1-7-add-tpm-devid-vm-to-spire-vault-demo.md`
+  summary: Create a Vault JWT role for the tpm workload SPIFFE ID (spiffe://etl7.ocp.rht-labs.com/spire-vault-demo/tpm-workload)
+  evidence: The tpm VM's vault-agent cannot authenticate to Vault without a matching JWT role — Story 1.5 coordination needed
+- source_spec: `_bmad-output/implementation-artifacts/1-7-add-tpm-devid-vm-to-spire-vault-demo.md`
+  summary: Document and verify swtpm endorsement CA extraction process from worker node
+  evidence: The swtpm-endorsement-ca Secret is required for tpm_devid attestation but must be manually extracted — not GitOps-able

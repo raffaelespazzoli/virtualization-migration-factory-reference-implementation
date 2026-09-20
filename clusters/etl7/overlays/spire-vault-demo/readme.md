@@ -94,7 +94,9 @@ The `VirtualMachine` CR's `dataVolumeTemplates.source.registry.url` references t
 
 ## Service Architecture
 
-The image runs four Quadlet containers as systemd-managed Podman containers, chained by dependency ordering:
+The image runs four Quadlet containers as systemd-managed Podman containers, chained by dependency ordering. Two attestation modes are supported by the same shared bootc image:
+
+### x509pop VM (existing)
 
 | Service | Image | Role | Depends On |
 |---|---|---|---|
@@ -102,6 +104,29 @@ The image runs four Quadlet containers as systemd-managed Podman containers, cha
 | **spiffe-helper** | `ghcr.io/spiffe/spiffe-helper:0.11.0` | Extracts SVIDs and JWT tokens from SPIRE agent | spire-agent |
 | **vault-agent** | `docker.io/hashicorp/vault:1.20.4` | Authenticates to Vault with JWT-SVID, templates secrets | spiffe-helper |
 | **httpd** | `registry.access.redhat.com/ubi10/httpd-24:latest` | Serves templated secrets on port 8080 | vault-agent |
+
+### tpm_devid VM (Story 1.7)
+
+| Service | Image | Role | Depends On |
+|---|---|---|---|
+| **spire-agent-tpm-devid** | `ghcr.io/spiffe/spire-agent:1.14.7` | Obtains SPIFFE identity via tpm_devid attestation (vTPM-bound) | network-online.target + ConditionPathExists |
+| **spiffe-helper** | `ghcr.io/spiffe/spiffe-helper:0.11.0` | Extracts SVIDs and JWT tokens from SPIRE agent | spire-agent-tpm-devid (via Restart=on-failure) |
+| **vault-agent** | `docker.io/hashicorp/vault:1.20.4` | Authenticates to Vault with JWT-SVID, templates secrets | spiffe-helper |
+| **httpd** | `registry.access.redhat.com/ubi10/httpd-24:latest` | Serves templated secrets on port 8080 | vault-agent |
+
+### Attestation Mode Comparison
+
+| Aspect | x509pop VM | tpm_devid VM |
+|---|---|---|
+| **Attestation method** | X.509 certificate proof-of-possession | TPM 2.0 DevID with hardware-bound key |
+| **Key storage** | Filesystem (PEM files in `/etc/spire/bootstrap/`) | vTPM-encrypted blobs (`/etc/spire/tpm-devid/`) |
+| **Hardware binding** | None — key can be copied | Key is TPM-bound, unusable outside this vTPM |
+| **SPIRE agent config** | `agent.conf` (x509pop NodeAttestor) | `agent-tpm-devid.conf` (tpm_devid NodeAttestor) |
+| **Quadlet unit** | `spire-agent.container` (enabled by default) | `spire-agent-tpm-devid.container` (masked by default) |
+| **Cloud-init complexity** | Simple: copy cert files | Complex: import key into vTPM via `tpm2_import` |
+| **Bootstrap cert serial** | `SPIREBOOTCERT` | `TPMBOOTCERT` |
+| **Agent SPIFFE ID** | `spiffe://.../spire/agent/x509pop/<sha1>` | `spiffe://.../spire/agent/tpm_devid/<sha1>` |
+| **Workload SPIFFE ID** | `spiffe://.../spire-vault-demo/workload` | `spiffe://.../spire-vault-demo/tpm-workload` |
 
 Startup order: `spire-agent → spiffe-helper → vault-agent → httpd`
 
@@ -201,6 +226,27 @@ The leaf cert Secret (`spire-bootstrap-cert`) provides:
 The SPIRE Server's UpstreamAuthority is configured declaratively via the `SpireServer` CR's `spec.upstreamAuthority.certManager` field (patched in the etl7 ztwim-instance overlay). ZTWIM reconciles the SPIRE Server StatefulSet automatically — no manual intermediate cert provisioning is needed.
 
 The `create-only=true` annotation is applied declaratively on the SpireServer CR (via overlay patch) so the ZTWIM operator does not revert the x509pop patches made by the Job.
+
+### tpm_devid Bootstrap Certificate (`tpm-devid-bootstrap-cert`)
+
+A second leaf cert is issued for the tpm_devid VM:
+
+```
+spire-root-ca-issuer (ClusterIssuer)
+  └── tpm-devid-bootstrap-cert (Leaf Certificate, 1-year, ns: spire-vault-demo)
+        ├── tls.crt → DevID certificate (injected into vTPM)
+        └── tls.key → Private key (imported into vTPM via tpm2_import)
+```
+
+**Key difference from x509pop:** The private key is **not** used directly as a file. Instead, cloud-init:
+1. Converts the PEM key to DER: `openssl rsa -outform DER`
+2. Creates a TPM Storage Root Key: `tpm2_createprimary -C o`
+3. **Imports** the key into the vTPM: `tpm2_import -C /tmp/srk.ctx -G rsa -i /tmp/devid.key.der`
+4. The output blobs (`devid.pub.blob`, `devid.priv.blob`) are TPM-encrypted — usable only by this specific vTPM
+
+This ensures the DevID certificate's public key matches the TPM-held private key, which is required for SPIRE's proof-of-possession verification.
+
+The Certificate CR includes `client auth` EKU (required by some tpm_devid validators).
 
 ### SPIRE Server Route
 
@@ -324,16 +370,113 @@ curl https://spire-vault-demo.apps.etl7.ocp.rht-labs.com/secret.txt
 # Should return: "Hello from Vault via SPIFFE zero-trust!"
 ```
 
-## SSH Access
+## tpm_devid VM: End-to-End Verification
 
-Access the VM for debugging and verification:
+After deployment, verify the tpm_devid VM's zero-trust chain:
 
 ```bash
-# Primary: SSH via virtctl (requires raffa-key Secret in spire-vault-demo namespace)
+# 1. Verify tpm VM is running
+oc get vm spire-vault-demo-tpm-vm -n spire-vault-demo
+
+# 2. SSH into the tpm VM
+virtctl ssh cloud-user@spire-vault-demo-tpm-vm -n spire-vault-demo
+
+# 3. Inside the VM — verify vTPM is accessible
+ls -la /dev/tpmrm0
+
+# 4. Verify DevID artifacts were provisioned by cloud-init
+ls -la /etc/spire/tpm-devid/
+# Should contain: devid.crt.pem, devid.priv.blob, devid.pub.blob
+
+# 5. Check spire-agent-tpm-devid is running and attested
+sudo podman logs spire-agent-tpm
+# Look for: "Successfully attested" and "Node attestation was successful"
+
+# 6. Verify x509pop agent is masked (should not be running)
+systemctl status spire-agent.service
+# Should show: masked
+
+# 7. Check spiffe-helper is extracting SVIDs
+ls -la /var/run/secrets/spiffe/
+cat /var/run/secrets/spiffe/jwt-svid.token | cut -d. -f2 | base64 -d 2>/dev/null | python3 -m json.tool
+
+# 8. Check vault-agent authenticated and wrote the secret
+cat /var/www/html/secret.txt
+sudo podman logs vault-agent
+
+# 9. From outside the VM — verify via Route
+curl https://spire-vault-demo-tpm.apps.etl7.ocp.rht-labs.com/secret.txt
+```
+
+## tpm_devid VM: Manual Demo Steps (Post-Deployment)
+
+After cloud-init completes and the tpm_devid SPIRE agent successfully attests:
+
+1. **Verify attestation** — SSH into the VM and confirm the agent is attested (see verification steps above)
+2. **Remove the bootstrap cert disk** — The cert disk contains the unencrypted private key. Once the key is imported into the vTPM, the disk is no longer needed:
+   ```bash
+   # From outside the VM — patch the VM spec to remove the bootstrap cert disk
+   # This is a MANUAL step (AC #9) — do NOT automate
+   oc patch vm spire-vault-demo-tpm-vm -n spire-vault-demo --type=json -p='[
+     {"op":"remove","path":"/spec/template/spec/volumes/2"},
+     {"op":"remove","path":"/spec/template/spec/domain/devices/disks/2"}
+   ]'
+   ```
+3. **Restart the VM** — `virtctl restart spire-vault-demo-tpm-vm -n spire-vault-demo`
+4. **Verify re-attestation** — After restart, the SPIRE agent should re-attest using the TPM-stored blobs (persisted via persistent vTPM state). The bootstrap cert disk is gone, but the blobs in `/etc/spire/tpm-devid/` survive because they're on the root disk.
+
+> **⚠️ ArgoCD drift:** The `ignoreDifferences` configuration on the `spire-vault-demo` Application prevents ArgoCD from re-adding the removed disk/volume. Without this, ArgoCD would drift-correct by restoring the cert disk.
+
+## tpm_devid VM: Debug via SSH
+
+The cloud-init TPM provisioning is novel integration work. Debug iteratively:
+
+```bash
+# SSH into the tpm VM
+virtctl ssh cloud-user@spire-vault-demo-tpm-vm -n spire-vault-demo
+
+# Verify vTPM is accessible
+ls -la /dev/tpmrm0
+
+# Check cloud-init status
+sudo cloud-init status --long
+sudo cat /var/log/cloud-init-output.log
+
+# Run tpm2-tools commands by hand
+tpm2_createprimary -C o -c /tmp/srk.ctx
+tpm2_getcap handles-persistent  # should be empty for fresh vTPM
+
+# Check if the SPIRE agent unit is properly unmasked
+systemctl status spire-agent-tpm-devid.service
+systemctl status spire-agent.service  # should be masked
+
+# Verify blob files exist and are owned by spire
+ls -la /etc/spire/tpm-devid/
+
+# Test the SPIRE agent manually
+sudo podman run --rm --device /dev/tpmrm0 \
+  -v /etc/spire/tpm-devid:/etc/spire/tpm-devid:ro \
+  -v /etc/spire/agent-tpm-devid.conf:/etc/spire/agent.conf:ro \
+  -v /run/spire/sockets:/run/spire/sockets \
+  -v /var/lib/spire/data:/opt/spire/data \
+  ghcr.io/spiffe/spire-agent:1.14.7 \
+  -config /etc/spire/agent.conf -logLevel DEBUG
+```
+
+## SSH Access
+
+Access the VMs for debugging and verification:
+
+```bash
+# x509pop VM — SSH via virtctl
 virtctl ssh cloud-user@spire-vault-demo-vm -n spire-vault-demo
+
+# tpm_devid VM — SSH via virtctl
+virtctl ssh cloud-user@spire-vault-demo-tpm-vm -n spire-vault-demo
 
 # Fallback: Serial console (no SSH key needed, use cloud-user / spire-vault-demo)
 virtctl console spire-vault-demo-vm -n spire-vault-demo
+virtctl console spire-vault-demo-tpm-vm -n spire-vault-demo
 ```
 
 > **Note:** The `raffa-key` Secret must exist in the `spire-vault-demo` namespace. This is the same SSH key pattern used by other VMs in this repo (e.g., `fedora-vm1` in `clusters/etl6/`). If it doesn't exist, create it from the existing secret in another namespace or from the SSH public key.
@@ -352,33 +495,41 @@ podman push quay.io/<org>/rhel10-spire-vault-demo:latest
 
 ```
 clusters/etl7/overlays/spire-vault-demo/
-├── kustomization.yaml           # Story 6d — Kustomize overlay root
-├── namespace.yaml               # Story 6b — spire-vault-demo namespace
-├── route.yaml                   # Story 6d — Route for httpd external access
-├── service.yaml                 # Story 6d — Service targeting VM httpd (port 8080)
-├── spire-registration-job.yaml  # Job + RBAC: creates SPIRE workload registration entry
-├── virtual-machine.yaml         # Story 6d — VirtualMachine CR with DataVolume + cloud-init
+├── kustomization.yaml                # Kustomize overlay root
+├── namespace.yaml                    # spire-vault-demo namespace
+├── cert-bootstrap.yaml               # x509pop bootstrap cert (cert-manager Certificate)
+├── tpm-cert-bootstrap.yaml           # tpm_devid bootstrap cert (cert-manager Certificate)
+├── virtual-machine.yaml              # x509pop VirtualMachine CR
+├── tpm-virtual-machine.yaml          # tpm_devid VirtualMachine CR (vTPM + cloud-init)
+├── service.yaml                      # Service targeting x509pop VM httpd
+├── tpm-service.yaml                  # Service targeting tpm_devid VM httpd
+├── route.yaml                        # Route for x509pop VM httpd
+├── tpm-route.yaml                    # Route for tpm_devid VM httpd
+├── spire-registration-job.yaml       # x509pop workload registration Job + RBAC
+├── tpm-spire-registration-job.yaml   # tpm_devid workload registration Job + RBAC
 ├── image/
-│   ├── Containerfile
+│   ├── Containerfile                 # Shared bootc image (both VMs)
 │   └── files/
 │       └── etc/
 │           ├── containers/
 │           │   └── systemd/
-│           │       ├── spire-agent.container
+│           │       ├── spire-agent.container              # x509pop Quadlet
+│           │       ├── spire-agent-tpm-devid.container    # tpm_devid Quadlet (masked)
 │           │       ├── spiffe-helper.container
 │           │       ├── vault-agent.container
 │           │       └── httpd.container
 │           ├── spire/
-│           │   └── agent.conf             # Finalized by Story 6b
+│           │   ├── agent.conf             # x509pop agent config
+│           │   └── agent-tpm-devid.conf   # tpm_devid agent config
 │           ├── spiffe-helper/
-│           │   └── helper.conf            # Finalized by Story 6b
+│           │   └── helper.conf
 │           ├── tmpfiles.d/
 │           │   └── spire-vault-demo.conf
 │           └── vault-agent/
 │               └── agent.hcl
 └── readme.md
 
-# cert-manager + x509pop resources (deployed by ztwim-instance, not this overlay):
+# cert-manager + x509pop + tpm_devid resources (deployed by ztwim-instance):
 components/ztwim-instance/
 └── spire-cert-manager-ca.yaml        # ClusterIssuers + root CA cert (Reflector-mirrored)
 
@@ -386,26 +537,48 @@ clusters/etl7/overlays/ztwim-operator/
 └── kustomization.yaml                # Adds CREATE_ONLY_MODE=true to operator Subscription
 
 clusters/etl7/overlays/ztwim-instance/
-└── x509pop-setup-job.yaml            # Job + RBAC: patches SPIRE Server for x509pop
+├── x509pop-setup-job.yaml            # Job: patches SPIRE Server for x509pop + tpm_devid
+├── spire-registration-rbac.yaml      # Cross-namespace RBAC for x509pop registration
+└── tpm-registration-rbac.yaml        # Cross-namespace RBAC for tpm_devid registration
 ```
 
 ## Post-Deployment Manual Steps Summary
 
 After ArgoCD syncs the manifests:
 
-1. **Wait for x509pop-setup Job** — runs automatically as a PostSync hook in the `ztwim-instance` Application. Check status: `oc get job x509pop-setup -n zero-trust-workload-identity-manager`
-2. **Wait for spire-registration Job** — runs automatically as a PostSync hook in the `spire-vault-demo` Application. Check status: `oc get job spire-registration -n spire-vault-demo`
-3. **Wait for DataVolume import** — CDI imports the QCOW2 from quay.io (may take 5–10 minutes): `oc get dv -n spire-vault-demo`
-4. **Wait for VM boot** — `oc get vmi -n spire-vault-demo`
-5. **Verify end-to-end** — follow the verification procedure (see "End-to-End Verification" above)
+1. **Wait for x509pop-setup Job** — runs automatically as a PostSync hook in the `ztwim-instance` Application (now also configures `tpm_devid` attestor). Check status: `oc get job x509pop-setup -n zero-trust-workload-identity-manager`
+2. **Wait for registration Jobs** — both run as PostSync hooks in the `spire-vault-demo` Application:
+   - x509pop: `oc get job spire-registration -n spire-vault-demo`
+   - tpm_devid: `oc get job tpm-spire-registration -n spire-vault-demo`
+3. **Wait for DataVolume imports** — CDI imports the QCOW2 for both VMs: `oc get dv -n spire-vault-demo`
+4. **Wait for VM boot** — `oc get vmi -n spire-vault-demo` (should show two VMIs)
+5. **Verify end-to-end** — follow both verification procedures above
+6. **tpm_devid VM: Remove bootstrap cert disk** — After cloud-init succeeds and the TPM key import is verified, manually remove the cert disk and restart the VM (see "Manual Demo Steps" above). **This is intentionally not automated.**
 
-All SPIRE configuration (x509pop patching and registration entries) is automated via Jobs. The only manual steps are waiting and verifying.
+### Endorsement CA Setup (One-Time)
+
+The SPIRE server's `tpm_devid` plugin requires an endorsement CA certificate from the swtpm manufacturer CA. This must be extracted from a KubeVirt worker node:
+
+```bash
+# SSH to a worker node and extract the swtpm CA cert
+oc debug node/<worker-node> -- cat /host/var/lib/swtpm-localca/issuercert.pem > endorsement-ca.pem
+
+# Create a Secret in the ZTWIM namespace
+oc create secret generic swtpm-endorsement-ca \
+  -n zero-trust-workload-identity-manager \
+  --from-file=endorsement-ca.pem
+```
+
+The x509pop-setup Job mounts this Secret alongside the root CA for the `tpm_devid` server plugin.
+
+All SPIRE configuration (x509pop + tpm_devid patching and registration entries) is automated via Jobs. The only manual steps are the endorsement CA extraction and the post-demo cert disk removal.
 
 ## Related Stories
 
 - **Story 1.6b** — Finalizes SPIRE agent and spiffe-helper configuration
 - **Story 1.6c** — Finalizes Vault agent configuration
-- **Story 1.6d** — Deploys the VM on OpenShift Virtualization (VirtualMachine CR, Service, Route, kustomization)
+- **Story 1.6d** — Deploys the x509pop VM on OpenShift Virtualization (VirtualMachine CR, Service, Route, kustomization)
+- **Story 1.7** — Adds tpm_devid VM alongside x509pop VM for side-by-side attestation comparison
 
 
 Abbreviated steps:

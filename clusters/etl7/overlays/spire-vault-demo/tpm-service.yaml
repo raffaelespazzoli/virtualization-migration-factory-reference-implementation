@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: spire-vault-demo-tpm-httpd
+  namespace: spire-vault-demo
+  labels:
+    app: spire-vault-demo-tpm
+spec:
+  selector:
+    kubevirt.io/domain: spire-vault-demo-tpm-vm
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8080

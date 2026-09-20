@@ -1,0 +1,26 @@
+[Unit]
+Description=SPIRE Agent (tpm_devid attestation)
+Wants=network-online.target
+After=network-online.target
+ConditionPathExists=/etc/spire/tpm-devid/devid.crt.pem
+ConditionPathExists=/etc/spire/tpm-devid/devid.priv.blob
+ConditionPathExists=/etc/spire/tpm-devid/devid.pub.blob
+ConditionPathExists=/dev/tpmrm0
+
+[Container]
+Image=ghcr.io/spiffe/spire-agent:1.14.7
+ContainerName=spire-agent-tpm
+PodmanArgs=--pid=host --device /dev/tpmrm0
+User=10001:10001
+Volume=/etc/spire/tpm-devid:/etc/spire/tpm-devid:ro,z
+Volume=/run/spire/sockets:/run/spire/sockets:z
+Volume=/etc/spire/agent-tpm-devid.conf:/etc/spire/agent.conf:ro,z
+Volume=/var/lib/spire/data:/opt/spire/data:z
+Exec=-config /etc/spire/agent.conf
+
+[Service]
+Restart=on-failure
+RestartSec=10s
+
+[Install]
+WantedBy=multi-user.target default.target

@@ -1,0 +1,20 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: tpm-devid-bootstrap-cert
+  namespace: spire-vault-demo
+spec:
+  secretName: tpm-devid-bootstrap-cert
+  duration: 8760h  # 1 year
+  renewBefore: 720h  # 30 days
+  privateKey:
+    algorithm: RSA
+    size: 2048
+  commonName: "spire-vault-demo-tpm-vm.etl7.ocp.rht-labs.com"
+  usages:
+    - digital signature
+    - key encipherment
+    - client auth
+  issuerRef:
+    name: spire-root-ca-issuer
+    kind: ClusterIssuer
