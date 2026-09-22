@@ -11,6 +11,7 @@ resources:
   - route.yaml
   - spire-registration-job.yaml
   - tpm-cert-bootstrap.yaml
+  - tpm-cloud-init-secret.yaml
   - tpm-virtual-machine.yaml
   - tpm-service.yaml
   - tpm-route.yaml
