@@ -4,11 +4,14 @@ metadata:
   name: cluster
 spec:
   managementState: Managed
-  deschedulingIntervalSeconds: 30
+  deschedulingIntervalSeconds: 60
   mode: "Automatic"
   profiles:
-    - DevKubeVirtRelieveAndMigrate
+    - KubeVirtRelieveAndMigrate
   profileCustomizations:
     devEnableSoftTainter: true
     devDeviationThresholds: AsymmetricLow
-    devActualUtilizationProfile: PrometheusCPUCombined 
+    devActualUtilizationProfile: PrometheusCPUMemoryCombinedProfile
+  evictionLimits:
+    node: 2
+    total: 5     
