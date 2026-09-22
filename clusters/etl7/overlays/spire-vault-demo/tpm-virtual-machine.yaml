@@ -92,6 +92,6 @@ spec:
             secretName: tpm-devid-bootstrap-cert
           name: bootstrap-cert-disk
         - cloudInitNoCloud:
-            userDataSecretRef:
+            secretRef:
               name: tpm-vm-cloud-init
           name: cloudinitdisk
