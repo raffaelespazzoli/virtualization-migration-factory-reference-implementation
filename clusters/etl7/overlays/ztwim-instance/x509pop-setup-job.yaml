@@ -185,7 +185,10 @@ spec:
                 echo "tpm_devid NodeAttestor already present — skipping tpm_devid ConfigMap patch"
               else
                 echo "Adding tpm_devid NodeAttestor to ConfigMap..."
-                TPM_DEVID='{"tpm_devid":{"plugin_data":{"devid_ca_path":"/tmp/x509pop-ca/ca.crt.pem","endorsement_ca_path":"/tmp/x509pop-ca/endorsement-ca.pem"}}}'
+                # endorsement_ca_path is omitted — EK verification is skipped until
+                # the swtpm-endorsement-ca Secret is extracted from a worker node.
+                # Add it back once the Secret exists (see readme.md prerequisites).
+                TPM_DEVID='{"tpm_devid":{"plugin_data":{"devid_ca_path":"/tmp/x509pop-ca/ca.crt.pem"}}}'
 
                 tr '\n' '\001' < /tmp/server-conf.json | awk -v entry="${TPM_DEVID}" '{
                   s = $0
@@ -247,22 +250,11 @@ spec:
                         items:
                         - key: tls.crt
                           path: ca.crt.pem
-                    - name: endorsement-ca
-                      secret:
-                        secretName: swtpm-endorsement-ca
-                        optional: true
-                        items:
-                        - key: ca.pem
-                          path: endorsement-ca.pem
                     containers:
                     - name: spire-server
                       volumeMounts:
                       - name: x509pop-ca
                         mountPath: /tmp/x509pop-ca
-                        readOnly: true
-                      - name: endorsement-ca
-                        mountPath: /tmp/x509pop-ca/endorsement-ca.pem
-                        subPath: endorsement-ca.pem
                         readOnly: true
               '
 
