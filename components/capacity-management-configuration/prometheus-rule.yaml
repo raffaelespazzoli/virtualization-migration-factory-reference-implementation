@@ -49,13 +49,22 @@ spec:
             or vector(0)
         - record: cluster:available_capacity_memory:bytes
           expr: cluster:total_capacity_memory:bytes - cluster:used_capacity_memory:bytes
+        # VM and non-VM requests are limited to kubevirt-schedulable nodes, same
+        # as cluster:used_capacity_memory:bytes. The two are a partition of used,
+        # so VM + non-VM + available = total.
         - record: cluster:vm_used_capacity_memory:bytes
           expr: |
-            sum(kube_pod_resource_request{resource="memory",pod=~"virt-launcher-.*"})
+            sum(
+              kube_pod_resource_request{resource="memory",pod=~"virt-launcher-.*"}
+              and on(node) kube_node_labels{label_kubevirt_io_schedulable="true"}
+            )
             or vector(0)
         - record: cluster:non_vm_used_capacity_memory:bytes
           expr: |
-            sum(kube_pod_resource_request{resource="memory",pod!~"virt-launcher-.*"})
+            sum(
+              kube_pod_resource_request{resource="memory",pod!~"virt-launcher-.*"}
+              and on(node) kube_node_labels{label_kubevirt_io_schedulable="true"}
+            )
             or vector(0)
 
         # CPU. kube-state-metrics reports resource="cpu" in cores.
@@ -84,11 +93,17 @@ spec:
           expr: cluster:total_capacity_cpu:cores - cluster:used_capacity_cpu:cores
         - record: cluster:vm_used_capacity_cpu:cores
           expr: |
-            sum(kube_pod_resource_request{resource="cpu",pod=~"virt-launcher-.*"})
+            sum(
+              kube_pod_resource_request{resource="cpu",pod=~"virt-launcher-.*"}
+              and on(node) kube_node_labels{label_kubevirt_io_schedulable="true"}
+            )
             or vector(0)
         - record: cluster:non_vm_used_capacity_cpu:cores
           expr: |
-            sum(kube_pod_resource_request{resource="cpu",pod!~"virt-launcher-.*"})
+            sum(
+              kube_pod_resource_request{resource="cpu",pod!~"virt-launcher-.*"}
+              and on(node) kube_node_labels{label_kubevirt_io_schedulable="true"}
+            )
             or vector(0)
 
         # Actual usage from kubelet cAdvisor, as opposed to the request-based

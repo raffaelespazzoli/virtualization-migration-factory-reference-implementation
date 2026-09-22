@@ -1,0 +1,11 @@
+# VM capacity dashboard
+
+CUE dashboard-as-code for the single "how many VMs fit" panel. Requires `cue` >= 0.16.1 and `percli` >= 0.54.0.
+
+```sh
+cue mod tidy
+percli dac setup --version 0.54.0   # first time only
+percli dac build -f vm-capacity.cue
+```
+
+The build writes `built/vm-capacity_output.yaml`, a Perses `Dashboard`. The GitOps resource is the parent `perses-dashboard.yaml`, which wraps that spec as a `PersesDashboard` in `openshift-operators`.

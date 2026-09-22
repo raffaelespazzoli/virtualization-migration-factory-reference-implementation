@@ -23,19 +23,21 @@ Only nodes labeled `kubevirt.io/schedulable=true` count toward capacity. kube-st
 | `cluster:total_capacity_memory:bytes` | Schedulable memory minus the HA reserve |
 | `cluster:used_capacity_memory:bytes` | Memory requests on schedulable nodes |
 | `cluster:available_capacity_memory:bytes` | Total minus used |
-| `cluster:vm_used_capacity_memory:bytes` | Memory requests of `virt-launcher-*` pods |
-| `cluster:non_vm_used_capacity_memory:bytes` | Memory requests of every other pod |
+| `cluster:vm_used_capacity_memory:bytes` | Memory requests of `virt-launcher-*` pods on schedulable nodes |
+| `cluster:non_vm_used_capacity_memory:bytes` | Memory requests of every other pod on schedulable nodes |
 | `cluster:total_capacity_cpu:cores` | Schedulable CPU minus the HA reserve |
 | `cluster:used_capacity_cpu:cores` | CPU requests on schedulable nodes |
 | `cluster:available_capacity_cpu:cores` | Total minus used |
-| `cluster:vm_used_capacity_cpu:cores` | CPU requests of `virt-launcher-*` pods |
-| `cluster:non_vm_used_capacity_cpu:cores` | CPU requests of every other pod |
+| `cluster:vm_used_capacity_cpu:cores` | CPU requests of `virt-launcher-*` pods on schedulable nodes |
+| `cluster:non_vm_used_capacity_cpu:cores` | CPU requests of every other pod on schedulable nodes |
 | `cluster:vm_memory_usage:bytes` | Working set of `virt-launcher-*` containers |
 | `cluster:non_vm_memory_usage:bytes` | Working set of every other container |
 | `cluster:vm_cpu_usage:cores` | CPU cores used by `virt-launcher-*` containers |
 | `cluster:non_vm_cpu_usage:cores` | CPU cores used by every other container |
 
 The usage rules are actual consumption, not requests. Memory uses the cAdvisor gauge `container_memory_working_set_bytes` (the same number `oc adm top` uses). CPU has no gauge: cAdvisor exposes the counter `container_cpu_usage_seconds_total`, and `rate(...[5m])` converts it to cores, matching OpenShift's own container CPU recording rules. The `cpu="total"` matcher keeps the per-container aggregate and leaves out the per-core series cAdvisor also publishes, which would otherwise be added on top of the total. `container!=""` and `container!="POD"` drop the pod cgroup rollup and the pause container.
+
+The `vm-capacity` dashboard is written with the Perses CUE SDK in `dac/`. `perses-dashboard.yaml` is the OpenShift `PersesDashboard` produced from that build. It lives in `openshift-operators`, the project where the monitoring UIPlugin places Perses and the default Thanos Querier datasource. Open it from the console at **Observe → Dashboards (Perses)**, select `openshift-operators`, and open **How many VMs fit**. Four list variables set VM memory, VM CPU, memory overcommit, and CPU overcommit. The first panel is a stat of `floor` of the smaller of the memory-limited and CPU-limited counts. Two stacked bar panels, Memory and CPU, show non-VM used, VM used, and available. Those three segments are limited to kubevirt-schedulable nodes, so they add up to `cluster:total_capacity_memory:bytes` and `cluster:total_capacity_cpu:cores`.
 
 How many more VMs of a given shape fit is a query-time calculation, not a recording rule, because the VM size and overcommit ratios change per question. Division and multiplication are left-associative, so this is `(available / vm_size) * overcommit`:
 
