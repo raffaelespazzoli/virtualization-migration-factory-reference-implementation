@@ -39,22 +39,22 @@ The usage rules are actual consumption, not requests. Memory uses the cAdvisor g
 
 The `vm-capacity` dashboard is written with the Perses CUE SDK in `dac/`. `perses-dashboard.yaml` is the OpenShift `PersesDashboard` produced from that build. It lives in `openshift-operators`, the project where the monitoring UIPlugin places Perses and the default Thanos Querier datasource. Open it from the console at **Observe → Dashboards (Perses)**, select `openshift-operators`, and open **How many VMs fit**. Four list variables set VM memory, VM CPU, memory overcommit, and CPU overcommit. The first panel is a stat of `floor` of the smaller of the memory-limited and CPU-limited counts. Two stacked bar panels, Memory and CPU, show non-VM used, VM used, and available. Those three segments are limited to kubevirt-schedulable nodes, so they add up to `cluster:total_capacity_memory:bytes` and `cluster:total_capacity_cpu:cores`.
 
-How many more VMs of a given shape fit is a query-time calculation, not a recording rule, because the VM size and overcommit ratios change per question. Division and multiplication are left-associative, so this is `(available / vm_size) * overcommit`:
+How many more VMs of a given shape fit is a query-time calculation, not a recording rule, because the VM size and overcommit ratios change per question. Division and multiplication are left-associative, so each side is `(available / vm_size) * overcommit`. OpenShift Prometheus treats `min()` as an aggregator, so `min(a, b)` fails to parse. `clamp_max(memory_count, scalar(cpu_count))` keeps the smaller count, and `floor` drops the fraction:
 
 ```promql
-min(
+floor(clamp_max(
   cluster:available_capacity_memory:bytes / <vm_memory_bytes> * <memory_overcommit>,
-  cluster:available_capacity_cpu:cores / <vm_cpu_cores> * <cpu_overcommit>
-)
+  scalar(cluster:available_capacity_cpu:cores / <vm_cpu_cores> * <cpu_overcommit>)
+))
 ```
 
 Example for an 8GiB, 4-vCPU guest with no overcommit (`1`):
 
 ```promql
-min(
+floor(clamp_max(
   cluster:available_capacity_memory:bytes / (8 * 1024 * 1024 * 1024) * 1,
-  cluster:available_capacity_cpu:cores / 4 * 1
-)
+  scalar(cluster:available_capacity_cpu:cores / 4 * 1)
+))
 ```
 
 ## Cluster Deployment

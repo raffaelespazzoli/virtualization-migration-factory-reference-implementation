@@ -13,10 +13,12 @@ import (
 
 // How many more guests of the selected shape fit.
 // Division and multiplication are left-associative: (available / size) * overcommit.
+// clamp_max(v, scalar(limit)) is the smaller of the two counts. OpenShift
+// Prometheus parses min() as an aggregator, so min(a, b) is a query error.
 #vmsThatFit: """
-	floor(min(
+	floor(clamp_max(
 	  cluster:available_capacity_memory:bytes / $vm_memory * $memory_overcommit,
-	  cluster:available_capacity_cpu:cores / $vm_cpu * $cpu_overcommit
+	  scalar(cluster:available_capacity_cpu:cores / $vm_cpu * $cpu_overcommit)
 	))
 	"""
 

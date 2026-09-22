@@ -117,9 +117,9 @@ spec:
                 kind: PrometheusTimeSeriesQuery
                 spec:
                   query: |-
-                    floor(min(
+                    floor(clamp_max(
                       cluster:available_capacity_memory:bytes / $vm_memory * $memory_overcommit,
-                      cluster:available_capacity_cpu:cores / $vm_cpu * $cpu_overcommit
+                      scalar(cluster:available_capacity_cpu:cores / $vm_cpu * $cpu_overcommit)
                     ))
     "1_0":
       kind: Panel

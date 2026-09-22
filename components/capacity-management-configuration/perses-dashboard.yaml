@@ -13,95 +13,95 @@ spec:
       name: How many VMs fit
       description: How many more virtual machines of a chosen shape fit in the remaining schedulable capacity.
     variables:
-    - kind: ListVariable
-      spec:
-        display:
-          name: VM memory
-          hidden: false
-        defaultValue:
-          singleValue: '8589934592'
-          sliceValues: []
-        name: vm_memory
-        allowAllValue: false
-        allowMultiple: false
-        plugin:
-          kind: StaticListVariable
-          spec:
-            values:
-            - value: '4294967296'
-              label: 4 GiB
-            - value: '8589934592'
-              label: 8 GiB
-            - value: '17179869184'
-              label: 16 GiB
-            - value: '34359738368'
-              label: 32 GiB
-            - value: '68719476736'
-              label: 64 GiB
-    - kind: ListVariable
-      spec:
-        display:
-          name: VM CPU
-          hidden: false
-        defaultValue:
-          singleValue: '4'
-          sliceValues: []
-        name: vm_cpu
-        allowAllValue: false
-        allowMultiple: false
-        plugin:
-          kind: StaticListVariable
-          spec:
-            values:
-            - value: '1'
-              label: 1 vCPU
-            - value: '2'
-              label: 2 vCPU
-            - value: '4'
-              label: 4 vCPU
-            - value: '8'
-              label: 8 vCPU
-            - value: '16'
-              label: 16 vCPU
-    - kind: ListVariable
-      spec:
-        display:
-          name: Memory overcommit
-          hidden: false
-        defaultValue:
-          singleValue: '1'
-          sliceValues: []
-        name: memory_overcommit
-        allowAllValue: false
-        allowMultiple: false
-        plugin:
-          kind: StaticListVariable
-          spec:
-            values:
-            - '1'
-            - '1.5'
-            - '2'
-    - kind: ListVariable
-      spec:
-        display:
-          name: CPU overcommit
-          hidden: false
-        defaultValue:
-          singleValue: '1'
-          sliceValues: []
-        name: cpu_overcommit
-        allowAllValue: false
-        allowMultiple: false
-        plugin:
-          kind: StaticListVariable
-          spec:
-            values:
-            - '1'
-            - '2'
-            - '4'
-            - '10'
+      - kind: ListVariable
+        spec:
+          display:
+            name: VM memory
+            hidden: false
+          defaultValue:
+            singleValue: "8589934592"
+            sliceValues: []
+          name: vm_memory
+          allowAllValue: false
+          allowMultiple: false
+          plugin:
+            kind: StaticListVariable
+            spec:
+              values:
+                - value: "4294967296"
+                  label: 4 GiB
+                - value: "8589934592"
+                  label: 8 GiB
+                - value: "17179869184"
+                  label: 16 GiB
+                - value: "34359738368"
+                  label: 32 GiB
+                - value: "68719476736"
+                  label: 64 GiB
+      - kind: ListVariable
+        spec:
+          display:
+            name: VM CPU
+            hidden: false
+          defaultValue:
+            singleValue: "4"
+            sliceValues: []
+          name: vm_cpu
+          allowAllValue: false
+          allowMultiple: false
+          plugin:
+            kind: StaticListVariable
+            spec:
+              values:
+                - value: "1"
+                  label: 1 vCPU
+                - value: "2"
+                  label: 2 vCPU
+                - value: "4"
+                  label: 4 vCPU
+                - value: "8"
+                  label: 8 vCPU
+                - value: "16"
+                  label: 16 vCPU
+      - kind: ListVariable
+        spec:
+          display:
+            name: Memory overcommit
+            hidden: false
+          defaultValue:
+            singleValue: "1"
+            sliceValues: []
+          name: memory_overcommit
+          allowAllValue: false
+          allowMultiple: false
+          plugin:
+            kind: StaticListVariable
+            spec:
+              values:
+                - "1"
+                - "1.5"
+                - "2"
+      - kind: ListVariable
+        spec:
+          display:
+            name: CPU overcommit
+            hidden: false
+          defaultValue:
+            singleValue: "1"
+            sliceValues: []
+          name: cpu_overcommit
+          allowAllValue: false
+          allowMultiple: false
+          plugin:
+            kind: StaticListVariable
+            spec:
+              values:
+                - "1"
+                - "2"
+                - "4"
+                - "10"
     panels:
-      '0_0':
+      "0_0":
         kind: Panel
         spec:
           display:
@@ -114,17 +114,17 @@ spec:
                 unit: decimal
                 decimalPlaces: 0
           queries:
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: |-
-                    floor(min(
-                      cluster:available_capacity_memory:bytes / $vm_memory * $memory_overcommit,
-                      cluster:available_capacity_cpu:cores / $vm_cpu * $cpu_overcommit
-                    ))
-      '1_0':
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: |-
+                      floor(clamp_max(
+                        cluster:available_capacity_memory:bytes / $vm_memory * $memory_overcommit,
+                        scalar(cluster:available_capacity_cpu:cores / $vm_cpu * $cpu_overcommit)
+                      ))
+      "1_0":
         kind: Panel
         spec:
           display:
@@ -136,41 +136,41 @@ spec:
               format:
                 unit: bytes
               groupBy:
-              - resource
+                - resource
               isStacked: true
               orientation: vertical
           queries:
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: |-
-                    sum by (resource) (
-                      label_replace(cluster:non_vm_used_capacity_memory:bytes, "resource", "Memory", "__name__", ".+")
-                    )
-                  seriesNameFormat: Non-VM used
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: |-
-                    sum by (resource) (
-                      label_replace(cluster:vm_used_capacity_memory:bytes, "resource", "Memory", "__name__", ".+")
-                    )
-                  seriesNameFormat: VM used
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: |-
-                    sum by (resource) (
-                      label_replace(cluster:available_capacity_memory:bytes, "resource", "Memory", "__name__", ".+")
-                    )
-                  seriesNameFormat: Available
-      '1_1':
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: |-
+                      sum by (resource) (
+                        label_replace(cluster:non_vm_used_capacity_memory:bytes, "resource", "Memory", "__name__", ".+")
+                      )
+                    seriesNameFormat: Non-VM used
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: |-
+                      sum by (resource) (
+                        label_replace(cluster:vm_used_capacity_memory:bytes, "resource", "Memory", "__name__", ".+")
+                      )
+                    seriesNameFormat: VM used
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: |-
+                      sum by (resource) (
+                        label_replace(cluster:available_capacity_memory:bytes, "resource", "Memory", "__name__", ".+")
+                      )
+                    seriesNameFormat: Available
+      "1_1":
         kind: Panel
         spec:
           display:
@@ -182,67 +182,67 @@ spec:
               format:
                 unit: decimal
               groupBy:
-              - resource
+                - resource
               isStacked: true
               orientation: vertical
           queries:
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: |-
-                    sum by (resource) (
-                      label_replace(cluster:non_vm_used_capacity_cpu:cores, "resource", "CPU", "__name__", ".+")
-                    )
-                  seriesNameFormat: Non-VM used
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: |-
-                    sum by (resource) (
-                      label_replace(cluster:vm_used_capacity_cpu:cores, "resource", "CPU", "__name__", ".+")
-                    )
-                  seriesNameFormat: VM used
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: |-
-                    sum by (resource) (
-                      label_replace(cluster:available_capacity_cpu:cores, "resource", "CPU", "__name__", ".+")
-                    )
-                  seriesNameFormat: Available
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: |-
+                      sum by (resource) (
+                        label_replace(cluster:non_vm_used_capacity_cpu:cores, "resource", "CPU", "__name__", ".+")
+                      )
+                    seriesNameFormat: Non-VM used
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: |-
+                      sum by (resource) (
+                        label_replace(cluster:vm_used_capacity_cpu:cores, "resource", "CPU", "__name__", ".+")
+                      )
+                    seriesNameFormat: VM used
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: |-
+                      sum by (resource) (
+                        label_replace(cluster:available_capacity_cpu:cores, "resource", "CPU", "__name__", ".+")
+                      )
+                    seriesNameFormat: Available
     layouts:
-    - kind: Grid
-      spec:
-        display:
-          title: How many more VMs fit
-        items:
-        - x: 0
-          "y": 0
-          width: 24
-          height: 8
-          content:
-            $ref: '#/spec/panels/0_0'
-    - kind: Grid
-      spec:
-        display:
-          title: Capacity
-        items:
-        - x: 0
-          "y": 0
-          width: 12
-          height: 10
-          content:
-            $ref: '#/spec/panels/1_0'
-        - x: 12
-          "y": 0
-          width: 12
-          height: 10
-          content:
-            $ref: '#/spec/panels/1_1'
+      - kind: Grid
+        spec:
+          display:
+            title: How many more VMs fit
+          items:
+            - x: 0
+              "y": 0
+              width: 24
+              height: 8
+              content:
+                $ref: '#/spec/panels/0_0'
+      - kind: Grid
+        spec:
+          display:
+            title: Capacity
+          items:
+            - x: 0
+              "y": 0
+              width: 12
+              height: 10
+              content:
+                $ref: '#/spec/panels/1_0'
+            - x: 12
+              "y": 0
+              width: 12
+              height: 10
+              content:
+                $ref: '#/spec/panels/1_1'
     duration: 1h
