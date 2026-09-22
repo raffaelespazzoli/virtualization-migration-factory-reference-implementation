@@ -116,6 +116,17 @@ spec:
               # Patch ConfigMap FIRST (before StatefulSet) so the new
               # pods pick up the updated config on the restart triggered
               # by the StatefulSet patch in Step 2.
+
+              # Wait for ConfigMap to have actual content (the operator
+              # generates it from the SpireServer CR). If empty, the
+              # awk insertion script will silently produce a no-op.
+              echo "Waiting for spire-server ConfigMap to have content..."
+              until oc get configmap spire-server -n "${ZTWIM_NS}" \
+                -o jsonpath='{.data.server\.conf}' 2>/dev/null | grep -q '"NodeAttestor"'; do
+                echo "  ConfigMap empty or missing NodeAttestor, retrying in 10s..."
+                sleep 10
+              done
+
               echo "Checking spire-server ConfigMap for x509pop..."
 
               oc get configmap spire-server -n "${ZTWIM_NS}" \
