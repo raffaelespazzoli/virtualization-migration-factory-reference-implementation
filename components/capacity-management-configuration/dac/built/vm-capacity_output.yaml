@@ -1,96 +1,103 @@
 kind: Dashboard
 metadata:
   name: vm-capacity
-  createdAt: "0001-01-01T00:00:00Z"
+  createdAt: '0001-01-01T00:00:00Z'
   project: openshift-operators
-  updatedAt: "0001-01-01T00:00:00Z"
+  updatedAt: '0001-01-01T00:00:00Z'
   version: 0
 spec:
   display:
     name: How many VMs fit
-    description: How many more virtual machines of a chosen shape fit in the remaining schedulable capacity.
+    description: How many more virtual machines of a chosen shape fit in the remaining
+      schedulable capacity.
   variables:
-    - kind: ListVariable
-      spec:
-        display:
-          name: VM memory
-          hidden: false
-        defaultValue: "8589934592"
-        name: vm_memory
-        allowAllValue: false
-        allowMultiple: false
-        plugin:
-          kind: StaticListVariable
-          spec:
-            values:
-              - value: "4294967296"
-                label: 4 GiB
-              - value: "8589934592"
-                label: 8 GiB
-              - value: "17179869184"
-                label: 16 GiB
-              - value: "34359738368"
-                label: 32 GiB
-              - value: "68719476736"
-                label: 64 GiB
-    - kind: ListVariable
-      spec:
-        display:
-          name: VM CPU
-          hidden: false
-        defaultValue: "4"
-        name: vm_cpu
-        allowAllValue: false
-        allowMultiple: false
-        plugin:
-          kind: StaticListVariable
-          spec:
-            values:
-              - value: "1"
-                label: 1 vCPU
-              - value: "2"
-                label: 2 vCPU
-              - value: "4"
-                label: 4 vCPU
-              - value: "8"
-                label: 8 vCPU
-              - value: "16"
-                label: 16 vCPU
-    - kind: ListVariable
-      spec:
-        display:
-          name: Memory overcommit
-          hidden: false
-        defaultValue: "1"
-        name: memory_overcommit
-        allowAllValue: false
-        allowMultiple: false
-        plugin:
-          kind: StaticListVariable
-          spec:
-            values:
-              - "1"
-              - "1.5"
-              - "2"
-    - kind: ListVariable
-      spec:
-        display:
-          name: CPU overcommit
-          hidden: false
-        defaultValue: "1"
-        name: cpu_overcommit
-        allowAllValue: false
-        allowMultiple: false
-        plugin:
-          kind: StaticListVariable
-          spec:
-            values:
-              - "1"
-              - "2"
-              - "4"
-              - "10"
+  - kind: ListVariable
+    spec:
+      display:
+        name: VM memory
+        hidden: false
+      defaultValue: '8589934592'
+      name: vm_memory
+      allowAllValue: false
+      allowMultiple: false
+      plugin:
+        kind: StaticListVariable
+        spec:
+          values:
+          - value: '4294967296'
+            label: 4 GiB
+          - value: '8589934592'
+            label: 8 GiB
+          - value: '17179869184'
+            label: 16 GiB
+          - value: '34359738368'
+            label: 32 GiB
+          - value: '68719476736'
+            label: 64 GiB
+  - kind: ListVariable
+    spec:
+      display:
+        name: VM CPU
+        hidden: false
+      defaultValue: '4'
+      name: vm_cpu
+      allowAllValue: false
+      allowMultiple: false
+      plugin:
+        kind: StaticListVariable
+        spec:
+          values:
+          - value: '1'
+            label: 1 vCPU
+          - value: '2'
+            label: 2 vCPU
+          - value: '4'
+            label: 4 vCPU
+          - value: '8'
+            label: 8 vCPU
+          - value: '16'
+            label: 16 vCPU
+  - kind: ListVariable
+    spec:
+      display:
+        name: Memory overcommit
+        hidden: false
+      defaultValue: '1'
+      name: memory_overcommit
+      allowAllValue: false
+      allowMultiple: false
+      plugin:
+        kind: StaticListVariable
+        spec:
+          values:
+          - '1'
+          - '1.5'
+          - '2'
+          - '2.5'
+          - '3'
+          - '4'
+  - kind: ListVariable
+    spec:
+      display:
+        name: CPU overcommit
+        hidden: false
+      defaultValue: '1'
+      name: cpu_overcommit
+      allowAllValue: false
+      allowMultiple: false
+      plugin:
+        kind: StaticListVariable
+        spec:
+          values:
+          - '1'
+          - '2'
+          - '4'
+          - '6'
+          - '8'
+          - '10'
+          - '12'
   panels:
-    "0_0":
+    '0_0':
       kind: Panel
       spec:
         display:
@@ -103,17 +110,51 @@ spec:
               unit: decimal
               decimalPlaces: 0
         queries:
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: |-
-                    floor(clamp_max(
-                      cluster:available_capacity_memory:bytes / $vm_memory * $memory_overcommit,
-                      scalar(cluster:available_capacity_cpu:cores / $vm_cpu * $cpu_overcommit)
-                    ))
-    "1_0":
+        - kind: TimeSeriesQuery
+          spec:
+            plugin:
+              kind: PrometheusTimeSeriesQuery
+              spec:
+                query: "floor(clamp_max(\n  cluster:available_capacity_memory:bytes\
+                  \ / $vm_memory * $memory_overcommit,\n  scalar(cluster:available_capacity_cpu:cores\
+                  \ / $vm_cpu * $cpu_overcommit)\n))"
+    '0_1':
+      kind: Panel
+      spec:
+        display:
+          name: Limited by
+          description: Whether remaining capacity runs out of memory or CPU first
+            for the selected VM shape.
+        plugin:
+          kind: StatChart
+          spec:
+            calculation: last-number
+            format:
+              unit: decimal
+              decimalPlaces: 0
+            mappings:
+            - kind: Range
+              spec:
+                from: 0
+                to: 0.5
+                result:
+                  value: Memory bound
+            - kind: Range
+              spec:
+                from: 0.5
+                to: 1.5
+                result:
+                  value: CPU bound
+        queries:
+        - kind: TimeSeriesQuery
+          spec:
+            plugin:
+              kind: PrometheusTimeSeriesQuery
+              spec:
+                query: "(\n  cluster:available_capacity_memory:bytes / $vm_memory\
+                  \ * $memory_overcommit\n  > bool\n  scalar(cluster:available_capacity_cpu:cores\
+                  \ / $vm_cpu * $cpu_overcommit)\n)"
+    '1_0':
       kind: Panel
       spec:
         display:
@@ -121,6 +162,9 @@ spec:
         plugin:
           kind: TimeSeriesChart
           spec:
+            legend:
+              position: bottom
+              mode: list
             visual:
               display: bar
               stack: all
@@ -128,28 +172,28 @@ spec:
               format:
                 unit: bytes
         queries:
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: cluster:non_vm_used_capacity_memory:bytes
-                  seriesNameFormat: Non-VM used
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: cluster:vm_used_capacity_memory:bytes
-                  seriesNameFormat: VM used
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: cluster:available_capacity_memory:bytes
-                  seriesNameFormat: Available
-    "1_1":
+        - kind: TimeSeriesQuery
+          spec:
+            plugin:
+              kind: PrometheusTimeSeriesQuery
+              spec:
+                query: cluster:non_vm_used_capacity_memory:bytes
+                seriesNameFormat: Non-VM used
+        - kind: TimeSeriesQuery
+          spec:
+            plugin:
+              kind: PrometheusTimeSeriesQuery
+              spec:
+                query: cluster:vm_used_capacity_memory:bytes
+                seriesNameFormat: VM used
+        - kind: TimeSeriesQuery
+          spec:
+            plugin:
+              kind: PrometheusTimeSeriesQuery
+              spec:
+                query: cluster:available_capacity_memory:bytes
+                seriesNameFormat: Available
+    '1_1':
       kind: Panel
       spec:
         display:
@@ -157,6 +201,9 @@ spec:
         plugin:
           kind: TimeSeriesChart
           spec:
+            legend:
+              position: bottom
+              mode: list
             visual:
               display: bar
               stack: all
@@ -164,54 +211,60 @@ spec:
               format:
                 unit: decimal
         queries:
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: cluster:non_vm_used_capacity_cpu:cores
-                  seriesNameFormat: Non-VM used
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: cluster:vm_used_capacity_cpu:cores
-                  seriesNameFormat: VM used
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: cluster:available_capacity_cpu:cores
-                  seriesNameFormat: Available
+        - kind: TimeSeriesQuery
+          spec:
+            plugin:
+              kind: PrometheusTimeSeriesQuery
+              spec:
+                query: cluster:non_vm_used_capacity_cpu:cores
+                seriesNameFormat: Non-VM used
+        - kind: TimeSeriesQuery
+          spec:
+            plugin:
+              kind: PrometheusTimeSeriesQuery
+              spec:
+                query: cluster:vm_used_capacity_cpu:cores
+                seriesNameFormat: VM used
+        - kind: TimeSeriesQuery
+          spec:
+            plugin:
+              kind: PrometheusTimeSeriesQuery
+              spec:
+                query: cluster:available_capacity_cpu:cores
+                seriesNameFormat: Available
   layouts:
-    - kind: Grid
-      spec:
-        display:
-          title: How many more VMs fit
-        items:
-          - x: 0
-            "y": 0
-            width: 24
-            height: 8
-            content:
-              $ref: '#/spec/panels/0_0'
-    - kind: Grid
-      spec:
-        display:
-          title: Capacity
-        items:
-          - x: 0
-            "y": 0
-            width: 12
-            height: 10
-            content:
-              $ref: '#/spec/panels/1_0'
-          - x: 12
-            "y": 0
-            width: 12
-            height: 10
-            content:
-              $ref: '#/spec/panels/1_1'
+  - kind: Grid
+    spec:
+      display:
+        title: How many more VMs fit
+      items:
+      - x: 0
+        "y": 0
+        width: 16
+        height: 8
+        content:
+          $ref: '#/spec/panels/0_0'
+      - x: 16
+        "y": 0
+        width: 8
+        height: 8
+        content:
+          $ref: '#/spec/panels/0_1'
+  - kind: Grid
+    spec:
+      display:
+        title: Capacity
+      items:
+      - x: 0
+        "y": 0
+        width: 12
+        height: 12
+        content:
+          $ref: '#/spec/panels/1_0'
+      - x: 12
+        "y": 0
+        width: 12
+        height: 12
+        content:
+          $ref: '#/spec/panels/1_1'
   duration: 1h

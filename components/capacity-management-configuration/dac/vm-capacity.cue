@@ -21,6 +21,16 @@ import (
 	))
 	"""
 
+// 1 when CPU is the tighter limit, 0 when memory is. StatChart mappings
+// turn that into "CPU bound" / "Memory bound".
+#limitedBy: """
+	(
+	  cluster:available_capacity_memory:bytes / $vm_memory * $memory_overcommit
+	  > bool
+	  scalar(cluster:available_capacity_cpu:cores / $vm_cpu * $cpu_overcommit)
+	)
+	"""
+
 // COO Perses ships BarChart 0.11.1, which has no stacking fields.
 // TimeSeriesChart visual.stack=all is the stacked column that version accepts.
 // seriesNameFormat is the segment name. Non-VM + VM + available equals total.
@@ -40,6 +50,10 @@ import (
 	#unit: string
 	kind:  "TimeSeriesChart"
 	spec: {
+		legend: {
+			position: "bottom"
+			mode:     "list"
+		}
 		visual: {
 			display: "bar"
 			stack:   "all"
@@ -88,13 +102,13 @@ dashboardBuilder & {
 			staticListVarBuilder & {
 				#name: "memory_overcommit"
 				#display: name: "Memory overcommit"
-				#values: ["1", "1.5", "2"]
+				#values: ["1", "1.5", "2", "2.5", "3", "4"]
 				variable: spec: defaultValue: singleValue: "1"
 			},
 			staticListVarBuilder & {
 				#name: "cpu_overcommit"
 				#display: name: "CPU overcommit"
-				#values: ["1", "2", "4", "10"]
+				#values: ["1", "2", "4", "6", "8", "10", "12"]
 				variable: spec: defaultValue: singleValue: "1"
 			},
 		]
@@ -104,7 +118,7 @@ dashboardBuilder & {
 		#input: [
 			{
 				#title: "How many more VMs fit"
-				#cols:  1
+				#cols:  2
 				#panels: [
 					panelBuilder & {
 						spec: {
@@ -128,12 +142,55 @@ dashboardBuilder & {
 							]
 						}
 					},
+					panelBuilder & {
+						spec: {
+							display: {
+								name:        "Limited by"
+								description: "Whether remaining capacity runs out of memory or CPU first for the selected VM shape."
+							}
+							plugin: statChart & {
+								spec: {
+									calculation: "last-number"
+									format: {
+										unit:          "decimal"
+										decimalPlaces: 0
+									}
+									mappings: [
+										{
+											kind: "Range"
+											spec: {
+												from: 0
+												to:   0.5
+												result: value: "Memory bound"
+											}
+										},
+										{
+											kind: "Range"
+											spec: {
+												from: 0.5
+												to:   1.5
+												result: value: "CPU bound"
+											}
+										},
+									]
+								}
+							}
+							queries: [
+								{
+									kind: "TimeSeriesQuery"
+									spec: plugin: promQuery & {
+										spec: query: #limitedBy
+									}
+								},
+							]
+						}
+					},
 				]
 			},
 			{
 				#title:  "Capacity"
 				#cols:   2
-				#height: 10
+				#height: 12
 				#panels: [
 					panelBuilder & {
 						spec: {

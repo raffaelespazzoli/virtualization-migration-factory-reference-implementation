@@ -176,58 +176,23 @@ spec:
                 echo "x509pop ConfigMap patched successfully"
               fi
 
-              # ── Step 1b: Add or fix tpm_devid NodeAttestor in ConfigMap ──
-              # Re-read ConfigMap (may have been patched in Step 1a)
-              echo "Checking spire-server ConfigMap for tpm_devid..."
+              # ── Step 1b: tpm_devid NodeAttestor ──────────────────
+              # The tpm_devid server plugin REQUIRES endorsement_ca_path
+              # (swtpm manufacturer CA). Until the swtpm-endorsement-ca
+              # Secret is created, we CANNOT add this plugin — the SPIRE
+              # server will crash.
+              #
+              # If a previous run left a tpm_devid entry in the ConfigMap,
+              # remove it to prevent crashes.
+              echo "Checking for stale tpm_devid entry in ConfigMap..."
               oc get configmap spire-server -n "${ZTWIM_NS}" \
                 -o jsonpath='{.data.server\.conf}' > /tmp/server-conf.json
 
-              NEED_TPM_PATCH=false
               if grep -q '"tpm_devid"' /tmp/server-conf.json; then
-                if grep -q '"endorsement_ca_path"' /tmp/server-conf.json; then
-                  echo "tpm_devid has stale endorsement_ca_path — stripping it..."
-                  # Remove ,"endorsement_ca_path":"..." from the tpm_devid entry
-                  sed -i 's/,"endorsement_ca_path":"[^"]*"//g' /tmp/server-conf.json
-                  NEED_TPM_PATCH=true
-                else
-                  echo "tpm_devid NodeAttestor already present and clean — skipping"
-                fi
-              else
-                echo "Adding tpm_devid NodeAttestor to ConfigMap..."
-                # endorsement_ca_path is omitted — EK verification is skipped until
-                # the swtpm-endorsement-ca Secret is extracted from a worker node.
-                # Add it back once the Secret exists (see readme.md prerequisites).
-                TPM_DEVID='{"tpm_devid":{"plugin_data":{"devid_ca_path":"/tmp/x509pop-ca/ca.crt.pem"}}}'
+                echo "WARNING: tpm_devid found in ConfigMap — removing (endorsement CA not available)..."
+                # Strip the tpm_devid entry (with or without endorsement_ca_path)
+                sed -i 's/,{"tpm_devid":{"plugin_data":{[^}]*}}}//g' /tmp/server-conf.json
 
-                tr '\n' '\001' < /tmp/server-conf.json | awk -v entry="${TPM_DEVID}" '{
-                  s = $0
-                  target = "\"NodeAttestor\""
-                  idx = index(s, target)
-                  if (idx > 0) {
-                    rest = substr(s, idx)
-                    bi = index(rest, "[")
-                    if (bi > 0) {
-                      abs = idx + bi - 1
-                      depth = 0
-                      for (i = abs; i <= length(s); i++) {
-                        c = substr(s, i, 1)
-                        if (c == "[") depth++
-                        else if (c == "]") {
-                          depth--
-                          if (depth == 0) {
-                            s = substr(s, 1, i-1) "," entry substr(s, i)
-                            break
-                          }
-                        }
-                      }
-                    }
-                  }
-                  printf "%s", s
-                }' | tr '\001' '\n' > /tmp/server-conf.json
-                NEED_TPM_PATCH=true
-              fi
-
-              if [ "${NEED_TPM_PATCH}" = "true" ]; then
                 awk '
                   BEGIN { printf "{\"data\":{\"server.conf\":\"" }
                   {
@@ -244,43 +209,17 @@ spec:
                 oc patch configmap spire-server -n "${ZTWIM_NS}" \
                   --type=merge --patch-file /tmp/cm-patch.json
 
-                echo "tpm_devid ConfigMap patched successfully"
+                echo "Stale tpm_devid entry removed from ConfigMap"
+              else
+                echo "No tpm_devid entry in ConfigMap — OK"
               fi
 
-              # ── Step 2a: Remove stale endorsement-ca volume/mount ──
-              # A previous Job run may have added an endorsement-ca volume
-              # referencing a non-existent Secret. Strategic merge patches
-              # cannot remove list items, so use $patch:delete directives.
-              echo "Cleaning up stale endorsement-ca volume/mount..."
-              oc patch statefulset spire-server -n "${ZTWIM_NS}" --type=strategic -p '
-              {
-                "spec": {
-                  "template": {
-                    "spec": {
-                      "volumes": [
-                        {
-                          "name": "endorsement-ca",
-                          "$patch": "delete"
-                        }
-                      ],
-                      "containers": [
-                        {
-                          "name": "spire-server",
-                          "volumeMounts": [
-                            {
-                              "mountPath": "/tmp/x509pop-ca/endorsement-ca.pem",
-                              "$patch": "delete"
-                            }
-                          ]
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-              ' 2>/dev/null || echo "  (no stale endorsement-ca found — OK)"
+              # TODO: Once swtpm-endorsement-ca Secret exists, add tpm_devid:
+              #   1. Add swtpm-endorsement-ca Secret to the StatefulSet volumes
+              #   2. Add tpm_devid NodeAttestor with both devid_ca_path AND endorsement_ca_path
+              # See readme.md for the swtpm CA extraction procedure.
 
-              # ── Step 2b: Mount spire-root-ca-secret into spire-server ─
+              # ── Step 2: Mount spire-root-ca-secret into spire-server ─
               # Patching spec.template triggers an automatic rolling
               # restart — no explicit rollout restart needed.
               echo "Patching spire-server StatefulSet to mount x509pop CA..."
@@ -316,10 +255,9 @@ spec:
                 -o jsonpath='{.data.server\.conf}' | grep -c x509pop
               echo "x509pop entries found in server.conf (expected >= 1)"
 
-              echo "Verifying tpm_devid configuration in ConfigMap..."
-              oc get configmap spire-server -n "${ZTWIM_NS}" \
-                -o jsonpath='{.data.server\.conf}' | grep -c tpm_devid
-              echo "tpm_devid entries found in server.conf (expected >= 1)"
+              # NOTE: tpm_devid verification skipped — plugin requires
+              # endorsement_ca_path which depends on swtpm-endorsement-ca Secret.
+              # tpm_devid will be added when that Secret is available.
 
               echo ""
               echo "=== x509pop setup Job complete ==="
