@@ -5,7 +5,6 @@ import (
 	panelGroupsBuilder "github.com/perses/perses/cue/dac-utils/panelgroups"
 	varGroupBuilder "github.com/perses/perses/cue/dac-utils/variable/group"
 	panelBuilder "github.com/perses/plugins/prometheus/sdk/cue/panel"
-	barChart "github.com/perses/plugins/barchart/schemas:model"
 	promQuery "github.com/perses/plugins/prometheus/schemas/prometheus-time-series-query:model"
 	statChart "github.com/perses/plugins/statchart/schemas:model"
 	staticListVarBuilder "github.com/perses/plugins/staticlistvariable/sdk/cue:staticlist"
@@ -22,18 +21,30 @@ import (
 	))
 	"""
 
-// sum by (resource) drops every label except the shared category, so the
-// stacked bar uses seriesNameFormat as the segment name. Non-VM + VM +
-// available equals cluster total capacity.
+// COO Perses ships BarChart 0.11.1, which has no stacking fields.
+// TimeSeriesChart visual.stack=all is the stacked column that version accepts.
+// seriesNameFormat is the segment name. Non-VM + VM + available equals total.
 #stackedQuery: {
-	#query:  string
+	#query:   string
 	#segment: string
-	kind: "TimeSeriesQuery"
+	kind:     "TimeSeriesQuery"
 	spec: plugin: promQuery & {
 		spec: {
 			query:            #query
 			seriesNameFormat: #segment
 		}
+	}
+}
+
+#capacityChart: {
+	#unit: string
+	kind:  "TimeSeriesChart"
+	spec: {
+		visual: {
+			display: "bar"
+			stack:   "all"
+		}
+		yAxis: format: unit: #unit
 	}
 }
 
@@ -58,6 +69,8 @@ dashboardBuilder & {
 					{value: "34359738368", label: "32 GiB"},
 					{value: "68719476736", label: "64 GiB"},
 				]
+				// CUE schema is {singleValue, sliceValues}. Flatten to a
+				// string when copying into perses-dashboard.yaml.
 				variable: spec: defaultValue: singleValue: "8589934592"
 			},
 			staticListVarBuilder & {
@@ -125,39 +138,19 @@ dashboardBuilder & {
 					panelBuilder & {
 						spec: {
 							display: name: "Memory"
-							plugin: barChart & {
-								spec: {
-									calculation: "last-number"
-									orientation: "vertical"
-									isStacked:   true
-									groupBy: ["resource"]
-									format: unit: "bytes"
-								}
-							}
+							plugin: #capacityChart & {#unit: "bytes"}
 							queries: [
 								#stackedQuery & {
 									#segment: "Non-VM used"
-									#query: """
-										sum by (resource) (
-										  label_replace(cluster:non_vm_used_capacity_memory:bytes, "resource", "Memory", "__name__", ".+")
-										)
-										"""
+									#query:   "cluster:non_vm_used_capacity_memory:bytes"
 								},
 								#stackedQuery & {
 									#segment: "VM used"
-									#query: """
-										sum by (resource) (
-										  label_replace(cluster:vm_used_capacity_memory:bytes, "resource", "Memory", "__name__", ".+")
-										)
-										"""
+									#query:   "cluster:vm_used_capacity_memory:bytes"
 								},
 								#stackedQuery & {
 									#segment: "Available"
-									#query: """
-										sum by (resource) (
-										  label_replace(cluster:available_capacity_memory:bytes, "resource", "Memory", "__name__", ".+")
-										)
-										"""
+									#query:   "cluster:available_capacity_memory:bytes"
 								},
 							]
 						}
@@ -165,39 +158,19 @@ dashboardBuilder & {
 					panelBuilder & {
 						spec: {
 							display: name: "CPU"
-							plugin: barChart & {
-								spec: {
-									calculation: "last-number"
-									orientation: "vertical"
-									isStacked:   true
-									groupBy: ["resource"]
-									format: unit: "decimal"
-								}
-							}
+							plugin: #capacityChart & {#unit: "decimal"}
 							queries: [
 								#stackedQuery & {
 									#segment: "Non-VM used"
-									#query: """
-										sum by (resource) (
-										  label_replace(cluster:non_vm_used_capacity_cpu:cores, "resource", "CPU", "__name__", ".+")
-										)
-										"""
+									#query:   "cluster:non_vm_used_capacity_cpu:cores"
 								},
 								#stackedQuery & {
 									#segment: "VM used"
-									#query: """
-										sum by (resource) (
-										  label_replace(cluster:vm_used_capacity_cpu:cores, "resource", "CPU", "__name__", ".+")
-										)
-										"""
+									#query:   "cluster:vm_used_capacity_cpu:cores"
 								},
 								#stackedQuery & {
 									#segment: "Available"
-									#query: """
-										sum by (resource) (
-										  label_replace(cluster:available_capacity_cpu:cores, "resource", "CPU", "__name__", ".+")
-										)
-										"""
+									#query:   "cluster:available_capacity_cpu:cores"
 								},
 							]
 						}

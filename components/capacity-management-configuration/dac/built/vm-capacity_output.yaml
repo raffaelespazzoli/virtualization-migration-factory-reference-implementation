@@ -15,9 +15,7 @@ spec:
         display:
           name: VM memory
           hidden: false
-        defaultValue:
-          singleValue: "8589934592"
-          sliceValues: []
+        defaultValue: "8589934592"
         name: vm_memory
         allowAllValue: false
         allowMultiple: false
@@ -40,9 +38,7 @@ spec:
         display:
           name: VM CPU
           hidden: false
-        defaultValue:
-          singleValue: "4"
-          sliceValues: []
+        defaultValue: "4"
         name: vm_cpu
         allowAllValue: false
         allowMultiple: false
@@ -65,9 +61,7 @@ spec:
         display:
           name: Memory overcommit
           hidden: false
-        defaultValue:
-          singleValue: "1"
-          sliceValues: []
+        defaultValue: "1"
         name: memory_overcommit
         allowAllValue: false
         allowMultiple: false
@@ -83,9 +77,7 @@ spec:
         display:
           name: CPU overcommit
           hidden: false
-        defaultValue:
-          singleValue: "1"
-          sliceValues: []
+        defaultValue: "1"
         name: cpu_overcommit
         allowAllValue: false
         allowMultiple: false

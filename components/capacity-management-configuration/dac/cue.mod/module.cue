@@ -6,10 +6,6 @@ deps: {
 	"github.com/perses/perses/cue@v0": {
 		v: "v0.54.0"
 	}
-	"github.com/perses/plugins/barchart@v0": {
-		v:       "v0.13.0"
-		default: true
-	}
 	"github.com/perses/plugins/prometheus@v0": {
 		v:       "v0.58.0"
 		default: true

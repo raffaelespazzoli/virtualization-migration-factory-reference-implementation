@@ -1,5 +1,8 @@
 # Generated from dac/vm-capacity.cue. Rebuild with `percli dac build -f vm-capacity.cue`
 # in the dac directory, then copy spec into spec.config of this resource.
+# Flatten ListVariable defaultValue to a string: the Perses operator rejects
+# the CUE `{singleValue, sliceValues}` object with
+# "unable to unmarshal defaultValue. Only string or array of string can be used".
 apiVersion: perses.dev/v1alpha2
 kind: PersesDashboard
 metadata:
@@ -18,9 +21,7 @@ spec:
           display:
             name: VM memory
             hidden: false
-          defaultValue:
-            singleValue: "8589934592"
-            sliceValues: []
+          defaultValue: "8589934592"
           name: vm_memory
           allowAllValue: false
           allowMultiple: false
@@ -43,9 +44,7 @@ spec:
           display:
             name: VM CPU
             hidden: false
-          defaultValue:
-            singleValue: "4"
-            sliceValues: []
+          defaultValue: "4"
           name: vm_cpu
           allowAllValue: false
           allowMultiple: false
@@ -68,9 +67,7 @@ spec:
           display:
             name: Memory overcommit
             hidden: false
-          defaultValue:
-            singleValue: "1"
-            sliceValues: []
+          defaultValue: "1"
           name: memory_overcommit
           allowAllValue: false
           allowMultiple: false
@@ -86,9 +83,7 @@ spec:
           display:
             name: CPU overcommit
             hidden: false
-          defaultValue:
-            singleValue: "1"
-            sliceValues: []
+          defaultValue: "1"
           name: cpu_overcommit
           allowAllValue: false
           allowMultiple: false

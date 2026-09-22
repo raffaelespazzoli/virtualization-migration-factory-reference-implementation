@@ -9,3 +9,5 @@ percli dac build -f vm-capacity.cue
 ```
 
 The build writes `built/vm-capacity_output.yaml`, a Perses `Dashboard`. The GitOps resource is the parent `perses-dashboard.yaml`, which wraps that spec as a `PersesDashboard` in `openshift-operators`.
+
+When copying the spec, flatten each ListVariable `defaultValue` to a string. The CUE SDK emits `{singleValue, sliceValues}` because that is the Go struct; the Perses operator only unmarshals a string or an array of strings. Leftover object form fails reconcile with `unable to unmarshal defaultValue`.

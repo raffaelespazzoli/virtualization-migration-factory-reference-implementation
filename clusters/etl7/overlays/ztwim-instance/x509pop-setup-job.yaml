@@ -176,13 +176,22 @@ spec:
                 echo "x509pop ConfigMap patched successfully"
               fi
 
-              # ── Step 1b: Add tpm_devid NodeAttestor to ConfigMap ──
+              # ── Step 1b: Add or fix tpm_devid NodeAttestor in ConfigMap ──
+              # Re-read ConfigMap (may have been patched in Step 1a)
               echo "Checking spire-server ConfigMap for tpm_devid..."
               oc get configmap spire-server -n "${ZTWIM_NS}" \
                 -o jsonpath='{.data.server\.conf}' > /tmp/server-conf.json
 
+              NEED_TPM_PATCH=false
               if grep -q '"tpm_devid"' /tmp/server-conf.json; then
-                echo "tpm_devid NodeAttestor already present — skipping tpm_devid ConfigMap patch"
+                if grep -q '"endorsement_ca_path"' /tmp/server-conf.json; then
+                  echo "tpm_devid has stale endorsement_ca_path — stripping it..."
+                  # Remove ,"endorsement_ca_path":"..." from the tpm_devid entry
+                  sed -i 's/,"endorsement_ca_path":"[^"]*"//g' /tmp/server-conf.json
+                  NEED_TPM_PATCH=true
+                else
+                  echo "tpm_devid NodeAttestor already present and clean — skipping"
+                fi
               else
                 echo "Adding tpm_devid NodeAttestor to ConfigMap..."
                 # endorsement_ca_path is omitted — EK verification is skipped until
@@ -214,8 +223,11 @@ spec:
                     }
                   }
                   printf "%s", s
-                }' | tr '\001' '\n' > /tmp/server-conf-updated.json
+                }' | tr '\001' '\n' > /tmp/server-conf.json
+                NEED_TPM_PATCH=true
+              fi
 
+              if [ "${NEED_TPM_PATCH}" = "true" ]; then
                 awk '
                   BEGIN { printf "{\"data\":{\"server.conf\":\"" }
                   {
@@ -227,7 +239,7 @@ spec:
                     printf "%s", $0
                   }
                   END { print "\"}}" }
-                ' /tmp/server-conf-updated.json > /tmp/cm-patch.json
+                ' /tmp/server-conf.json > /tmp/cm-patch.json
 
                 oc patch configmap spire-server -n "${ZTWIM_NS}" \
                   --type=merge --patch-file /tmp/cm-patch.json
@@ -235,7 +247,40 @@ spec:
                 echo "tpm_devid ConfigMap patched successfully"
               fi
 
-              # ── Step 2: Mount spire-root-ca-secret into spire-server ─
+              # ── Step 2a: Remove stale endorsement-ca volume/mount ──
+              # A previous Job run may have added an endorsement-ca volume
+              # referencing a non-existent Secret. Strategic merge patches
+              # cannot remove list items, so use $patch:delete directives.
+              echo "Cleaning up stale endorsement-ca volume/mount..."
+              oc patch statefulset spire-server -n "${ZTWIM_NS}" --type=strategic -p '
+              {
+                "spec": {
+                  "template": {
+                    "spec": {
+                      "volumes": [
+                        {
+                          "name": "endorsement-ca",
+                          "$patch": "delete"
+                        }
+                      ],
+                      "containers": [
+                        {
+                          "name": "spire-server",
+                          "volumeMounts": [
+                            {
+                              "mountPath": "/tmp/x509pop-ca/endorsement-ca.pem",
+                              "$patch": "delete"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+              ' 2>/dev/null || echo "  (no stale endorsement-ca found — OK)"
+
+              # ── Step 2b: Mount spire-root-ca-secret into spire-server ─
               # Patching spec.template triggers an automatic rolling
               # restart — no explicit rollout restart needed.
               echo "Patching spire-server StatefulSet to mount x509pop CA..."
