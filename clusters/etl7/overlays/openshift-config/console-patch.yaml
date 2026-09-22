@@ -18,3 +18,4 @@ spec:
   #- distributed-tracing-console-plugin
   - soteria-console-plugin
   - netobserv-plugin
+  - monitoring-console-plugin
