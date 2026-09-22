@@ -1,0 +1,118 @@
+# Capacity accounting for OpenShift Virtualization.
+#
+# Only nodes labeled kubevirt.io/schedulable=true are counted. That drops
+# nodes KubeVirt will not schedule virtual machines onto.
+#
+# capacity:nodes_down:count is the HA reserve: the largest schedulable node's
+# allocatable, multiplied by this count, is subtracted from total capacity.
+# Default is 1 (keep headroom for a single node failure). Change that rule
+# to reserve a different number of nodes.
+#
+# Metric names use underscores and a unit suffix. Prometheus metric names
+# cannot contain hyphens.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: capacity-management
+  namespace: openshift-monitoring
+  labels:
+    prometheus: k8s
+    role: alert-rules
+spec:
+  groups:
+    - name: capacity-management.rules
+      rules:
+        - record: capacity:nodes_down:count
+          expr: vector(1)
+
+        # Memory. kube-state-metrics reports resource="memory" in bytes.
+        - record: cluster:total_capacity_memory:bytes
+          expr: |
+            sum(
+              kube_node_status_allocatable{resource="memory"}
+              and on(node) kube_node_labels{label_kubevirt_io_schedulable="true"}
+            )
+            -
+            (
+              max(
+                kube_node_status_allocatable{resource="memory"}
+                and on(node) kube_node_labels{label_kubevirt_io_schedulable="true"}
+              )
+              * capacity:nodes_down:count
+            )
+        - record: cluster:used_capacity_memory:bytes
+          expr: |
+            sum(
+              kube_pod_resource_request{resource="memory"}
+              and on(node) kube_node_labels{label_kubevirt_io_schedulable="true"}
+            )
+            or vector(0)
+        - record: cluster:available_capacity_memory:bytes
+          expr: cluster:total_capacity_memory:bytes - cluster:used_capacity_memory:bytes
+        - record: cluster:vm_used_capacity_memory:bytes
+          expr: |
+            sum(kube_pod_resource_request{resource="memory",pod=~"virt-launcher-.*"})
+            or vector(0)
+        - record: cluster:non_vm_used_capacity_memory:bytes
+          expr: |
+            sum(kube_pod_resource_request{resource="memory",pod!~"virt-launcher-.*"})
+            or vector(0)
+
+        # CPU. kube-state-metrics reports resource="cpu" in cores.
+        - record: cluster:total_capacity_cpu:cores
+          expr: |
+            sum(
+              kube_node_status_allocatable{resource="cpu"}
+              and on(node) kube_node_labels{label_kubevirt_io_schedulable="true"}
+            )
+            -
+            (
+              max(
+                kube_node_status_allocatable{resource="cpu"}
+                and on(node) kube_node_labels{label_kubevirt_io_schedulable="true"}
+              )
+              * capacity:nodes_down:count
+            )
+        - record: cluster:used_capacity_cpu:cores
+          expr: |
+            sum(
+              kube_pod_resource_request{resource="cpu"}
+              and on(node) kube_node_labels{label_kubevirt_io_schedulable="true"}
+            )
+            or vector(0)
+        - record: cluster:available_capacity_cpu:cores
+          expr: cluster:total_capacity_cpu:cores - cluster:used_capacity_cpu:cores
+        - record: cluster:vm_used_capacity_cpu:cores
+          expr: |
+            sum(kube_pod_resource_request{resource="cpu",pod=~"virt-launcher-.*"})
+            or vector(0)
+        - record: cluster:non_vm_used_capacity_cpu:cores
+          expr: |
+            sum(kube_pod_resource_request{resource="cpu",pod!~"virt-launcher-.*"})
+            or vector(0)
+
+        # Actual usage from kubelet cAdvisor, as opposed to the request-based
+        # capacity rules above. container!="" and container!="POD" skip the
+        # pod cgroup aggregate and the pause container so they are not counted
+        # twice.
+        #
+        # Memory is a gauge. CPU is the counter container_cpu_usage_seconds_total;
+        # rate() turns it into cores. cpu="total" is the per-container aggregate
+        # cAdvisor emits alongside one series per core — without it the sum
+        # counts every core on top of the total.
+        - record: cluster:vm_memory_usage:bytes
+          expr: |
+            sum(container_memory_working_set_bytes{pod=~"virt-launcher-.*",container!="",container!="POD"})
+            or vector(0)
+        - record: cluster:non_vm_memory_usage:bytes
+          expr: |
+            sum(container_memory_working_set_bytes{pod!~"virt-launcher-.*",container!="",container!="POD"})
+            or vector(0)
+        - record: cluster:vm_cpu_usage:cores
+          expr: |
+            sum(rate(container_cpu_usage_seconds_total{pod=~"virt-launcher-.*",container!="",container!="POD",cpu="total"}[5m]))
+            or vector(0)
+        - record: cluster:non_vm_cpu_usage:cores
+          expr: |
+            sum(rate(container_cpu_usage_seconds_total{pod!~"virt-launcher-.*",container!="",container!="POD",cpu="total"}[5m]))
+            or vector(0)

@@ -149,6 +149,15 @@ applications:
     source:
       path: components/cluster-observability-configuration
 
+  capacity-management-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+    destination:
+      namespace: openshift-monitoring
+    source:
+      path: components/capacity-management-configuration
+
   otel-operator:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
