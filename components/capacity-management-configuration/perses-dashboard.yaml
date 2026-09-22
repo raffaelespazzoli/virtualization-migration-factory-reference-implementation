@@ -125,45 +125,35 @@ spec:
           display:
             name: Memory
           plugin:
-            kind: BarChart
+            kind: TimeSeriesChart
             spec:
-              calculation: last-number
-              format:
-                unit: bytes
-              groupBy:
-                - resource
-              isStacked: true
-              orientation: vertical
+              visual:
+                display: bar
+                stack: all
+              yAxis:
+                format:
+                  unit: bytes
           queries:
             - kind: TimeSeriesQuery
               spec:
                 plugin:
                   kind: PrometheusTimeSeriesQuery
                   spec:
-                    query: |-
-                      sum by (resource) (
-                        label_replace(cluster:non_vm_used_capacity_memory:bytes, "resource", "Memory", "__name__", ".+")
-                      )
+                    query: cluster:non_vm_used_capacity_memory:bytes
                     seriesNameFormat: Non-VM used
             - kind: TimeSeriesQuery
               spec:
                 plugin:
                   kind: PrometheusTimeSeriesQuery
                   spec:
-                    query: |-
-                      sum by (resource) (
-                        label_replace(cluster:vm_used_capacity_memory:bytes, "resource", "Memory", "__name__", ".+")
-                      )
+                    query: cluster:vm_used_capacity_memory:bytes
                     seriesNameFormat: VM used
             - kind: TimeSeriesQuery
               spec:
                 plugin:
                   kind: PrometheusTimeSeriesQuery
                   spec:
-                    query: |-
-                      sum by (resource) (
-                        label_replace(cluster:available_capacity_memory:bytes, "resource", "Memory", "__name__", ".+")
-                      )
+                    query: cluster:available_capacity_memory:bytes
                     seriesNameFormat: Available
       "1_1":
         kind: Panel
@@ -171,45 +161,35 @@ spec:
           display:
             name: CPU
           plugin:
-            kind: BarChart
+            kind: TimeSeriesChart
             spec:
-              calculation: last-number
-              format:
-                unit: decimal
-              groupBy:
-                - resource
-              isStacked: true
-              orientation: vertical
+              visual:
+                display: bar
+                stack: all
+              yAxis:
+                format:
+                  unit: decimal
           queries:
             - kind: TimeSeriesQuery
               spec:
                 plugin:
                   kind: PrometheusTimeSeriesQuery
                   spec:
-                    query: |-
-                      sum by (resource) (
-                        label_replace(cluster:non_vm_used_capacity_cpu:cores, "resource", "CPU", "__name__", ".+")
-                      )
+                    query: cluster:non_vm_used_capacity_cpu:cores
                     seriesNameFormat: Non-VM used
             - kind: TimeSeriesQuery
               spec:
                 plugin:
                   kind: PrometheusTimeSeriesQuery
                   spec:
-                    query: |-
-                      sum by (resource) (
-                        label_replace(cluster:vm_used_capacity_cpu:cores, "resource", "CPU", "__name__", ".+")
-                      )
+                    query: cluster:vm_used_capacity_cpu:cores
                     seriesNameFormat: VM used
             - kind: TimeSeriesQuery
               spec:
                 plugin:
                   kind: PrometheusTimeSeriesQuery
                   spec:
-                    query: |-
-                      sum by (resource) (
-                        label_replace(cluster:available_capacity_cpu:cores, "resource", "CPU", "__name__", ".+")
-                      )
+                    query: cluster:available_capacity_cpu:cores
                     seriesNameFormat: Available
     layouts:
       - kind: Grid
