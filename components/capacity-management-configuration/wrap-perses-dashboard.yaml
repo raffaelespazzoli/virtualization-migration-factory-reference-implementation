@@ -1,0 +1,32 @@
+# Turns a percli `kind: Dashboard` into the OpenShift PersesDashboard CR.
+# Applied to every Dashboard imported from dac/built/.
+- op: add
+  path: /apiVersion
+  value: perses.dev/v1alpha2
+- op: replace
+  path: /kind
+  value: PersesDashboard
+- op: add
+  path: /metadata/namespace
+  value: openshift-operators
+- op: add
+  path: /metadata/annotations
+  value:
+    perses.dev/tags: capacity,virtualization
+- op: remove
+  path: /metadata/project
+- op: remove
+  path: /metadata/createdAt
+- op: remove
+  path: /metadata/updatedAt
+- op: remove
+  path: /metadata/version
+- op: move
+  from: /spec
+  path: /__dashboard
+- op: add
+  path: /spec
+  value: {}
+- op: move
+  from: /__dashboard
+  path: /spec/config

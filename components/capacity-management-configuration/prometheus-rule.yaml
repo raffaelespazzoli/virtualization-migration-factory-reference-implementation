@@ -131,3 +131,133 @@ spec:
           expr: |
             sum(rate(container_cpu_usage_seconds_total{pod!~"virt-launcher-.*",container!="",container!="POD",cpu="total"}[5m]))
             or vector(0)
+
+    # Time-to-exhaustion rules. deriv() computes the least-squares slope of
+    # available capacity over a lookback window. When the slope is negative
+    # (capacity shrinking), -available/slope gives seconds until zero;
+    # dividing by 86400 converts to days. When the slope is zero or positive
+    # (capacity stable or growing), the result is +Inf — the cluster never
+    # runs out. Four observation windows trade off responsiveness against
+    # noise: 7d reacts fast but is noisy; 360d is a long-range planning
+    # view that requires matching retention.
+    - name: capacity-exhaustion.rules
+      rules:
+        # --- 7-day window ---------------------------------------------------
+        - record: cluster:days_to_exhaustion_memory_7d:days
+          expr: |
+            (
+              (
+                - cluster:available_capacity_memory:bytes
+                  / deriv(cluster:available_capacity_memory:bytes[7d])
+                and
+                deriv(cluster:available_capacity_memory:bytes[7d]) < 0
+              )
+              or vector(+Inf)
+            ) / 86400
+        - record: cluster:days_to_exhaustion_cpu_7d:days
+          expr: |
+            (
+              (
+                - cluster:available_capacity_cpu:cores
+                  / deriv(cluster:available_capacity_cpu:cores[7d])
+                and
+                deriv(cluster:available_capacity_cpu:cores[7d]) < 0
+              )
+              or vector(+Inf)
+            ) / 86400
+        - record: cluster:days_to_exhaustion_7d:days
+          expr: |
+            clamp_max(
+              cluster:days_to_exhaustion_memory_7d:days,
+              scalar(cluster:days_to_exhaustion_cpu_7d:days)
+            )
+
+        # --- 30-day window --------------------------------------------------
+        - record: cluster:days_to_exhaustion_memory_30d:days
+          expr: |
+            (
+              (
+                - cluster:available_capacity_memory:bytes
+                  / deriv(cluster:available_capacity_memory:bytes[30d])
+                and
+                deriv(cluster:available_capacity_memory:bytes[30d]) < 0
+              )
+              or vector(+Inf)
+            ) / 86400
+        - record: cluster:days_to_exhaustion_cpu_30d:days
+          expr: |
+            (
+              (
+                - cluster:available_capacity_cpu:cores
+                  / deriv(cluster:available_capacity_cpu:cores[30d])
+                and
+                deriv(cluster:available_capacity_cpu:cores[30d]) < 0
+              )
+              or vector(+Inf)
+            ) / 86400
+        - record: cluster:days_to_exhaustion_30d:days
+          expr: |
+            clamp_max(
+              cluster:days_to_exhaustion_memory_30d:days,
+              scalar(cluster:days_to_exhaustion_cpu_30d:days)
+            )
+
+        # --- 180-day window -------------------------------------------------
+        - record: cluster:days_to_exhaustion_memory_180d:days
+          expr: |
+            (
+              (
+                - cluster:available_capacity_memory:bytes
+                  / deriv(cluster:available_capacity_memory:bytes[180d])
+                and
+                deriv(cluster:available_capacity_memory:bytes[180d]) < 0
+              )
+              or vector(+Inf)
+            ) / 86400
+        - record: cluster:days_to_exhaustion_cpu_180d:days
+          expr: |
+            (
+              (
+                - cluster:available_capacity_cpu:cores
+                  / deriv(cluster:available_capacity_cpu:cores[180d])
+                and
+                deriv(cluster:available_capacity_cpu:cores[180d]) < 0
+              )
+              or vector(+Inf)
+            ) / 86400
+        - record: cluster:days_to_exhaustion_180d:days
+          expr: |
+            clamp_max(
+              cluster:days_to_exhaustion_memory_180d:days,
+              scalar(cluster:days_to_exhaustion_cpu_180d:days)
+            )
+
+        # --- 360-day window -------------------------------------------------
+        - record: cluster:days_to_exhaustion_memory_360d:days
+          expr: |
+            (
+              (
+                - cluster:available_capacity_memory:bytes
+                  / deriv(cluster:available_capacity_memory:bytes[360d])
+                and
+                deriv(cluster:available_capacity_memory:bytes[360d]) < 0
+              )
+              or vector(+Inf)
+            ) / 86400
+        - record: cluster:days_to_exhaustion_cpu_360d:days
+          expr: |
+            (
+              (
+                - cluster:available_capacity_cpu:cores
+                  / deriv(cluster:available_capacity_cpu:cores[360d])
+                and
+                deriv(cluster:available_capacity_cpu:cores[360d]) < 0
+              )
+              or vector(+Inf)
+            ) / 86400
+        - record: cluster:days_to_exhaustion_360d:days
+          expr: |
+            clamp_max(
+              cluster:days_to_exhaustion_memory_360d:days,
+              scalar(cluster:days_to_exhaustion_cpu_360d:days)
+            )

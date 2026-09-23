@@ -3,4 +3,35 @@ kind: Kustomization
 
 resources:
   - ./prometheus-rule.yaml
-  - ./perses-dashboard.yaml
+  - ./dac/built/vm-capacity_output.yaml
+  - ./dac/built/capacity-exhaustion_output.yaml
+
+patches:
+  # percli emits ListVariable defaultValue as {singleValue, sliceValues}.
+  # The Perses operator only unmarshals a string or array of strings.
+  - target:
+      kind: Dashboard
+      name: vm-capacity
+    patch: |-
+      - op: replace
+        path: /spec/variables/0/spec/defaultValue
+        value: "8589934592"
+      - op: replace
+        path: /spec/variables/1/spec/defaultValue
+        value: "4"
+      - op: replace
+        path: /spec/variables/2/spec/defaultValue
+        value: "1"
+      - op: replace
+        path: /spec/variables/3/spec/defaultValue
+        value: "1"
+  - target:
+      kind: Dashboard
+      name: capacity-exhaustion
+    patch: |-
+      - op: replace
+        path: /spec/variables/0/spec/defaultValue
+        value: "30d"
+  - path: wrap-perses-dashboard.yaml
+    target:
+      kind: Dashboard

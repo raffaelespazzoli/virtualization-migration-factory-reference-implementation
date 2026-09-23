@@ -83,8 +83,8 @@ dashboardBuilder & {
 					{value: "34359738368", label: "32 GiB"},
 					{value: "68719476736", label: "64 GiB"},
 				]
-				// CUE schema is {singleValue, sliceValues}. Flatten to a
-				// string when copying into perses-dashboard.yaml.
+				// CUE schema is {singleValue, sliceValues}. kustomize
+				// flattens this to a string for the Perses operator.
 				variable: spec: defaultValue: singleValue: "8589934592"
 			},
 			staticListVarBuilder & {
