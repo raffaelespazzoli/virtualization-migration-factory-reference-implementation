@@ -63,6 +63,7 @@ spec:
                 kind: PrometheusTimeSeriesQuery
                 spec:
                   query: clamp_max(cluster:days_to_exhaustion_$observation_period:days, 365)
+                  seriesNameFormat: days to exhaustion
     "1_0":
       kind: Panel
       spec:

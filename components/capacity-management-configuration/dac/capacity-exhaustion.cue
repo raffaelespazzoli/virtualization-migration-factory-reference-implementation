@@ -84,7 +84,10 @@ dashboardBuilder & {
 								{
 									kind: "TimeSeriesQuery"
 									spec: plugin: promQuery & {
-										spec: query: #daysToExhaustion
+										spec: {
+											query:            #daysToExhaustion
+											seriesNameFormat: "days to exhaustion"
+										}
 									}
 								},
 							]
