@@ -187,71 +187,110 @@ spec:
                 echo "x509pop ConfigMap patched successfully"
               fi
 
-              # ── Step 1b: tpm_devid NodeAttestor ──────────────────
-              # The tpm_devid server plugin REQUIRES endorsement_ca_path
-              # (swtpm manufacturer CA). Until the swtpm-endorsement-ca
-              # Secret is created, we CANNOT add this plugin — the SPIRE
-              # server will crash.
-              #
-              # If a previous run left a tpm_devid entry in the ConfigMap,
-              # remove it to prevent crashes.
-              echo "Checking for stale tpm_devid entry in ConfigMap..."
+              # ── Step 1b: Add tpm_devid NodeAttestor to ConfigMap ──
+              # The tpm_devid server plugin REQUIRES endorsement_ca_path.
+              # Only add it if the swtpm-endorsement-ca Secret exists.
+              echo "Checking for tpm_devid prerequisites..."
               oc get configmap spire-server -n "${ZTWIM_NS}" \
                 -o jsonpath='{.data.server\.conf}' > /tmp/server-conf.json
 
-              if grep -q '"tpm_devid"' /tmp/server-conf.json; then
-                echo "WARNING: tpm_devid found in ConfigMap — removing (endorsement CA not available)..."
-                # Strip the tpm_devid entry (with or without endorsement_ca_path)
-                sed -i 's/,{"tpm_devid":{"plugin_data":{[^}]*}}}//g' /tmp/server-conf.json
+              if oc get secret swtpm-endorsement-ca -n "${ZTWIM_NS}" &>/dev/null; then
+                echo "swtpm-endorsement-ca Secret found"
+                if grep -q '"tpm_devid"' /tmp/server-conf.json; then
+                  echo "tpm_devid NodeAttestor already present — skipping"
+                else
+                  echo "Adding tpm_devid NodeAttestor to ConfigMap..."
+                  TPM_DEVID='{"tpm_devid":{"plugin_data":{"devid_ca_path":"/tmp/x509pop-ca/ca.crt.pem","endorsement_ca_path":"/tmp/endorsement-ca/ca.pem"}}}'
 
-                awk '
-                  BEGIN { printf "{\"data\":{\"server.conf\":\"" }
-                  {
-                    gsub(/\\/, "\\\\")
-                    gsub(/"/, "\\\"")
-                    gsub(/\t/, "\\t")
-                    gsub(/\r/, "\\r")
-                    if (NR > 1) printf "\\n"
-                    printf "%s", $0
-                  }
-                  END { print "\"}}" }
-                ' /tmp/server-conf.json > /tmp/cm-patch.json
+                  tr '\n' '\001' < /tmp/server-conf.json | awk -v entry="${TPM_DEVID}" '{
+                    s = $0
+                    target = "\"NodeAttestor\""
+                    idx = index(s, target)
+                    if (idx > 0) {
+                      rest = substr(s, idx)
+                      bi = index(rest, "[")
+                      if (bi > 0) {
+                        abs = idx + bi - 1
+                        depth = 0
+                        for (i = abs; i <= length(s); i++) {
+                          c = substr(s, i, 1)
+                          if (c == "[") depth++
+                          else if (c == "]") {
+                            depth--
+                            if (depth == 0) {
+                              s = substr(s, 1, i-1) "," entry substr(s, i)
+                              break
+                            }
+                          }
+                        }
+                      }
+                    }
+                    printf "%s", s
+                  }' | tr '\001' '\n' > /tmp/server-conf-updated.json
 
-                oc patch configmap spire-server -n "${ZTWIM_NS}" \
-                  --type=merge --patch-file /tmp/cm-patch.json
+                  awk '
+                    BEGIN { printf "{\"data\":{\"server.conf\":\"" }
+                    {
+                      gsub(/\\/, "\\\\")
+                      gsub(/"/, "\\\"")
+                      gsub(/\t/, "\\t")
+                      gsub(/\r/, "\\r")
+                      if (NR > 1) printf "\\n"
+                      printf "%s", $0
+                    }
+                    END { print "\"}}" }
+                  ' /tmp/server-conf-updated.json > /tmp/cm-patch.json
 
-                echo "Stale tpm_devid entry removed from ConfigMap"
+                  oc patch configmap spire-server -n "${ZTWIM_NS}" \
+                    --type=merge --patch-file /tmp/cm-patch.json
+
+                  echo "tpm_devid ConfigMap patched successfully"
+                fi
               else
-                echo "No tpm_devid entry in ConfigMap — OK"
+                echo "WARNING: swtpm-endorsement-ca Secret not found — skipping tpm_devid"
+                echo "  Create it first (see readme.md), then re-sync to add tpm_devid."
+                # If a stale tpm_devid entry exists without the Secret, remove it
+                if grep -q '"tpm_devid"' /tmp/server-conf.json; then
+                  echo "Removing stale tpm_devid entry to prevent crash..."
+                  sed -i 's/,{"tpm_devid":{"plugin_data":{[^}]*}}}//g' /tmp/server-conf.json
+                  awk '
+                    BEGIN { printf "{\"data\":{\"server.conf\":\"" }
+                    {
+                      gsub(/\\/, "\\\\")
+                      gsub(/"/, "\\\"")
+                      gsub(/\t/, "\\t")
+                      gsub(/\r/, "\\r")
+                      if (NR > 1) printf "\\n"
+                      printf "%s", $0
+                    }
+                    END { print "\"}}" }
+                  ' /tmp/server-conf.json > /tmp/cm-patch.json
+                  oc patch configmap spire-server -n "${ZTWIM_NS}" \
+                    --type=merge --patch-file /tmp/cm-patch.json
+                  echo "Stale tpm_devid entry removed"
+                fi
               fi
 
-              # TODO: Once swtpm-endorsement-ca Secret exists, add tpm_devid:
-              #   1. Add swtpm-endorsement-ca Secret to the StatefulSet volumes
-              #   2. Add tpm_devid NodeAttestor with both devid_ca_path AND endorsement_ca_path
-              # See readme.md for the swtpm CA extraction procedure.
-
-              # ── Step 2: Mount spire-root-ca-secret into spire-server ─
+              # ── Step 2: Mount CA secrets into spire-server ──────
               # Patching spec.template triggers an automatic rolling
               # restart — no explicit rollout restart needed.
-              echo "Patching spire-server StatefulSet to mount x509pop CA..."
-              oc patch statefulset spire-server -n "${ZTWIM_NS}" --type=strategic --patch '
-              spec:
-                template:
-                  spec:
-                    volumes:
-                    - name: x509pop-ca
-                      secret:
-                        secretName: spire-root-ca-secret
-                        items:
-                        - key: tls.crt
-                          path: ca.crt.pem
-                    containers:
-                    - name: spire-server
-                      volumeMounts:
-                      - name: x509pop-ca
-                        mountPath: /tmp/x509pop-ca
-                        readOnly: true
-              '
+              echo "Patching spire-server StatefulSet to mount CAs..."
+
+              # Build the patch dynamically based on available Secrets
+              VOLUMES='[{"name":"x509pop-ca","secret":{"secretName":"spire-root-ca-secret","items":[{"key":"tls.crt","path":"ca.crt.pem"}]}}'
+              MOUNTS='[{"name":"x509pop-ca","mountPath":"/tmp/x509pop-ca","readOnly":true}'
+
+              if oc get secret swtpm-endorsement-ca -n "${ZTWIM_NS}" &>/dev/null; then
+                echo "  Including endorsement-ca volume mount"
+                VOLUMES="${VOLUMES}"',{"name":"endorsement-ca","secret":{"secretName":"swtpm-endorsement-ca","items":[{"key":"ca.pem","path":"ca.pem"}]}}'
+                MOUNTS="${MOUNTS}"',{"name":"endorsement-ca","mountPath":"/tmp/endorsement-ca","readOnly":true}'
+              fi
+
+              VOLUMES="${VOLUMES}]"
+              MOUNTS="${MOUNTS}]"
+
+              oc patch statefulset spire-server -n "${ZTWIM_NS}" --type=strategic -p \
+                "{\"spec\":{\"template\":{\"spec\":{\"volumes\":${VOLUMES},\"containers\":[{\"name\":\"spire-server\",\"volumeMounts\":${MOUNTS}}]}}}}"
 
               # ── Step 3: Wait for rollout ───────────────────────────
               echo "Waiting for spire-server rollout..."
@@ -266,9 +305,12 @@ spec:
                 -o jsonpath='{.data.server\.conf}' | grep -c x509pop
               echo "x509pop entries found in server.conf (expected >= 1)"
 
-              # NOTE: tpm_devid verification skipped — plugin requires
-              # endorsement_ca_path which depends on swtpm-endorsement-ca Secret.
-              # tpm_devid will be added when that Secret is available.
+              if oc get secret swtpm-endorsement-ca -n "${ZTWIM_NS}" &>/dev/null; then
+                echo "Verifying tpm_devid configuration in ConfigMap..."
+                oc get configmap spire-server -n "${ZTWIM_NS}" \
+                  -o jsonpath='{.data.server\.conf}' | grep -c tpm_devid
+                echo "tpm_devid entries found in server.conf (expected >= 1)"
+              fi
 
               echo ""
               echo "=== x509pop setup Job complete ==="
