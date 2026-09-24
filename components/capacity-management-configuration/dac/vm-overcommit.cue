@@ -16,7 +16,7 @@ import (
 	sum(kubevirt_vmi_memory_domain_bytes)
 	/
 	sum(
-	  quantile_over_time($quantile, kubevirt_vmi_memory_used_bytes[$observation_period])
+	  quantile_over_time($memory_quantile, kubevirt_vmi_memory_used_bytes[$observation_period])
 	)
 	"""
 
@@ -27,7 +27,7 @@ import (
 	/
 	sum(
 	  quantile_over_time(
-	    $quantile,
+	    $cpu_quantile,
 	    rate(kubevirt_vmi_cpu_usage_seconds_total[5m])[$observation_period:5m]
 	  )
 	)
@@ -40,7 +40,7 @@ import (
 	  sum by (namespace, name) (kubevirt_vmi_memory_domain_bytes)
 	  /
 	  sum by (namespace, name) (
-	    quantile_over_time($quantile, kubevirt_vmi_memory_used_bytes[$observation_period])
+	    quantile_over_time($memory_quantile, kubevirt_vmi_memory_used_bytes[$observation_period])
 	  )
 	)
 	"""
@@ -51,7 +51,7 @@ import (
 	  /
 	  sum by (namespace, name) (
 	    quantile_over_time(
-	      $quantile,
+	      $cpu_quantile,
 	      rate(kubevirt_vmi_cpu_usage_seconds_total[5m])[$observation_period:5m]
 	    )
 	  )
@@ -83,14 +83,30 @@ dashboardBuilder & {
 				variable: spec: defaultValue: singleValue: "30d"
 			},
 			staticListVarBuilder & {
-				#name: "quantile"
-				#display: name: "Quantile"
+				#name: "memory_quantile"
+				#display: name: "Memory quantile"
 				#values: [
-					{value: "0.90", label: "90th percentile"},
-					{value: "0.95", label: "95th percentile"},
-					{value: "0.99", label: "99th percentile"},
+					{value: "0.80", label: "80"},
+					{value: "0.85", label: "85"},
+					{value: "0.90", label: "90"},
+					{value: "0.95", label: "95"},
+					{value: "0.99", label: "99"},
+					{value: "1", label: "100"},
 				]
 				variable: spec: defaultValue: singleValue: "0.95"
+			},
+			staticListVarBuilder & {
+				#name: "cpu_quantile"
+				#display: name: "CPU quantile"
+				#values: [
+					{value: "0.60", label: "60"},
+					{value: "0.70", label: "70"},
+					{value: "0.80", label: "80"},
+					{value: "0.85", label: "85"},
+					{value: "0.90", label: "90"},
+					{value: "0.95", label: "95"},
+				]
+				variable: spec: defaultValue: singleValue: "0.80"
 			},
 		]
 	}}.variables

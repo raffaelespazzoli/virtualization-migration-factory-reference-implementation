@@ -43,6 +43,9 @@ patches:
       - op: replace
         path: /spec/variables/1/spec/defaultValue
         value: "0.95"
+      - op: replace
+        path: /spec/variables/2/spec/defaultValue
+        value: "0.80"
   - path: wrap-perses-dashboard.yaml
     target:
       kind: Dashboard
