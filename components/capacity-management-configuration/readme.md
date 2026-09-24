@@ -34,6 +34,8 @@ Only nodes labeled `kubevirt.io/schedulable=true` count toward capacity. kube-st
 | `cluster:non_vm_memory_usage:bytes` | Working set of every other container |
 | `cluster:vm_cpu_usage:cores` | CPU cores used by `virt-launcher-*` containers |
 | `cluster:non_vm_cpu_usage:cores` | CPU cores used by every other container |
+| `vmi:virt_launcher_overhead_memory:bytes` | Per-VM virt-launcher memory overhead (pod working set minus guest RSS) |
+| `vmi:virt_launcher_overhead_cpu:cores` | Per-VM virt-launcher CPU overhead (pod cAdvisor minus domain CPU) |
 
 ### Time-to-Exhaustion Rules
 
@@ -63,6 +65,8 @@ The usage rules are actual consumption, not requests. Memory uses the cAdvisor g
 Both dashboards are written with the Perses CUE SDK in `dac/`. `percli dac build` writes a Perses `Dashboard` to `dac/built/`. The component `kustomization.yaml` imports those files and applies `wrap-perses-dashboard.yaml` so GitOps ships `PersesDashboard` CRs in `openshift-operators`, the project where the monitoring UIPlugin places Perses and the default Thanos Querier datasource. List variable `defaultValue` is flattened to a string by kustomize; the CUE SDK emits `{singleValue, sliceValues}` and the Perses operator rejects that object.
 
 The `capacity-exhaustion` dashboard is `dac/capacity-exhaustion.cue`. It visualises the time-to-exhaustion rules. Open it from **Observe → Dashboards (Perses)**, select `openshift-operators`, and open **Time to Capacity Exhaustion**. A list variable selects the observation period (7 days, 30 days, 180 days, 360 days; default 30 days). The top row is a GaugeChart showing days until the cluster runs out of capacity (whichever resource exhausts first), with thresholds at 30 days (red→orange) and 90 days (orange→green), capped at 365. The bottom row is a TimeSeriesChart with two lines — Memory and CPU — showing how the days-to-exhaustion estimate has changed over time. When capacity is stable or growing the recording rule returns `+Inf`; the gauge clamps that to 365 (reads as "365+") and the time series line disappears for those periods.
+
+The `vm-overcommit` dashboard is `dac/vm-overcommit.cue`. Open it from **Observe → Dashboards (Perses)**, select `openshift-operators`, and open **VM Overcommit**. Two list variables set the observation period (7, 30, 180, 360 days; default 30 days) and the usage percentile (90th, 95th, 99th; default 95th). The first row is two StatCharts: suggested cluster overcommit for memory (`sum(domain) / sum(p95 used)`) and CPU (`sum(vCPUs) / sum(p95 QEMU usage)`). The second row is two Tables of the ten VMs with the largest allocated-to-used ratio on each resource.
 
 The `vm-capacity` dashboard is `dac/vm-capacity.cue`. Open it from the console at **Observe → Dashboards (Perses)**, select `openshift-operators`, and open **How many VMs fit**. Four list variables set VM memory, VM CPU, memory overcommit (`1` through `4`), and CPU overcommit (`1`, `2`, `4`, `6`, `8`, `10`, `12`). The first row is a stat of how many VMs fit and a second stat that maps `0`/`1` to Memory bound / CPU bound. Two stacked TimeSeriesChart bar panels, Memory and CPU, show non-VM used, VM used, and available, with a bottom legend. Cluster Observability Operator ships BarChart 0.11.1, which has no stacking fields, so the stacked columns use `visual.display: bar` and `visual.stack: all` on TimeSeriesChart. Those three segments are limited to kubevirt-schedulable nodes, so they add up to `cluster:total_capacity_memory:bytes` and `cluster:total_capacity_cpu:cores`.
 

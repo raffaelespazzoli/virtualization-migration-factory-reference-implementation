@@ -1,0 +1,237 @@
+kind: Dashboard
+metadata:
+  name: vm-overcommit
+  createdAt: "0001-01-01T00:00:00Z"
+  project: openshift-operators
+  updatedAt: "0001-01-01T00:00:00Z"
+  version: 0
+spec:
+  display:
+    name: VM Overcommit
+    description: Suggested cluster overcommit ratios from granted vs actual VM usage, and the VMs with the largest unused allocation.
+  variables:
+    - kind: ListVariable
+      spec:
+        display:
+          name: Observation period
+          hidden: false
+        defaultValue:
+          singleValue: 30d
+          sliceValues: []
+        name: observation_period
+        allowAllValue: false
+        allowMultiple: false
+        plugin:
+          kind: StaticListVariable
+          spec:
+            values:
+              - value: 7d
+                label: 7 days
+              - value: 30d
+                label: 30 days
+              - value: 180d
+                label: 180 days
+              - value: 360d
+                label: 360 days
+    - kind: ListVariable
+      spec:
+        display:
+          name: Quantile
+          hidden: false
+        defaultValue:
+          singleValue: "0.95"
+          sliceValues: []
+        name: quantile
+        allowAllValue: false
+        allowMultiple: false
+        plugin:
+          kind: StaticListVariable
+          spec:
+            values:
+              - value: "0.90"
+                label: 90th percentile
+              - value: "0.95"
+                label: 95th percentile
+              - value: "0.99"
+                label: 99th percentile
+  panels:
+    "0_0":
+      kind: Panel
+      spec:
+        display:
+          name: Memory
+          description: Total guest domain memory divided by the selected percentile of used memory over the observation period.
+        plugin:
+          kind: StatChart
+          spec:
+            calculation: last-number
+            format:
+              unit: decimal
+              decimalPlaces: 2
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: |-
+                    sum(kubevirt_vmi_memory_domain_bytes)
+                    /
+                    sum(
+                      quantile_over_time($quantile, kubevirt_vmi_memory_used_bytes[$observation_period])
+                    )
+                  seriesNameFormat: memory overcommit
+                  minStep: 5m
+    "0_1":
+      kind: Panel
+      spec:
+        display:
+          name: CPU
+          description: Total allocated vCPUs divided by the selected percentile of QEMU CPU usage over the observation period.
+        plugin:
+          kind: StatChart
+          spec:
+            calculation: last-number
+            format:
+              unit: decimal
+              decimalPlaces: 2
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: |-
+                    sum(vmi:kubevirt_vmi_vcpu:count)
+                    /
+                    sum(
+                      quantile_over_time(
+                        $quantile,
+                        rate(kubevirt_vmi_cpu_usage_seconds_total[5m])[$observation_period:5m]
+                      )
+                    )
+                  seriesNameFormat: cpu overcommit
+                  minStep: 5m
+    "1_0":
+      kind: Panel
+      spec:
+        display:
+          name: Memory
+          description: The ten VMs whose domain memory is largest relative to used memory over the observation period.
+        plugin:
+          kind: Table
+          spec:
+            density: compact
+            columnSettings:
+              - name: namespace
+                header: Namespace
+                enableSorting: true
+              - name: name
+                header: VM
+                enableSorting: true
+              - name: value
+                header: Overcommit ratio
+                enableSorting: true
+                format:
+                  unit: decimal
+                  decimalPlaces: 2
+                sort: desc
+              - name: timestamp
+                hide: true
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: |-
+                    topk(10,
+                      sum by (namespace, name) (kubevirt_vmi_memory_domain_bytes)
+                      /
+                      sum by (namespace, name) (
+                        quantile_over_time($quantile, kubevirt_vmi_memory_used_bytes[$observation_period])
+                      )
+                    )
+                  seriesNameFormat: '{{namespace}}/{{name}}'
+                  minStep: 5m
+    "1_1":
+      kind: Panel
+      spec:
+        display:
+          name: CPU
+          description: The ten VMs whose allocated vCPUs are largest relative to QEMU CPU usage over the observation period.
+        plugin:
+          kind: Table
+          spec:
+            density: compact
+            columnSettings:
+              - name: namespace
+                header: Namespace
+                enableSorting: true
+              - name: name
+                header: VM
+                enableSorting: true
+              - name: value
+                header: Overcommit ratio
+                enableSorting: true
+                format:
+                  unit: decimal
+                  decimalPlaces: 2
+                sort: desc
+              - name: timestamp
+                hide: true
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: |-
+                    topk(10,
+                      sum by (namespace, name) (vmi:kubevirt_vmi_vcpu:count)
+                      /
+                      sum by (namespace, name) (
+                        quantile_over_time(
+                          $quantile,
+                          rate(kubevirt_vmi_cpu_usage_seconds_total[5m])[$observation_period:5m]
+                        )
+                      )
+                    )
+                  seriesNameFormat: '{{namespace}}/{{name}}'
+                  minStep: 5m
+  layouts:
+    - kind: Grid
+      spec:
+        display:
+          title: Suggested overcommit
+        items:
+          - x: 0
+            "y": 0
+            width: 12
+            height: 8
+            content:
+              $ref: '#/spec/panels/0_0'
+          - x: 12
+            "y": 0
+            width: 12
+            height: 8
+            content:
+              $ref: '#/spec/panels/0_1'
+    - kind: Grid
+      spec:
+        display:
+          title: Most overestimated VMs
+        items:
+          - x: 0
+            "y": 0
+            width: 12
+            height: 12
+            content:
+              $ref: '#/spec/panels/1_0'
+          - x: 12
+            "y": 0
+            width: 12
+            height: 12
+            content:
+              $ref: '#/spec/panels/1_1'
+  duration: 5m

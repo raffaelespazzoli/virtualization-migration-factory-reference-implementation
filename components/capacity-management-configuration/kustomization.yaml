@@ -5,6 +5,7 @@ resources:
   - ./prometheus-rule.yaml
   - ./dac/built/vm-capacity_output.yaml
   - ./dac/built/capacity-exhaustion_output.yaml
+  - ./dac/built/vm-overcommit_output.yaml
 
 patches:
   # percli emits ListVariable defaultValue as {singleValue, sliceValues}.
@@ -32,6 +33,16 @@ patches:
       - op: replace
         path: /spec/variables/0/spec/defaultValue
         value: "30d"
+  - target:
+      kind: Dashboard
+      name: vm-overcommit
+    patch: |-
+      - op: replace
+        path: /spec/variables/0/spec/defaultValue
+        value: "30d"
+      - op: replace
+        path: /spec/variables/1/spec/defaultValue
+        value: "0.95"
   - path: wrap-perses-dashboard.yaml
     target:
       kind: Dashboard

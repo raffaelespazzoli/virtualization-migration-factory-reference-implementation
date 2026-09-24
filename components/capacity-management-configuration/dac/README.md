@@ -7,6 +7,7 @@ cue mod tidy
 percli dac setup --version 0.54.0   # first time only
 percli dac build -f vm-capacity.cue
 percli dac build -f capacity-exhaustion.cue
+percli dac build -f vm-overcommit.cue
 ```
 
 Each build writes `built/<name>_output.yaml`, a Perses `Dashboard`. The parent `kustomization.yaml` imports those files and applies `wrap-perses-dashboard.yaml` so GitOps ships `PersesDashboard` CRs in `openshift-operators`. Rebuild after editing a `.cue` file; kustomize picks up the new `built/` output on the next sync.

@@ -132,6 +132,42 @@ spec:
             sum(rate(container_cpu_usage_seconds_total{pod!~"virt-launcher-.*",container!="",container!="POD",cpu="total"}[5m]))
             or vector(0)
 
+    # Per-VM virt-launcher overhead: cAdvisor usage of the virt-launcher pod
+    # minus QEMU/domain usage reported by kubevirt_vmi_*. The join maps
+    # virt-launcher pod → VM name via kube_pod_info.created_by_name.
+    # Memory uses resident guest RSS so the subtraction is actual RAM, not
+    # configured domain size. CPU uses rate() on both counters.
+    - name: virt-launcher-overhead.rules
+      rules:
+        - record: vmi:virt_launcher_overhead_memory:bytes
+          expr: |
+            sum by (namespace, name, node) (
+              container_memory_working_set_bytes{pod=~"virt-launcher-.*", container!="", container!="POD"}
+              * on(namespace, pod) group_left(name)
+                label_replace(
+                  kube_pod_info{created_by_kind="VirtualMachineInstance", pod=~"virt-launcher-.*"},
+                  "name", "$1", "created_by_name", "(.*)"
+                )
+            )
+            -
+            sum by (namespace, name, node) (
+              kubevirt_vmi_memory_resident_bytes
+            )
+        - record: vmi:virt_launcher_overhead_cpu:cores
+          expr: |
+            sum by (namespace, name, node) (
+              rate(container_cpu_usage_seconds_total{pod=~"virt-launcher-.*",container!="",container!="POD",cpu="total"}[5m])
+              * on(namespace, pod) group_left(name)
+                label_replace(
+                  kube_pod_info{created_by_kind="VirtualMachineInstance",pod=~"virt-launcher-.*"},
+                  "name", "$1", "created_by_name", "(.*)"
+                )
+            )
+            -
+            sum by (namespace, name, node) (
+              rate(kubevirt_vmi_cpu_usage_seconds_total[5m])
+            )
+
     # Time-to-exhaustion rules. deriv() computes the least-squares slope of
     # available capacity over a lookback window. When the slope is negative
     # (capacity shrinking), -available/slope gives seconds until zero;

@@ -17,6 +17,10 @@ deps: {
 	"github.com/perses/plugins/staticlistvariable@v0": {
 		v: "v0.9.0"
 	}
+	"github.com/perses/plugins/table@v0": {
+		v:       "v0.13.0"
+		default: true
+	}
 	"github.com/perses/shared/cue@v0": {
 		v: "v0.54.0"
 	}
