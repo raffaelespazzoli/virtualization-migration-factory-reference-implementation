@@ -118,7 +118,7 @@ dashboardBuilder & {
 		#input: [
 			{
 				#title: "How many more VMs fit"
-				#cols:  2
+				#cols:  3
 				#panels: [
 					panelBuilder & {
 						spec: {
@@ -180,6 +180,34 @@ dashboardBuilder & {
 									kind: "TimeSeriesQuery"
 									spec: plugin: promQuery & {
 										spec: query: #limitedBy
+									}
+								},
+							]
+						}
+					},
+					panelBuilder & {
+						spec: {
+							display: {
+								name:        "Memory / CPU"
+								description: "GiB of memory request per CPU request. The node shape that matches the current workload."
+							}
+							plugin: statChart & {
+								spec: {
+									calculation: "last-number"
+									format: {
+										unit:          "decimal"
+										decimalPlaces: 2
+									}
+								}
+							}
+							queries: [
+								{
+									kind: "TimeSeriesQuery"
+									spec: plugin: promQuery & {
+										spec: {
+											query:            "cluster:memory_cpu_ratio:gib_per_core"
+											seriesNameFormat: "GiB per core"
+										}
 									}
 								},
 							]

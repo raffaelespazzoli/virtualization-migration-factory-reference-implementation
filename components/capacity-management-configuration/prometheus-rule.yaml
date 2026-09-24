@@ -106,6 +106,14 @@ spec:
             )
             or vector(0)
 
+        # GiB of memory request per CPU request. Nodes with this memory-to-CPU
+        # ratio match the current workload, so neither resource is stranded.
+        - record: cluster:memory_cpu_ratio:gib_per_core
+          expr: |
+            cluster:used_capacity_memory:bytes
+            / (1024 * 1024 * 1024)
+            / scalar(cluster:used_capacity_cpu:cores)
+
         # Actual usage from kubelet cAdvisor, as opposed to the request-based
         # capacity rules above. container!="" and container!="POD" skip the
         # pod cgroup aggregate and the pause container so they are not counted
