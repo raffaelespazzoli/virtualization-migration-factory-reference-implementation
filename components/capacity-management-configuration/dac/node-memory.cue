@@ -6,17 +6,14 @@ import (
 	varGroupBuilder "github.com/perses/perses/cue/dac-utils/variable/group"
 	panelBuilder "github.com/perses/plugins/prometheus/sdk/cue/panel"
 	promQuery "github.com/perses/plugins/prometheus/schemas/prometheus-time-series-query:model"
+	statChart "github.com/perses/plugins/statchart/schemas:model"
 	labelValuesVarBuilder "github.com/perses/plugins/prometheus/sdk/cue/variable/labelvalues"
 )
 
-// ── Stacked area chart definitions ──────────────────────────────────
+// ── Stacked area chart ──────────────────────────────────────────────
 // Perses TimeSeriesChart with visual.stack = "all" renders a stacked
 // area chart.  Each query becomes one band; order matters (bottom to
 // top matches query order).
-//
-// Threshold lines (allocatable, reserved) use querySettings to opt out
-// of stacking and render as dashed lines with no fill.
-
 #stackedAreaChart: {
 	kind: "TimeSeriesChart"
 	spec: {
@@ -30,33 +27,6 @@ import (
 			stack:       "all"
 		}
 		yAxis: format: unit: "bytes"
-	}
-}
-
-// Chart with one threshold line excluded from the stack.
-// #thresholdIndex is the 0-based query position of the threshold.
-#stackedAreaChartWithThreshold: {
-	#thresholdIndex: int
-	kind:            "TimeSeriesChart"
-	spec: {
-		legend: {
-			position: "bottom"
-			mode:     "list"
-		}
-		visual: {
-			display:    "line"
-			areaOpacity: 0.7
-			stack:       "all"
-		}
-		yAxis: format: unit: "bytes"
-		querySettings: [{
-			queryIndex:  #thresholdIndex
-			colorMode:   "fixed"
-			colorValue:  "#ffffff"
-			lineStyle:   "dashed"
-			areaOpacity: 0
-			stack:       false
-		}]
 	}
 }
 
@@ -84,7 +54,7 @@ import (
 // ── PromQL fragments ────────────────────────────────────────────────
 
 // Panel 1: Full node — stacks from bottom: non-reclaimable, hot, cold, free
-// Total = capacity.  Allocatable shown as a threshold line.
+// Total = capacity.
 #p1_nonReclaim: """
 	sum(container_memory_rss{id="/system.slice", node=~"$node"})
 	+ sum(container_memory_rss{id="/kubepods.slice", node=~"$node"})
@@ -120,9 +90,6 @@ import (
 	- sum(container_memory_usage_bytes{id="/system.slice", node=~"$node"})
 	- sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
 	"""
-#p1_allocatable: """
-	sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
-	"""
 
 // Panel 2: Workloads (kubepods.slice) — total = allocatable
 #p2_nonReclaim: """
@@ -145,8 +112,7 @@ import (
 	- sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
 	"""
 
-// Panel 3: System (system.slice) — total = reservation
-// Reserved shown as a threshold line (can be crossed upward).
+// Panel 3: System (system.slice) — no cap (system.slice has memory.max = max)
 #p3_nonReclaim: """
 	sum(container_memory_rss{id="/system.slice", node=~"$node"})
 	"""
@@ -162,9 +128,25 @@ import (
 	- sum(container_memory_total_active_file_bytes{id="/system.slice", node=~"$node"})
 	- sum(container_memory_total_inactive_file_bytes{id="/system.slice", node=~"$node"})
 	"""
-#p3_reserved: """
+
+// ── Summary stats PromQL ────────────────────────────────────────────
+#allocatable: """
+	sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
+	"""
+#reserved: """
 	sum(kube_node_status_capacity{resource="memory", node=~"$node"})
 	- sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
+	"""
+#capacity: """
+	sum(kube_node_status_capacity{resource="memory", node=~"$node"})
+	"""
+#workloadUtilization: """
+	sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
+	/
+	sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
+	"""
+#systemUsed: """
+	sum(container_memory_usage_bytes{id="/system.slice", node=~"$node"})
 	"""
 
 // ── Dashboard ───────────────────────────────────────────────────────
@@ -193,6 +175,124 @@ dashboardBuilder & {
 
 	#panelGroups: panelGroupsBuilder & {
 		#input: [
+			// ── Row 1: Reference values ─────────────────────────
+			{
+				#title: "Summary"
+				#cols:  5
+				#panels: [
+					panelBuilder & {
+						spec: {
+							display: name: "Capacity"
+							plugin: statChart & {
+								spec: {
+									calculation: "last-number"
+									format: {
+										unit:          "bytes"
+										decimalPlaces: 1
+									}
+								}
+							}
+							queries: [{
+								kind: "TimeSeriesQuery"
+								spec: plugin: promQuery & {
+									spec: query: #capacity
+								}
+							}]
+						}
+					},
+					panelBuilder & {
+						spec: {
+							display: name: "Allocatable"
+							plugin: statChart & {
+								spec: {
+									calculation: "last-number"
+									format: {
+										unit:          "bytes"
+										decimalPlaces: 1
+									}
+								}
+							}
+							queries: [{
+								kind: "TimeSeriesQuery"
+								spec: plugin: promQuery & {
+									spec: query: #allocatable
+								}
+							}]
+						}
+					},
+					panelBuilder & {
+						spec: {
+							display: {
+								name:        "Reserved"
+								description: "system-reserved + kube-reserved + eviction-threshold"
+							}
+							plugin: statChart & {
+								spec: {
+									calculation: "last-number"
+									format: {
+										unit:          "bytes"
+										decimalPlaces: 1
+									}
+								}
+							}
+							queries: [{
+								kind: "TimeSeriesQuery"
+								spec: plugin: promQuery & {
+									spec: query: #reserved
+								}
+							}]
+						}
+					},
+					panelBuilder & {
+						spec: {
+							display: {
+								name:        "Workload utilization"
+								description: "kubepods.slice usage / allocatable"
+							}
+							plugin: statChart & {
+								spec: {
+									calculation: "last-number"
+									format: {
+										unit:          "percent"
+										decimalPlaces: 1
+									}
+								}
+							}
+							queries: [{
+								kind: "TimeSeriesQuery"
+								spec: plugin: promQuery & {
+									spec: query: #workloadUtilization
+								}
+							}]
+						}
+					},
+					panelBuilder & {
+						spec: {
+							display: {
+								name:        "System used"
+								description: "system.slice total usage (can exceed reserved via file cache)"
+							}
+							plugin: statChart & {
+								spec: {
+									calculation: "last-number"
+									format: {
+										unit:          "bytes"
+										decimalPlaces: 1
+									}
+								}
+							}
+							queries: [{
+								kind: "TimeSeriesQuery"
+								spec: plugin: promQuery & {
+									spec: query: #systemUsed
+								}
+							}]
+						}
+					},
+				]
+			},
+
+			// ── Row 2: Stacked area charts ──────────────────────
 			{
 				#title:  "Memory Decomposition"
 				#cols:   3
@@ -203,9 +303,9 @@ dashboardBuilder & {
 						spec: {
 							display: {
 								name:        "Node Total"
-								description: "Full node memory: system + workloads. The dashed line marks allocatable. Total height = node capacity."
+								description: "Full node memory: system + workloads. Total height = node capacity."
 							}
-							plugin: #stackedAreaChartWithThreshold & {#thresholdIndex: 5}
+							plugin: #stackedAreaChart
 							queries: [
 								#memQuery & {
 									#segment: "Non-reclaimable (anon)"
@@ -226,10 +326,6 @@ dashboardBuilder & {
 								#memQuery & {
 									#segment: "Free"
 									#query:   #p1_free
-								},
-								#memQuery & {
-									#segment: "Allocatable"
-									#query:   #p1_allocatable
 								},
 							]
 						}
@@ -273,9 +369,9 @@ dashboardBuilder & {
 						spec: {
 							display: {
 								name:        "System (system.slice)"
-								description: "OS and Kubernetes system services. The dashed line marks the reservation — usage can cross it."
+								description: "OS and Kubernetes system services. Compare with Reserved stat above — system usage commonly exceeds reservation due to file cache."
 							}
-							plugin: #stackedAreaChartWithThreshold & {#thresholdIndex: 4}
+							plugin: #stackedAreaChart
 							queries: [
 								#memQuery & {
 									#segment: "Non-reclaimable (anon)"
@@ -292,10 +388,6 @@ dashboardBuilder & {
 								#memQuery & {
 									#segment: "Reclaimable cold (inactive file)"
 									#query:   #p3_coldReclaim
-								},
-								#memQuery & {
-									#segment: "Reserved"
-									#query:   #p3_reserved
 								},
 							]
 						}

@@ -31,8 +31,111 @@ spec:
       kind: Panel
       spec:
         display:
+          name: Capacity
+        plugin:
+          kind: StatChart
+          spec:
+            calculation: last-number
+            format:
+              unit: bytes
+              decimalPlaces: 1
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: sum(kube_node_status_capacity{resource="memory", node=~"$node"})
+    "0_1":
+      kind: Panel
+      spec:
+        display:
+          name: Allocatable
+        plugin:
+          kind: StatChart
+          spec:
+            calculation: last-number
+            format:
+              unit: bytes
+              decimalPlaces: 1
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
+    "0_2":
+      kind: Panel
+      spec:
+        display:
+          name: Reserved
+          description: system-reserved + kube-reserved + eviction-threshold
+        plugin:
+          kind: StatChart
+          spec:
+            calculation: last-number
+            format:
+              unit: bytes
+              decimalPlaces: 1
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: |-
+                    sum(kube_node_status_capacity{resource="memory", node=~"$node"})
+                    - sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
+    "0_3":
+      kind: Panel
+      spec:
+        display:
+          name: Workload utilization
+          description: kubepods.slice usage / allocatable
+        plugin:
+          kind: StatChart
+          spec:
+            calculation: last-number
+            format:
+              unit: percent
+              decimalPlaces: 1
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: |-
+                    sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
+                    /
+                    sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
+    "0_4":
+      kind: Panel
+      spec:
+        display:
+          name: System used
+          description: system.slice total usage (can exceed reserved via file cache)
+        plugin:
+          kind: StatChart
+          spec:
+            calculation: last-number
+            format:
+              unit: bytes
+              decimalPlaces: 1
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: sum(container_memory_usage_bytes{id="/system.slice", node=~"$node"})
+    "1_0":
+      kind: Panel
+      spec:
+        display:
           name: Node Total
-          description: 'Full node memory: system + workloads. The dashed line marks allocatable. Total height = node capacity.'
+          description: 'Full node memory: system + workloads. Total height = node capacity.'
         plugin:
           kind: TimeSeriesChart
           spec:
@@ -46,13 +149,6 @@ spec:
             yAxis:
               format:
                 unit: bytes
-            querySettings:
-              - queryIndex: 5
-                colorMode: fixed
-                colorValue: '#ffffff'
-                lineStyle: dashed
-                areaOpacity: 0
-                stack: false
         queries:
           - kind: TimeSeriesQuery
             spec:
@@ -114,14 +210,7 @@ spec:
                     - sum(container_memory_usage_bytes{id="/system.slice", node=~"$node"})
                     - sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
                   seriesNameFormat: Free
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
-                  seriesNameFormat: Allocatable
-    "0_1":
+    "1_1":
       kind: Panel
       spec:
         display:
@@ -182,12 +271,12 @@ spec:
                     sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
                     - sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
                   seriesNameFormat: Free
-    "0_2":
+    "1_2":
       kind: Panel
       spec:
         display:
           name: System (system.slice)
-          description: OS and Kubernetes system services. The dashed line marks the reservation — usage can cross it.
+          description: OS and Kubernetes system services. Compare with Reserved stat above — system usage commonly exceeds reservation due to file cache.
         plugin:
           kind: TimeSeriesChart
           spec:
@@ -201,13 +290,6 @@ spec:
             yAxis:
               format:
                 unit: bytes
-            querySettings:
-              - queryIndex: 4
-                colorMode: fixed
-                colorValue: '#ffffff'
-                lineStyle: dashed
-                areaOpacity: 0
-                stack: false
         queries:
           - kind: TimeSeriesQuery
             spec:
@@ -241,16 +323,42 @@ spec:
                 spec:
                   query: sum(container_memory_total_inactive_file_bytes{id="/system.slice", node=~"$node"})
                   seriesNameFormat: Reclaimable cold (inactive file)
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: |-
-                    sum(kube_node_status_capacity{resource="memory", node=~"$node"})
-                    - sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
-                  seriesNameFormat: Reserved
   layouts:
+    - kind: Grid
+      spec:
+        display:
+          title: Summary
+        items:
+          - x: 0
+            "y": 0
+            width: 4
+            height: 8
+            content:
+              $ref: '#/spec/panels/0_0'
+          - x: 4
+            "y": 0
+            width: 4
+            height: 8
+            content:
+              $ref: '#/spec/panels/0_1'
+          - x: 8
+            "y": 0
+            width: 4
+            height: 8
+            content:
+              $ref: '#/spec/panels/0_2'
+          - x: 12
+            "y": 0
+            width: 4
+            height: 8
+            content:
+              $ref: '#/spec/panels/0_3'
+          - x: 16
+            "y": 0
+            width: 4
+            height: 8
+            content:
+              $ref: '#/spec/panels/0_4'
     - kind: Grid
       spec:
         display:
@@ -261,17 +369,17 @@ spec:
             width: 8
             height: 14
             content:
-              $ref: '#/spec/panels/0_0'
+              $ref: '#/spec/panels/1_0'
           - x: 8
             "y": 0
             width: 8
             height: 14
             content:
-              $ref: '#/spec/panels/0_1'
+              $ref: '#/spec/panels/1_1'
           - x: 16
             "y": 0
             width: 8
             height: 14
             content:
-              $ref: '#/spec/panels/0_2'
+              $ref: '#/spec/panels/1_2'
   duration: 6h
