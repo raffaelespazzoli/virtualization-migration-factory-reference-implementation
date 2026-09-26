@@ -46,6 +46,13 @@ spec:
             yAxis:
               format:
                 unit: bytes
+            querySettings:
+              - queryIndex: 5
+                colorMode: fixed
+                colorValue: '#ffffff'
+                lineStyle: dashed
+                areaOpacity: 0
+                stack: false
         queries:
           - kind: TimeSeriesQuery
             spec:
@@ -113,7 +120,7 @@ spec:
                 kind: PrometheusTimeSeriesQuery
                 spec:
                   query: sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
-                  seriesNameFormat: ── Allocatable
+                  seriesNameFormat: Allocatable
     "0_1":
       kind: Panel
       spec:
@@ -194,6 +201,13 @@ spec:
             yAxis:
               format:
                 unit: bytes
+            querySettings:
+              - queryIndex: 4
+                colorMode: fixed
+                colorValue: '#ffffff'
+                lineStyle: dashed
+                areaOpacity: 0
+                stack: false
         queries:
           - kind: TimeSeriesQuery
             spec:
@@ -235,7 +249,7 @@ spec:
                   query: |-
                     sum(kube_node_status_capacity{resource="memory", node=~"$node"})
                     - sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
-                  seriesNameFormat: ── Reserved
+                  seriesNameFormat: Reserved
   layouts:
     - kind: Grid
       spec:

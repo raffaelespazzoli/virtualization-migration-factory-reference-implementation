@@ -9,10 +9,14 @@ import (
 	labelValuesVarBuilder "github.com/perses/plugins/prometheus/sdk/cue/variable/labelvalues"
 )
 
-// ── Stacked area chart definition ───────────────────────────────────
+// ── Stacked area chart definitions ──────────────────────────────────
 // Perses TimeSeriesChart with visual.stack = "all" renders a stacked
 // area chart.  Each query becomes one band; order matters (bottom to
 // top matches query order).
+//
+// Threshold lines (allocatable, reserved) use querySettings to opt out
+// of stacking and render as dashed lines with no fill.
+
 #stackedAreaChart: {
 	kind: "TimeSeriesChart"
 	spec: {
@@ -29,25 +33,35 @@ import (
 	}
 }
 
-// ── Query helper ────────────────────────────────────────────────────
-// Builds a time-series query with a human-readable segment name.
-#memQuery: {
-	#query:   string
-	#segment: string
-	kind:     "TimeSeriesQuery"
-	spec: plugin: promQuery & {
-		spec: {
-			query:            #query
-			seriesNameFormat: #segment
+// Chart with one threshold line excluded from the stack.
+// #thresholdIndex is the 0-based query position of the threshold.
+#stackedAreaChartWithThreshold: {
+	#thresholdIndex: int
+	kind:            "TimeSeriesChart"
+	spec: {
+		legend: {
+			position: "bottom"
+			mode:     "list"
 		}
+		visual: {
+			display:    "line"
+			areaOpacity: 0.7
+			stack:       "all"
+		}
+		yAxis: format: unit: "bytes"
+		querySettings: [{
+			queryIndex:  #thresholdIndex
+			colorMode:   "fixed"
+			colorValue:  "#ffffff"
+			lineStyle:   "dashed"
+			areaOpacity: 0
+			stack:       false
+		}]
 	}
 }
 
-// ── Threshold line helper ───────────────────────────────────────────
-// A query rendered as a line (not stacked) to show a reference level.
-// Using a separate non-stacked query is the Perses way to overlay a
-// constant line on a stacked chart.
-#thresholdQuery: {
+// ── Query helper ────────────────────────────────────────────────────
+#memQuery: {
 	#query:   string
 	#segment: string
 	kind:     "TimeSeriesQuery"
@@ -191,7 +205,7 @@ dashboardBuilder & {
 								name:        "Node Total"
 								description: "Full node memory: system + workloads. The dashed line marks allocatable. Total height = node capacity."
 							}
-							plugin: #stackedAreaChart
+							plugin: #stackedAreaChartWithThreshold & {#thresholdIndex: 5}
 							queries: [
 								#memQuery & {
 									#segment: "Non-reclaimable (anon)"
@@ -213,8 +227,8 @@ dashboardBuilder & {
 									#segment: "Free"
 									#query:   #p1_free
 								},
-								#thresholdQuery & {
-									#segment: "── Allocatable"
+								#memQuery & {
+									#segment: "Allocatable"
 									#query:   #p1_allocatable
 								},
 							]
@@ -261,7 +275,7 @@ dashboardBuilder & {
 								name:        "System (system.slice)"
 								description: "OS and Kubernetes system services. The dashed line marks the reservation — usage can cross it."
 							}
-							plugin: #stackedAreaChart
+							plugin: #stackedAreaChartWithThreshold & {#thresholdIndex: 4}
 							queries: [
 								#memQuery & {
 									#segment: "Non-reclaimable (anon)"
@@ -279,8 +293,8 @@ dashboardBuilder & {
 									#segment: "Reclaimable cold (inactive file)"
 									#query:   #p3_coldReclaim
 								},
-								#thresholdQuery & {
-									#segment: "── Reserved"
+								#memQuery & {
+									#segment: "Reserved"
 									#query:   #p3_reserved
 								},
 							]
