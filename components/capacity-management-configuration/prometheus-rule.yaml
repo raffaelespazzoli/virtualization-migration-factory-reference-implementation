@@ -305,3 +305,160 @@ spec:
               cluster:days_to_exhaustion_memory_360d:days,
               scalar(cluster:days_to_exhaustion_cpu_360d:days)
             )
+
+    # -----------------------------------------------------------------
+    # Node-level runtime memory breakdown
+    #
+    # Memory decomposition
+    # ====================
+    # Every byte charged to a cgroup falls into exactly one of four
+    # buckets.  The four buckets sum to container_memory_usage_bytes
+    # (= memory.current) for each scope:
+    #
+    #   usage = non_reclaimable + cold + hot_reclaimable + overhead
+    #
+    #   non_reclaimable  = container_memory_rss (memory.stat[anon])
+    #                      Heap, stack, mmap(MAP_ANONYMOUS).
+    #                      Cannot be freed without swap — this is
+    #                      what ultimately causes OOM kills.
+    #
+    #   cold             = container_memory_total_inactive_file_bytes
+    #                      (memory.stat[inactive_file])
+    #                      File cache the kernel considers "cold."
+    #                      Reclaimed first, cheapest to free.
+    #
+    #   hot_reclaimable  = container_memory_total_active_file_bytes
+    #                      (memory.stat[active_file])
+    #                      File cache recently accessed.  The kernel
+    #                      CAN reclaim it under pressure but prefers
+    #                      not to.  Freeing it causes re-reads from
+    #                      disk (performance hit, not availability).
+    #
+    #   overhead         = usage − rss − inactive_file − active_file
+    #                      Kernel structures charged to this cgroup:
+    #                      slab, kernel_stack, sock, pagetables, etc.
+    #                      Partially reclaimable (slab_reclaimable)
+    #                      but cAdvisor does not break it down.
+    #
+    # Scopes
+    # ======
+    # workloads = id="/kubepods.slice"   (all pods)
+    # system    = id="/system.slice"     (kubelet, CRI-O, OS daemons)
+    # -----------------------------------------------------------------
+    - name: capacity-management-node-memory.rules
+      rules:
+        # ── Utilization ratio ────────────────────────────────────────
+        # Fraction of the workloads memory space (allocatable) that is
+        # currently occupied.  Uses working_set (hot+warm) from the
+        # kubepods.slice aggregate cgroup, which is the same metric
+        # the kubelet uses for eviction decisions.
+        - record: cluster:node:memory:workloads_utilization:ratio
+          expr: |
+            sum by (node) (
+              container_memory_working_set_bytes{id="/kubepods.slice"}
+            )
+            / on (node)
+            kube_node_status_allocatable{resource="memory"}
+
+        # ── PSI pressure ─────────────────────────────────────────────
+        # Fraction of wall-clock time at least one process was stalled
+        # waiting for memory.  Root cgroup (id="/") gives node-wide
+        # pressure.  Requires cgroup v2 and kernel >= 4.20.
+        - record: cluster:node:memory:pressure:ratio
+          expr: |
+            rate(
+              container_pressure_memory_waiting_seconds_total{id="/"}[5m]
+            )
+
+        # ── Workload memory breakdown ────────────────────────────────
+
+        # Total memory charged to all pods (memory.current).
+        - record: cluster:node:memory:workloads_used:bytes
+          expr: |
+            sum by (node) (
+              container_memory_usage_bytes{id="/kubepods.slice"}
+            )
+
+        # Anonymous memory — heap, stack.  NOT reclaimable without
+        # swap.  The primary driver of OOM kills.
+        - record: cluster:node:memory:workloads_non_reclaimable:bytes
+          expr: |
+            sum by (node) (
+              container_memory_rss{id="/kubepods.slice"}
+            )
+
+        # Inactive file cache — coldest pages, reclaimed first.
+        - record: cluster:node:memory:workloads_cold:bytes
+          expr: |
+            sum by (node) (
+              container_memory_total_inactive_file_bytes{id="/kubepods.slice"}
+            )
+
+        # Active file cache — recently accessed, reclaimable under
+        # pressure but at a performance cost (re-read from disk).
+        - record: cluster:node:memory:workloads_hot_reclaimable:bytes
+          expr: |
+            sum by (node) (
+              container_memory_total_active_file_bytes{id="/kubepods.slice"}
+            )
+
+        # Kernel overhead — slab, kernel_stack, sock, pagetables.
+        # Computed as the residual so the four parts sum to used.
+        - record: cluster:node:memory:workloads_overhead:bytes
+          expr: |
+            sum by (node) (container_memory_usage_bytes{id="/kubepods.slice"})
+            - sum by (node) (container_memory_rss{id="/kubepods.slice"})
+            - sum by (node) (container_memory_total_inactive_file_bytes{id="/kubepods.slice"})
+            - sum by (node) (container_memory_total_active_file_bytes{id="/kubepods.slice"})
+
+        # Swap used by workloads.
+        - record: cluster:node:memory:workloads_swap:bytes
+          expr: |
+            sum by (node) (
+              container_memory_swap{id="/kubepods.slice"}
+            )
+
+        # ── System memory breakdown ──────────────────────────────────
+
+        # Total memory charged to system.slice.
+        - record: cluster:node:memory:system_used:bytes
+          expr: |
+            sum by (node) (
+              container_memory_usage_bytes{id="/system.slice"}
+            )
+
+        # Anonymous memory in system.slice.
+        - record: cluster:node:memory:system_non_reclaimable:bytes
+          expr: |
+            sum by (node) (
+              container_memory_rss{id="/system.slice"}
+            )
+
+        # Inactive file cache in system.slice.
+        - record: cluster:node:memory:system_cold:bytes
+          expr: |
+            sum by (node) (
+              container_memory_total_inactive_file_bytes{id="/system.slice"}
+            )
+
+        # Active file cache in system.slice.
+        - record: cluster:node:memory:system_hot_reclaimable:bytes
+          expr: |
+            sum by (node) (
+              container_memory_total_active_file_bytes{id="/system.slice"}
+            )
+
+        # Kernel overhead in system.slice.
+        - record: cluster:node:memory:system_overhead:bytes
+          expr: |
+            sum by (node) (container_memory_usage_bytes{id="/system.slice"})
+            - sum by (node) (container_memory_rss{id="/system.slice"})
+            - sum by (node) (container_memory_total_inactive_file_bytes{id="/system.slice"})
+            - sum by (node) (container_memory_total_active_file_bytes{id="/system.slice"})
+
+        # Swap used by system services.
+        - record: cluster:node:memory:system_swap:bytes
+          expr: |
+            sum by (node) (
+              container_memory_swap{id="/system.slice"}
+            )

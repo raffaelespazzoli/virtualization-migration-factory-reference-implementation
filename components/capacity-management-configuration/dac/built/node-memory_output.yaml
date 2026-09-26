@@ -1,0 +1,263 @@
+kind: Dashboard
+metadata:
+  name: node-memory
+  createdAt: "0001-01-01T00:00:00Z"
+  project: openshift-operators
+  updatedAt: "0001-01-01T00:00:00Z"
+  version: 0
+spec:
+  display:
+    name: Node Memory
+    description: 'Runtime memory decomposition per node: non-reclaimable, hot-reclaimable, cold-reclaimable, and free.'
+  variables:
+    - kind: ListVariable
+      spec:
+        display:
+          name: Node
+          hidden: false
+        name: node
+        allowAllValue: true
+        allowMultiple: false
+        plugin:
+          kind: PrometheusLabelValuesVariable
+          spec:
+            datasource:
+              kind: PrometheusDatasource
+            labelName: node
+            matchers:
+              - kube_node_status_capacity{}
+  panels:
+    "0_0":
+      kind: Panel
+      spec:
+        display:
+          name: Node Total
+          description: 'Full node memory: system + workloads. The dashed line marks allocatable. Total height = node capacity.'
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              position: bottom
+              mode: list
+            visual:
+              display: line
+              areaOpacity: 0.7
+              stack: all
+            yAxis:
+              format:
+                unit: bytes
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: |-
+                    sum(container_memory_rss{id="/system.slice", node=~"$node"})
+                    + sum(container_memory_rss{id="/kubepods.slice", node=~"$node"})
+                  seriesNameFormat: Non-reclaimable (anon)
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: |-
+                    (
+                      sum(container_memory_usage_bytes{id="/system.slice", node=~"$node"})
+                      + sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
+                    )
+                    - (
+                      sum(container_memory_rss{id="/system.slice", node=~"$node"})
+                      + sum(container_memory_rss{id="/kubepods.slice", node=~"$node"})
+                    )
+                    - (
+                      sum(container_memory_total_active_file_bytes{id="/system.slice", node=~"$node"})
+                      + sum(container_memory_total_active_file_bytes{id="/kubepods.slice", node=~"$node"})
+                    )
+                    - (
+                      sum(container_memory_total_inactive_file_bytes{id="/system.slice", node=~"$node"})
+                      + sum(container_memory_total_inactive_file_bytes{id="/kubepods.slice", node=~"$node"})
+                    )
+                  seriesNameFormat: Kernel overhead
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: |-
+                    sum(container_memory_total_active_file_bytes{id="/system.slice", node=~"$node"})
+                    + sum(container_memory_total_active_file_bytes{id="/kubepods.slice", node=~"$node"})
+                  seriesNameFormat: Reclaimable hot (active file)
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: |-
+                    sum(container_memory_total_inactive_file_bytes{id="/system.slice", node=~"$node"})
+                    + sum(container_memory_total_inactive_file_bytes{id="/kubepods.slice", node=~"$node"})
+                  seriesNameFormat: Reclaimable cold (inactive file)
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: |-
+                    sum(kube_node_status_capacity{resource="memory", node=~"$node"})
+                    - sum(container_memory_usage_bytes{id="/system.slice", node=~"$node"})
+                    - sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
+                  seriesNameFormat: Free
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
+                  seriesNameFormat: ── Allocatable
+    "0_1":
+      kind: Panel
+      spec:
+        display:
+          name: Workloads (kubepods.slice)
+          description: Pod memory only. Total height = node allocatable.
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              position: bottom
+              mode: list
+            visual:
+              display: line
+              areaOpacity: 0.7
+              stack: all
+            yAxis:
+              format:
+                unit: bytes
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: sum(container_memory_rss{id="/kubepods.slice", node=~"$node"})
+                  seriesNameFormat: Non-reclaimable (anon)
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: |-
+                    sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
+                    - sum(container_memory_rss{id="/kubepods.slice", node=~"$node"})
+                    - sum(container_memory_total_active_file_bytes{id="/kubepods.slice", node=~"$node"})
+                    - sum(container_memory_total_inactive_file_bytes{id="/kubepods.slice", node=~"$node"})
+                  seriesNameFormat: Kernel overhead
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: sum(container_memory_total_active_file_bytes{id="/kubepods.slice", node=~"$node"})
+                  seriesNameFormat: Reclaimable hot (active file)
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: sum(container_memory_total_inactive_file_bytes{id="/kubepods.slice", node=~"$node"})
+                  seriesNameFormat: Reclaimable cold (inactive file)
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: |-
+                    sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
+                    - sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
+                  seriesNameFormat: Free
+    "0_2":
+      kind: Panel
+      spec:
+        display:
+          name: System (system.slice)
+          description: OS and Kubernetes system services. The dashed line marks the reservation — usage can cross it.
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              position: bottom
+              mode: list
+            visual:
+              display: line
+              areaOpacity: 0.7
+              stack: all
+            yAxis:
+              format:
+                unit: bytes
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: sum(container_memory_rss{id="/system.slice", node=~"$node"})
+                  seriesNameFormat: Non-reclaimable (anon)
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: |-
+                    sum(container_memory_usage_bytes{id="/system.slice", node=~"$node"})
+                    - sum(container_memory_rss{id="/system.slice", node=~"$node"})
+                    - sum(container_memory_total_active_file_bytes{id="/system.slice", node=~"$node"})
+                    - sum(container_memory_total_inactive_file_bytes{id="/system.slice", node=~"$node"})
+                  seriesNameFormat: Kernel overhead
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: sum(container_memory_total_active_file_bytes{id="/system.slice", node=~"$node"})
+                  seriesNameFormat: Reclaimable hot (active file)
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: sum(container_memory_total_inactive_file_bytes{id="/system.slice", node=~"$node"})
+                  seriesNameFormat: Reclaimable cold (inactive file)
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: |-
+                    sum(kube_node_status_capacity{resource="memory", node=~"$node"})
+                    - sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
+                  seriesNameFormat: ── Reserved
+  layouts:
+    - kind: Grid
+      spec:
+        display:
+          title: Memory Decomposition
+        items:
+          - x: 0
+            "y": 0
+            width: 8
+            height: 14
+            content:
+              $ref: '#/spec/panels/0_0'
+          - x: 8
+            "y": 0
+            width: 8
+            height: 14
+            content:
+              $ref: '#/spec/panels/0_1'
+          - x: 16
+            "y": 0
+            width: 8
+            height: 14
+            content:
+              $ref: '#/spec/panels/0_2'
+  duration: 6h

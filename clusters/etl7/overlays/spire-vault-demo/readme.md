@@ -599,3 +599,181 @@ sudo podman run --rm -it --privileged \
 podman build -t quay.io/raffaelespazzoli/rhel10-spire-vault-demo-disk:latest -f Containerfile.disk .
 podman push quay.io/raffaelespazzoli/rhel10-spire-vault-demo-disk:latest
 ```
+
+## Demo Commands (x509pop VM)
+
+### 1. Retrieve the Vault Secret via httpd
+
+The end-to-end chain: SPIRE agent → spiffe-helper → vault-agent → httpd. If this returns the secret, the entire zero-trust pipeline is working.
+
+```bash
+# Fetch the secret served by httpd through the OpenShift Route
+curl -sk https://spire-vault-demo.apps.etl7.ocp.rht-labs.com/secret.txt
+
+# Or via the Service (from within the cluster)
+oc exec -n spire-vault-demo deploy/any-pod -- curl -s http://spire-vault-demo-httpd.spire-vault-demo.svc:8080/secret.txt
+```
+
+### 2. SSH into the VM — Quadlet Configuration Files
+
+These are the configuration files baked into the bootc image that define each container's behavior.
+
+```bash
+virtctl ssh cloud-user@spire-vault-demo-vm -n spire-vault-demo
+
+# ── SPIRE agent config (x509pop attestation) ──
+cat /etc/spire/agent.conf
+
+# ── SPIFFE helper config (SVID and JWT extraction) ──
+cat /etc/spiffe-helper/helper.conf
+
+# ── Vault agent config (JWT auto-auth, secret templating) ──
+cat /etc/vault-agent/agent.hcl
+
+# ── Quadlet container definitions (systemd unit generators) ──
+ls -la /etc/containers/systemd/
+cat /etc/containers/systemd/spire-agent.container
+cat /etc/containers/systemd/spiffe-helper.container
+cat /etc/containers/systemd/vault-agent.container
+cat /etc/containers/systemd/httpd.container
+
+# ── Quadlet service status ──
+systemctl status spire-agent.service spiffe-helper.service vault-agent.service httpd.service
+```
+
+### 3. SSH into the VM — Files Exchanged Between Quadlets
+
+The containers communicate via shared directories. Each stage writes files that the next stage consumes.
+
+```bash
+virtctl ssh cloud-user@spire-vault-demo-vm -n spire-vault-demo
+
+# ── Stage 1: x509pop bootstrap certs (cloud-init → spire-agent) ──
+# These are the cert-manager-issued certs used for initial SPIRE attestation.
+sudo ls -la /etc/spire/bootstrap/
+# Expected: agent.crt.pem, agent.key.pem
+
+# ── Stage 2: SPIRE agent socket (spire-agent → spiffe-helper) ──
+ls -la /run/spire/sockets/
+# Expected: agent.sock (Unix domain socket)
+
+# ── Stage 3: SVIDs and JWT tokens (spiffe-helper → vault-agent) ──
+# spiffe-helper extracts these from the SPIRE agent and writes them here.
+sudo ls -la /var/run/secrets/spiffe/
+# Expected: svid.crt.pem, svid.key.pem, bundle.crt.pem, jwt-svid.token, jwt_bundle.json
+
+# Inspect the JWT SVID (the token vault-agent uses to authenticate to Vault)
+sudo cat /var/run/secrets/spiffe/jwt-svid.token | cut -d. -f2 | base64 -d 2>/dev/null | python3 -m json.tool
+# Look for: "sub" = "spiffe://etl7.ocp.rht-labs.com/spire-vault-demo/workload", "aud" = ["vault"]
+
+# Inspect the X.509 SVID certificate
+sudo openssl x509 -in /var/run/secrets/spiffe/svid.crt.pem -noout -subject -issuer -dates
+
+# ── Stage 4: Vault token (vault-agent auto-auth output) ──
+sudo cat /var/run/vault/token
+
+# ── Stage 5: Rendered secret (vault-agent → httpd) ──
+cat /var/www/html/secret.txt
+```
+
+### 4. Verify Vault OIDC/JWT Configuration
+
+These commands inspect the Vault-side trust configuration. Run from a machine with `oc` access.
+
+```bash
+# ── Vault pod ──
+VAULT_POD=$(oc get pod -n vault -l app.kubernetes.io/name=vault -o jsonpath='{.items[0].metadata.name}')
+VAULT_ADD=https://vault.apps.etl7.ocp.rht-labs.com
+
+# ── Check JWT auth mount exists ──
+oc exec -n vault "${VAULT_POD}" -- vault auth list 2>&1 | grep spire-jwt
+
+# ── Check JWT auth configuration (OIDC discovery URL, bound issuer) ──
+oc exec -n vault "${VAULT_POD}" -- vault read auth/spire-jwt/spire-jwt/config
+
+# ── Check the JWT role used by the VM (bound subject, audience, policies) ──
+oc exec -n vault "${VAULT_POD}" -- vault read auth/spire-jwt/spire-jwt/role/spire-vm-role
+# Key fields:
+#   bound_subject  = spiffe://etl7.ocp.rht-labs.com/spire-vault-demo/workload
+#   bound_audiences = [vault]
+#   token_policies  = [experiment-read]
+
+# ── Check the policy attached to the role ──
+oc exec -n vault "${VAULT_POD}" -- vault policy read experiment-read
+# Expected: path "secret/data/experiment/*" { capabilities = ["read"] }
+
+# ── Verify the secret exists in Vault ──
+oc exec -n vault "${VAULT_POD}" -- vault kv get secret/experiment/demo
+
+# ── Verify SPIRE OIDC discovery endpoint is reachable ──
+curl -sk https://oidc-discovery.apps.etl7.ocp.rht-labs.com/.well-known/openid-configuration | python3 -m json.tool
+curl -sk https://oidc-discovery.apps.etl7.ocp.rht-labs.com/keys | python3 -m json.tool
+```
+
+### 5. Verify SPIRE Attestation Status
+
+These commands verify that the x509pop VM agent has successfully attested to the SPIRE server and that the workload registration entry is active.
+
+```bash
+# ── List all attested agents (look for the x509pop agent) ──
+SPIRE_BIN=$(oc exec -n zero-trust-workload-identity-manager spire-server-0 -c spire-server -- \
+  sh -c 'command -v spire-server 2>/dev/null || find / -name spire-server -type f 2>/dev/null | head -1')
+
+oc exec -n zero-trust-workload-identity-manager spire-server-0 -c spire-server -- \
+  "${SPIRE_BIN}" agent list
+# Look for: spiffe://etl7.ocp.rht-labs.com/spire/agent/x509pop/<fingerprint>
+# Status should be blank (active) — "Banned" would indicate a problem.
+
+# ── Show the workload registration entry ──
+oc exec -n zero-trust-workload-identity-manager spire-server-0 -c spire-server -- \
+  "${SPIRE_BIN}" entry show -spiffeID spiffe://etl7.ocp.rht-labs.com/spire-vault-demo/workload
+# Verify: parentID matches the x509pop agent, selector = unix:uid:10002, JWT-SVID TTL = 3600
+
+# ── Show details for a specific agent by SPIFFE ID ──
+# First get the agent SPIFFE ID from the agent list above, then:
+oc exec -n zero-trust-workload-identity-manager spire-server-0 -c spire-server -- \
+  "${SPIRE_BIN}" agent show -spiffeID "spiffe://etl7.ocp.rht-labs.com/spire/agent/x509pop/<fingerprint>"
+
+# ── Verify from inside the VM: agent health check ──
+virtctl ssh cloud-user@spire-vault-demo-vm -n spire-vault-demo
+sudo podman exec spire-agent /opt/spire/bin/spire-agent healthcheck -socketPath /run/spire/sockets/agent.sock
+# Expected: "Agent is healthy."
+
+# ── Verify from inside the VM: list active SVIDs ──
+sudo podman exec spire-agent /opt/spire/bin/spire-agent api fetch x509 -socketPath /run/spire/sockets/agent.sock -write /tmp/
+sudo openssl x509 -in /tmp/svid.0.pem -noout -subject -issuer -dates
+# Subject should contain the workload SPIFFE ID
+
+# ── Verify from inside the VM: fetch JWT SVID ──
+sudo podman exec spire-agent /opt/spire/bin/spire-agent api fetch jwt -audience vault -socketPath /run/spire/sockets/agent.sock
+# Prints the JWT token — decode with jwt.io or: echo "<token>" | cut -d. -f2 | base64 -d | python3 -m json.tool
+```
+
+### Quick Health Check (All-in-One)
+
+A single sequence to verify the full chain is working:
+
+```bash
+# 1. SPIRE server running?
+oc get pod spire-server-0 -n zero-trust-workload-identity-manager -o jsonpath='{.status.phase}'
+# Expected: Running
+
+# 2. x509pop agent attested?
+oc exec -n zero-trust-workload-identity-manager spire-server-0 -c spire-server -- \
+  "${SPIRE_BIN}" agent list 2>&1 | grep x509pop
+# Expected: at least one x509pop agent entry
+
+# 3. Workload entry registered?
+oc exec -n zero-trust-workload-identity-manager spire-server-0 -c spire-server -- \
+  "${SPIRE_BIN}" entry show -spiffeID spiffe://etl7.ocp.rht-labs.com/spire-vault-demo/workload 2>&1 | grep "Found 1"
+# Expected: Found 1 entry
+
+# 4. Vault reachable and JWT auth configured?
+VAULT_POD=$(oc get pod -n vault -l app.kubernetes.io/name=vault -o jsonpath='{.items[0].metadata.name}')
+oc exec -n vault "${VAULT_POD}" -- vault read auth/spire-jwt/spire-jwt/role/spire-vm-role -format=json 2>&1 | grep bound_subject
+# Expected: spiffe://etl7.ocp.rht-labs.com/spire-vault-demo/workload
+
+# 5. End-to-end: secret delivered?
+curl -sk https://spire-vault-demo.apps.etl7.ocp.rht-labs.com/secret.txt
+# Expected: the Vault secret value
+```

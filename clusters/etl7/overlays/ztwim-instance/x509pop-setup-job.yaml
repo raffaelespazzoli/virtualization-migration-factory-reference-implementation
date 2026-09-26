@@ -2,7 +2,8 @@
 #
 # The SpireServer CRD does not support configuring x509pop. This Job patches
 # the SPIRE Server ConfigMap (add x509pop plugin) and StatefulSet (mount root
-# CA). The StatefulSet patch triggers an automatic rolling restart.
+# CA). A config-hash annotation on the pod template ensures the StatefulSet
+# rolling restart happens even when only the ConfigMap content changed.
 #
 # Sync-wave 10 (PostSync hook): runs after all other ztwim-instance resources
 # (wave 0 default) have been created, including the SpireServer StatefulSet
@@ -274,7 +275,18 @@ spec:
               # ── Step 2: Mount CA secrets into spire-server ──────
               # Patching spec.template triggers an automatic rolling
               # restart — no explicit rollout restart needed.
+              #
+              # A config-hash annotation on the pod template ensures a
+              # restart even when the volume mounts haven't changed
+              # (e.g. the Job re-adds x509pop to a regenerated
+              # ConfigMap but the StatefulSet already has the mount).
               echo "Patching spire-server StatefulSet to mount CAs..."
+
+              # Compute a hash of the final ConfigMap content so the
+              # pod template always changes when the config changes.
+              CONFIG_HASH=$(oc get configmap spire-server -n "${ZTWIM_NS}" \
+                -o jsonpath='{.data.server\.conf}' | md5sum | awk '{print $1}')
+              echo "  ConfigMap content hash: ${CONFIG_HASH}"
 
               # Build the patch dynamically based on available Secrets
               VOLUMES='[{"name":"x509pop-ca","secret":{"secretName":"spire-root-ca-secret","items":[{"key":"tls.crt","path":"ca.crt.pem"}]}}'
@@ -290,7 +302,7 @@ spec:
               MOUNTS="${MOUNTS}]"
 
               oc patch statefulset spire-server -n "${ZTWIM_NS}" --type=strategic -p \
-                "{\"spec\":{\"template\":{\"spec\":{\"volumes\":${VOLUMES},\"containers\":[{\"name\":\"spire-server\",\"volumeMounts\":${MOUNTS}}]}}}}"
+                "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"x509pop-setup/config-hash\":\"${CONFIG_HASH}\"}},\"spec\":{\"volumes\":${VOLUMES},\"containers\":[{\"name\":\"spire-server\",\"volumeMounts\":${MOUNTS}}]}}}}"
 
               # ── Step 3: Wait for rollout ───────────────────────────
               echo "Waiting for spire-server rollout..."

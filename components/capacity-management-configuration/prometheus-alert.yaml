@@ -1,0 +1,92 @@
+# Node-level memory alerts for early detection of eviction risk and
+# kernel reclaim pressure.  Recording rules that these alerts depend
+# on are defined in prometheus-rule.yaml.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: capacity-management-alerts
+  namespace: openshift-monitoring
+  labels:
+    prometheus: k8s
+    role: alert-rules
+spec:
+  groups:
+    - name: capacity-management-node-memory.alerts
+      rules:
+        # 1. Workload memory is approaching the eviction threshold.
+        #
+        # The kubelet evicts pods when node memory.available drops
+        # below the configured eviction threshold.  On this cluster
+        # the soft eviction is 50 GiB (evictionSoft) and the hard
+        # eviction is 100 MiB (default evictionHard).
+        #
+        # This alert fires when the workload memory working set
+        # exceeds 95% of the node's allocatable memory, giving the
+        # on-call team time to react before kubelet begins evictions.
+        #
+        # Severity is "warning" because the node is not yet evicting
+        # but is on a trajectory to do so.
+        - alert: NodeWorkloadMemoryApproachingEviction
+          expr: |
+            cluster:node:memory:workloads_utilization:ratio > 0.95
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: >-
+              Node {{ $labels.node }} workload memory utilization at
+              {{ $value | humanizePercentage }}.
+            description: >-
+              The working-set memory of all pods on {{ $labels.node }}
+              has exceeded 95% of the node's allocatable memory for
+              more than 5 minutes.  The kubelet will begin evicting
+              pods if usage continues to rise.  Current utilization is
+              {{ $value | humanizePercentage }}.
+
+        # 2. High node memory pressure (PSI).
+        #
+        # PSI (Pressure Stall Information) measures the fraction of
+        # time processes are stalled waiting for memory to become
+        # available.  A non-zero value means the kernel is actively
+        # reclaiming pages (dropping file cache, swapping, etc.) and
+        # workloads are being delayed as a result.
+        #
+        # Thresholds:
+        #   > 0.05 (5%)  for 5 min  → warning  (noticeable latency)
+        #   > 0.20 (20%) for 5 min  → critical (severe stalls, OOM likely)
+        - alert: NodeMemoryPressureHigh
+          expr: |
+            cluster:node:memory:pressure:ratio > 0.05
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: >-
+              Node {{ $labels.node }} memory pressure at
+              {{ $value | humanizePercentage }}.
+            description: >-
+              More than 5% of wall-clock time on {{ $labels.node }}
+              has been spent waiting for memory over the last 5
+              minutes.  The kernel is actively reclaiming pages,
+              causing workload latency.  Investigate large consumers
+              and consider draining workloads from this node.
+              Current pressure: {{ $value | humanizePercentage }}.
+
+        - alert: NodeMemoryPressureCritical
+          expr: |
+            cluster:node:memory:pressure:ratio > 0.20
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: >-
+              Node {{ $labels.node }} memory pressure critical at
+              {{ $value | humanizePercentage }}.
+            description: >-
+              More than 20% of wall-clock time on {{ $labels.node }}
+              is spent waiting for memory.  The kernel is under severe
+              reclaim pressure and workloads are experiencing
+              significant stalls.  OOM kills are likely imminent.
+              Immediate action required: drain non-critical pods
+              or increase node capacity.
+              Current pressure: {{ $value | humanizePercentage }}.

@@ -3,9 +3,11 @@ kind: Kustomization
 
 resources:
   - ./prometheus-rule.yaml
+  - ./prometheus-alert.yaml
   - ./dac/built/vm-capacity_output.yaml
   - ./dac/built/capacity-exhaustion_output.yaml
   - ./dac/built/vm-overcommit_output.yaml
+  - ./dac/built/node-memory_output.yaml
 
 patches:
   # percli emits ListVariable defaultValue as {singleValue, sliceValues}.
