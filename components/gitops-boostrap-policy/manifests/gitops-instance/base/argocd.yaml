@@ -31,7 +31,7 @@ object-templates-raw: |
               enabled: false
           resources:
             limits:
-              memory: 512Mi
+              memory: 1Gi
             requests:
               cpu: 125m
               memory: 128Mi
