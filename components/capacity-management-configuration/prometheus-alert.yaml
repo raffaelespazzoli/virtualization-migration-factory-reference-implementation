@@ -155,3 +155,45 @@ spec:
               minutes.  The kernel will OOM-kill a process in the pod
               if usage reaches the limit.  Current utilization:
               {{ $value | humanizePercentage }}.
+
+    - name: capacity-management-vm-overhead.alerts
+      rules:
+        # 6. Virt-launcher actual overhead exceeds estimated overhead.
+        #
+        # KubeVirt's virt-controller calculates an overhead budget
+        # (kubevirt_vmi_launcher_memory_overhead_bytes) that covers
+        # QEMU process structures, virtio device buffers, video RAM,
+        # firmware (UEFI), and migration buffers.  It adds this to
+        # the VM's domain memory to set the pod's memory request.
+        #
+        # The actual overhead (vmi:virt_launcher_overhead_memory:bytes)
+        # is the difference between the pod's working_set and the
+        # QEMU process RSS (guest-backed pages).  When actual
+        # persistently exceeds estimated, the pod is relying on
+        # burstable QoS headroom to survive — it's at risk of
+        # eviction if the node comes under memory pressure.
+        #
+        # Common causes: virtio-fs/virtiofsd caching, large number
+        # of disks or network interfaces, guest-initiated DMA
+        # buffers, or QEMU allocations not accounted for in the
+        # overhead model.
+        - alert: VirtLauncherOverheadExceedsEstimate
+          expr: |
+            vmi:virt_launcher_overhead_memory:bytes
+            > on(namespace, name) group_left()
+            sum by (namespace, name) (kubevirt_vmi_launcher_memory_overhead_bytes)
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: >-
+              VM {{ $labels.name }} in {{ $labels.namespace }}
+              launcher overhead exceeds estimate.
+            description: >-
+              The virt-launcher pod for VM {{ $labels.name }} in
+              namespace {{ $labels.namespace }} on node
+              {{ $labels.node }} has been using more memory overhead
+              than KubeVirt estimated for more than 15 minutes.
+              Actual overhead: {{ $value | humanize1024 }}B.
+              The pod is relying on burstable QoS headroom and may
+              be evicted under node memory pressure.
