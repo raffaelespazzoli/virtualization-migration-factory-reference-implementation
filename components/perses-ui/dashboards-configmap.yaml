@@ -531,6 +531,272 @@ data:
               labelName: node
               matchers:
               - kube_node_status_capacity{}
+  pod-memory.yaml: |
+    kind: Dashboard
+    metadata:
+      createdAt: '0001-01-01T00:00:00Z'
+      name: pod-memory
+      project: openshift-operators
+      updatedAt: '0001-01-01T00:00:00Z'
+      version: 0
+    spec:
+      display:
+        description: 'Container memory decomposition: non-reclaimable, hot/cold reclaimable, kernel overhead, with limit threshold.'
+        name: Pod Memory
+      duration: 6h
+      layouts:
+      - kind: Grid
+        spec:
+          display:
+            title: Summary
+          items:
+          - content:
+              $ref: '#/spec/panels/0_0'
+            height: 8
+            width: 6
+            x: 0
+            y: 0
+          - content:
+              $ref: '#/spec/panels/0_1'
+            height: 8
+            width: 6
+            x: 6
+            y: 0
+          - content:
+              $ref: '#/spec/panels/0_2'
+            height: 8
+            width: 6
+            x: 12
+            y: 0
+          - content:
+              $ref: '#/spec/panels/0_3'
+            height: 8
+            width: 6
+            x: 18
+            y: 0
+      - kind: Grid
+        spec:
+          display:
+            title: Memory Decomposition
+          items:
+          - content:
+              $ref: '#/spec/panels/1_0'
+            height: 16
+            width: 24
+            x: 0
+            y: 0
+      panels:
+        '0_0':
+          kind: Panel
+          spec:
+            display:
+              description: Memory that cannot be freely reclaimed (usage minus inactive file cache). This is what the kubelet uses for eviction and OOM decisions.
+              name: Working Set
+            plugin:
+              kind: StatChart
+              spec:
+                calculation: last-number
+                format:
+                  decimalPlaces: 1
+                  unit: bytes
+            queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: sum(container_memory_working_set_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!="})
+        '0_1':
+          kind: Panel
+          spec:
+            display:
+              name: Memory Limit
+            plugin:
+              kind: StatChart
+              spec:
+                calculation: last-number
+                format:
+                  decimalPlaces: 1
+                  unit: bytes
+            queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: sum(kube_pod_container_resource_limits{resource="memory", namespace=~"$namespace", pod=~"$pod", container=~"$container"})
+        '0_2':
+          kind: Panel
+          spec:
+            display:
+              description: "working_set / limit \u2014 how close to OOM"
+              name: Utilization
+            plugin:
+              kind: StatChart
+              spec:
+                calculation: last-number
+                format:
+                  decimalPlaces: 1
+                  unit: percent
+                thresholds:
+                  steps:
+                  - color: '#32ac2d'
+                    value: 0
+                  - color: '#ed8128'
+                    value: 0.8
+                  - color: '#f53636'
+                    value: 0.95
+            queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: 'sum(container_memory_working_set_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!="})
+
+                      /
+
+                      sum(kube_pod_container_resource_limits{resource="memory", namespace=~"$namespace", pod=~"$pod", container=~"$container"})'
+        '0_3':
+          kind: Panel
+          spec:
+            display:
+              description: "Anonymous memory (heap, stack). Cannot be reclaimed without swap \u2014 primary driver of OOM kills."
+              name: RSS
+            plugin:
+              kind: StatChart
+              spec:
+                calculation: last-number
+                format:
+                  decimalPlaces: 1
+                  unit: bytes
+            queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: sum(container_memory_rss{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!="})
+        '1_0':
+          kind: Panel
+          spec:
+            display:
+              description: Stacked memory usage with limit threshold. Total height = container_memory_usage_bytes.
+              name: Memory Breakdown
+            plugin:
+              kind: TimeSeriesChart
+              spec:
+                legend:
+                  mode: list
+                  position: bottom
+                querySettings:
+                - areaOpacity: 0
+                  colorMode: fixed-single
+                  colorValue: '#FFFFFF'
+                  lineStyle: dotted
+                  queryIndex: 4
+                  stack: false
+                visual:
+                  areaOpacity: 0.7
+                  display: line
+                  lineWidth: 2
+                  stack: all
+                yAxis:
+                  format:
+                    unit: bytes
+            queries:
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: sum(container_memory_rss{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!="})
+                    seriesNameFormat: Non-reclaimable (anon/RSS)
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: 'sum(container_memory_usage_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!="})
+
+                      - sum(container_memory_rss{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!="})
+
+                      - sum(container_memory_cache{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!="})'
+                    seriesNameFormat: Kernel overhead
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: "sum(container_memory_cache{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\", container!=\"POD\", container!=\"})\n- (\n  sum(container_memory_usage_bytes{namespace=~\"\
+                      $namespace\", pod=~\"$pod\", container=~\"$container\", container!=\"POD\", container!=\"})\n  - sum(container_memory_working_set_bytes{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"\
+                      $container\", container!=\"POD\", container!=\"})\n)"
+                    seriesNameFormat: Reclaimable hot (active file)
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: 'sum(container_memory_usage_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!="})
+
+                      - sum(container_memory_working_set_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!="})'
+                    seriesNameFormat: Reclaimable cold (inactive file)
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: sum(kube_pod_container_resource_limits{resource="memory", namespace=~"$namespace", pod=~"$pod", container=~"$container"})
+                    seriesNameFormat: "\u2500\u2500 Memory Limit"
+      variables:
+      - kind: ListVariable
+        spec:
+          allowAllValue: false
+          allowMultiple: false
+          display:
+            hidden: false
+            name: Namespace
+          name: namespace
+          plugin:
+            kind: PrometheusLabelValuesVariable
+            spec:
+              datasource:
+                kind: PrometheusDatasource
+              labelName: namespace
+              matchers:
+              - container_memory_working_set_bytes{}
+      - kind: ListVariable
+        spec:
+          allowAllValue: true
+          allowMultiple: false
+          display:
+            hidden: false
+            name: Pod
+          name: pod
+          plugin:
+            kind: PrometheusLabelValuesVariable
+            spec:
+              datasource:
+                kind: PrometheusDatasource
+              labelName: pod
+              matchers:
+              - container_memory_working_set_bytes{namespace=~"$namespace"}
+      - kind: ListVariable
+        spec:
+          allowAllValue: true
+          allowMultiple: false
+          display:
+            hidden: false
+            name: Container
+          name: container
+          plugin:
+            kind: PrometheusLabelValuesVariable
+            spec:
+              datasource:
+                kind: PrometheusDatasource
+              labelName: container
+              matchers:
+              - container_memory_working_set_bytes{namespace=~"$namespace",pod=~"$pod"}
   vm-capacity.yaml: |
     kind: Dashboard
     metadata:
