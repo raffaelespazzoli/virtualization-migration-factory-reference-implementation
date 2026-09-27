@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: perses-ui-config
+  labels:
+    app.kubernetes.io/name: perses-ui
+data:
+  config.yaml: |
+    provisioning:
+      folders:
+        - /etc/perses/provisioning
+
+    database:
+      file:
+        folder: /perses
+        extension: json

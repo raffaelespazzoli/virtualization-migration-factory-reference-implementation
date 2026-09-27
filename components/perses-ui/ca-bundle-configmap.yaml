@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: perses-ui-ca-bundle
+  labels:
+    app.kubernetes.io/name: perses-ui
+  annotations:
+    service.beta.openshift.io/inject-cabundle: "true"
+data: {}

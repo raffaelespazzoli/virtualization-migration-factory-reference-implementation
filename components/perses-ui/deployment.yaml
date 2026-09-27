@@ -1,0 +1,129 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: perses-ui
+  labels:
+    app.kubernetes.io/name: perses-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: perses-ui
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: perses-ui
+    spec:
+      serviceAccountName: perses-ui
+      initContainers:
+        - name: setup-provisioning
+          image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+
+              cat > /provisioning/datasource.yaml <<EOF
+              kind: GlobalDatasource
+              metadata:
+                name: PrometheusDemo
+              spec:
+                default: true
+                plugin:
+                  kind: PrometheusDatasource
+                  spec:
+                    proxy:
+                      kind: HTTPProxy
+                      spec:
+                        url: https://thanos-querier.openshift-monitoring.svc:9091
+                        allowedEndpoints:
+                          - endpointPattern: /api/v1/.*
+                            method: GET
+                          - endpointPattern: /api/v1/.*
+                            method: POST
+                        headers:
+                          Authorization: "Bearer ${TOKEN}"
+              EOF
+
+              cat > /provisioning/project.yaml <<EOF
+              kind: Project
+              metadata:
+                name: openshift-operators
+              spec: {}
+              EOF
+
+              for f in /dashboards/*.yaml; do
+                [ -f "$f" ] && cp "$f" /provisioning/
+              done
+
+              echo "Provisioning directory:"
+              ls -la /provisioning/
+          volumeMounts:
+            - name: provisioning
+              mountPath: /provisioning
+            - name: dashboards
+              mountPath: /dashboards
+      containers:
+        - name: perses
+          image: persesdev/perses:v0.54.0
+          args:
+            - --config=/etc/perses/config/config.yaml
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          env:
+            - name: SSL_CERT_DIR
+              value: /etc/ssl/certs
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 256Mi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/perses/config
+            - name: provisioning
+              mountPath: /etc/perses/provisioning
+            - name: plugins
+              mountPath: /etc/perses/plugins
+            - name: storage
+              mountPath: /perses
+            - name: ca-bundle
+              mountPath: /etc/ssl/certs/openshift-service-ca.crt
+              subPath: service-ca.crt
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: perses-ui-config
+        - name: dashboards
+          projected:
+            sources:
+              - configMap:
+                  name: perses-ui-dashboards
+        - name: provisioning
+          emptyDir: {}
+        - name: plugins
+          emptyDir: {}
+        - name: storage
+          emptyDir: {}
+        - name: ca-bundle
+          configMap:
+            name: perses-ui-ca-bundle
+            optional: true

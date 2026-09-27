@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: perses-ui-monitoring-view
+  labels:
+    app.kubernetes.io/name: perses-ui
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-monitoring-view
+subjects:
+  - kind: ServiceAccount
+    name: perses-ui
+    namespace: openshift-operators
