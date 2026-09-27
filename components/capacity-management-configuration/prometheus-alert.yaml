@@ -90,3 +90,68 @@ spec:
               Immediate action required: drain non-critical pods
               or increase node capacity.
               Current pressure: {{ $value | humanizePercentage }}.
+
+    - name: capacity-management-oom-proximity.alerts
+      rules:
+        # 4. Container memory approaching its cgroup limit.
+        #
+        # Each container with an explicit resources.limits.memory has
+        # its own cgroup with memory.max set to that limit.  When
+        # working_set hits memory.max, the kernel OOM-kills a process
+        # inside the container.
+        #
+        # This alert fires per-container, which is correct because
+        # OOM is a per-container-cgroup event.  Containers without
+        # limits are excluded (no kube_pod_container_resource_limits
+        # series exists for them — they are covered by the node-level
+        # alert instead).
+        - alert: ContainerMemoryApproachingOOM
+          expr: |
+            container:memory:working_set_utilization:ratio > 0.95
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: >-
+              Container {{ $labels.container }} in
+              {{ $labels.namespace }}/{{ $labels.pod }} memory at
+              {{ $value | humanizePercentage }} of limit.
+            description: >-
+              The working-set memory of container {{ $labels.container }}
+              in pod {{ $labels.namespace }}/{{ $labels.pod }} has
+              exceeded 95% of its memory limit for more than 5 minutes.
+              The container will be OOM-killed if usage reaches the
+              limit.  Current utilization:
+              {{ $value | humanizePercentage }}.
+
+        # 5. Pod total memory approaching its pod-level cgroup limit.
+        #
+        # The pod cgroup's memory.max is set by the kubelet from
+        # either the sum of container limits (traditional) or from
+        # spec.resources.limits.memory (PodLevelResources, beta
+        # since k8s 1.34).  This alert catches scenarios where:
+        #
+        #   - Individual containers are under their limits but the
+        #     pod total exceeds the pod-level budget (e.g. a sidecar
+        #     without its own limit consuming the remaining headroom)
+        #   - Pod-level limits are used without container-level limits
+        #
+        # Pods without any effective limit (memory.max = max, reported
+        # as 0 by cAdvisor) are excluded.
+        - alert: PodMemoryApproachingOOM
+          expr: |
+            pod:memory:working_set_utilization:ratio > 0.95
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: >-
+              Pod {{ $labels.namespace }}/{{ $labels.pod }} memory at
+              {{ $value | humanizePercentage }} of limit.
+            description: >-
+              The total working-set memory of pod
+              {{ $labels.namespace }}/{{ $labels.pod }} has exceeded
+              95% of the pod-level memory limit for more than 5
+              minutes.  The kernel will OOM-kill a process in the pod
+              if usage reaches the limit.  Current utilization:
+              {{ $value | humanizePercentage }}.
