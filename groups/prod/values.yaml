@@ -158,6 +158,13 @@ applications:
     source:
       path: components/capacity-management-configuration
 
+  perses-ui:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '25'
+    source:
+      path: components/perses-ui
+
   otel-operator:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous

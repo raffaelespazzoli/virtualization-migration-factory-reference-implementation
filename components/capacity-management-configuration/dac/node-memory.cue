@@ -27,6 +27,7 @@ import (
 			stack:       "all"
 		}
 		yAxis: format: unit: "bytes"
+		...
 	}
 }
 
@@ -305,7 +306,15 @@ dashboardBuilder & {
 								name:        "Node Total"
 								description: "Full node memory: system + workloads. Total height = node capacity."
 							}
-							plugin: #stackedAreaChart
+							plugin: #stackedAreaChart & {
+								spec: querySettings: [{
+									queryIndex: 5
+									colorMode:  "fixed-single"
+									colorValue: "#FFFFFF"
+									stack:      false
+									areaOpacity: 0
+								}]
+							}
 							queries: [
 								#memQuery & {
 									#segment: "Non-reclaimable (anon)"
@@ -326,6 +335,10 @@ dashboardBuilder & {
 								#memQuery & {
 									#segment: "Free"
 									#query:   #p1_free
+								},
+								#memQuery & {
+									#segment: "── Allocatable"
+									#query:   #allocatable
 								},
 							]
 						}
@@ -371,7 +384,15 @@ dashboardBuilder & {
 								name:        "System (system.slice)"
 								description: "OS and Kubernetes system services. Compare with Reserved stat above — system usage commonly exceeds reservation due to file cache."
 							}
-							plugin: #stackedAreaChart
+							plugin: #stackedAreaChart & {
+								spec: querySettings: [{
+									queryIndex: 4
+									colorMode:  "fixed-single"
+									colorValue: "#FF8C00"
+									stack:      false
+									areaOpacity: 0
+								}]
+							}
 							queries: [
 								#memQuery & {
 									#segment: "Non-reclaimable (anon)"
@@ -388,6 +409,10 @@ dashboardBuilder & {
 								#memQuery & {
 									#segment: "Reclaimable cold (inactive file)"
 									#query:   #p3_coldReclaim
+								},
+								#memQuery & {
+									#segment: "── Reserved"
+									#query:   #reserved
 								},
 							]
 						}

@@ -309,6 +309,12 @@ data:
                 legend:
                   mode: list
                   position: bottom
+                querySettings:
+                - areaOpacity: 0
+                  colorMode: fixed-single
+                  colorValue: '#FFFFFF'
+                  queryIndex: 5
+                  stack: false
                 visual:
                   areaOpacity: 0.7
                   display: line
@@ -365,6 +371,13 @@ data:
 
                       - sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})'
                     seriesNameFormat: Free
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
+                    seriesNameFormat: "\u2500\u2500 Allocatable"
         '1_1':
           kind: Panel
           spec:
@@ -440,6 +453,12 @@ data:
                 legend:
                   mode: list
                   position: bottom
+                querySettings:
+                - areaOpacity: 0
+                  colorMode: fixed-single
+                  colorValue: '#FF8C00'
+                  queryIndex: 4
+                  stack: false
                 visual:
                   areaOpacity: 0.7
                   display: line
@@ -482,6 +501,15 @@ data:
                   spec:
                     query: sum(container_memory_total_inactive_file_bytes{id="/system.slice", node=~"$node"})
                     seriesNameFormat: Reclaimable cold (inactive file)
+            - kind: TimeSeriesQuery
+              spec:
+                plugin:
+                  kind: PrometheusTimeSeriesQuery
+                  spec:
+                    query: 'sum(kube_node_status_capacity{resource="memory", node=~"$node"})
+
+                      - sum(kube_node_status_allocatable{resource="memory", node=~"$node"})'
+                    seriesNameFormat: "\u2500\u2500 Reserved"
       variables:
       - kind: ListVariable
         spec:

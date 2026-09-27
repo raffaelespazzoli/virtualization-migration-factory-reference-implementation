@@ -142,6 +142,12 @@ spec:
             legend:
               position: bottom
               mode: list
+            querySettings:
+              - queryIndex: 5
+                colorMode: fixed-single
+                colorValue: '#FFFFFF'
+                stack: false
+                areaOpacity: 0
             visual:
               display: line
               areaOpacity: 0.7
@@ -210,6 +216,13 @@ spec:
                     - sum(container_memory_usage_bytes{id="/system.slice", node=~"$node"})
                     - sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
                   seriesNameFormat: Free
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
+                  seriesNameFormat: ── Allocatable
     "1_1":
       kind: Panel
       spec:
@@ -283,6 +296,12 @@ spec:
             legend:
               position: bottom
               mode: list
+            querySettings:
+              - queryIndex: 4
+                colorMode: fixed-single
+                colorValue: '#FF8C00'
+                stack: false
+                areaOpacity: 0
             visual:
               display: line
               areaOpacity: 0.7
@@ -323,6 +342,15 @@ spec:
                 spec:
                   query: sum(container_memory_total_inactive_file_bytes{id="/system.slice", node=~"$node"})
                   seriesNameFormat: Reclaimable cold (inactive file)
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: |-
+                    sum(kube_node_status_capacity{resource="memory", node=~"$node"})
+                    - sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
+                  seriesNameFormat: ── Reserved
   layouts:
     - kind: Grid
       spec:
