@@ -1717,4 +1717,4 @@ data:
       duration: 5m
 kind: ConfigMap
 metadata:
-  name: perses-dashboards
+  name: perses-ui-dashboards
