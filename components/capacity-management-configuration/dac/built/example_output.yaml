@@ -1,0 +1,11 @@
+kind: Dashboard
+metadata:
+  name: myDashboardAsCode
+  createdAt: "0001-01-01T00:00:00Z"
+  project: myProject
+  updatedAt: "0001-01-01T00:00:00Z"
+  version: 0
+spec:
+  panels: {}
+  layouts: []
+  duration: 1h

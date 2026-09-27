@@ -45,7 +45,7 @@ import (
 // ── Common filter ───────────────────────────────────────────────────
 // Applied to every container-level metric.  The variable selectors
 // use regex matching so that "all" ($__all → .*) works correctly.
-_f: #"namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""#
+_f: "namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\", container!=\"POD\", container!=\"\""
 
 // ── PromQL fragments ────────────────────────────────────────────────
 
@@ -114,20 +114,18 @@ dashboardBuilder & {
 			labelValuesVarBuilder & {
 				#name:   "pod"
 				#display: name: "Pod"
-				#metric: "container_memory_working_set_bytes"
 				#label:  "pod"
+				#query:  "container_memory_working_set_bytes{namespace=~\"$namespace\",container!=\"\",container!=\"POD\"}"
 				#allowAllValue: true
 				#allowMultiple: false
-				#matchers: ["namespace=~\"$namespace\"", "container!=\"\"", "container!=\"POD\""]
 			},
 			labelValuesVarBuilder & {
 				#name:   "container"
 				#display: name: "Container"
-				#metric: "container_memory_working_set_bytes"
 				#label:  "container"
+				#query:  "container_memory_working_set_bytes{namespace=~\"$namespace\",pod=~\"$pod\",container!=\"\",container!=\"POD\"}"
 				#allowAllValue: true
 				#allowMultiple: false
-				#matchers: ["namespace=~\"$namespace\"", "pod=~\"$pod\"", "container!=\"\"", "container!=\"POD\""]
 			},
 		]
 	}}.variables

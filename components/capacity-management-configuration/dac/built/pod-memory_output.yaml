@@ -41,7 +41,7 @@ spec:
               kind: PrometheusDatasource
             labelName: pod
             matchers:
-              - container_memory_working_set_bytes{namespace=~"$namespace"}
+              - container_memory_working_set_bytes{namespace=~"$namespace",container!="",container!="POD"}
     - kind: ListVariable
       spec:
         display:
@@ -57,7 +57,7 @@ spec:
               kind: PrometheusDatasource
             labelName: container
             matchers:
-              - container_memory_working_set_bytes{namespace=~"$namespace",pod=~"$pod"}
+              - container_memory_working_set_bytes{namespace=~"$namespace",pod=~"$pod",container!="",container!="POD"}
   panels:
     "0_0":
       kind: Panel
@@ -78,7 +78,7 @@ spec:
               plugin:
                 kind: PrometheusTimeSeriesQuery
                 spec:
-                  query: sum(container_memory_working_set_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!="})
+                  query: sum(container_memory_working_set_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
     "0_1":
       kind: Panel
       spec:
@@ -126,7 +126,7 @@ spec:
                 kind: PrometheusTimeSeriesQuery
                 spec:
                   query: |-
-                    sum(container_memory_working_set_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!="})
+                    sum(container_memory_working_set_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
                     /
                     sum(kube_pod_container_resource_limits{resource="memory", namespace=~"$namespace", pod=~"$pod", container=~"$container"})
     "0_3":
@@ -148,7 +148,7 @@ spec:
               plugin:
                 kind: PrometheusTimeSeriesQuery
                 spec:
-                  query: sum(container_memory_rss{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!="})
+                  query: sum(container_memory_rss{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
     "1_0":
       kind: Panel
       spec:
@@ -182,7 +182,7 @@ spec:
               plugin:
                 kind: PrometheusTimeSeriesQuery
                 spec:
-                  query: sum(container_memory_rss{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!="})
+                  query: sum(container_memory_rss{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
                   seriesNameFormat: Non-reclaimable (anon/RSS)
           - kind: TimeSeriesQuery
             spec:
@@ -190,9 +190,9 @@ spec:
                 kind: PrometheusTimeSeriesQuery
                 spec:
                   query: |-
-                    sum(container_memory_usage_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!="})
-                    - sum(container_memory_rss{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!="})
-                    - sum(container_memory_cache{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!="})
+                    sum(container_memory_usage_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
+                    - sum(container_memory_rss{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
+                    - sum(container_memory_cache{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
                   seriesNameFormat: Kernel overhead
           - kind: TimeSeriesQuery
             spec:
@@ -200,10 +200,10 @@ spec:
                 kind: PrometheusTimeSeriesQuery
                 spec:
                   query: |-
-                    sum(container_memory_cache{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!="})
+                    sum(container_memory_cache{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
                     - (
-                      sum(container_memory_usage_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!="})
-                      - sum(container_memory_working_set_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!="})
+                      sum(container_memory_usage_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
+                      - sum(container_memory_working_set_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
                     )
                   seriesNameFormat: Reclaimable hot (active file)
           - kind: TimeSeriesQuery
@@ -212,8 +212,8 @@ spec:
                 kind: PrometheusTimeSeriesQuery
                 spec:
                   query: |-
-                    sum(container_memory_usage_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!="})
-                    - sum(container_memory_working_set_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!="})
+                    sum(container_memory_usage_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
+                    - sum(container_memory_working_set_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
                   seriesNameFormat: Reclaimable cold (inactive file)
           - kind: TimeSeriesQuery
             spec:
