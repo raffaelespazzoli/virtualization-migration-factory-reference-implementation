@@ -18,9 +18,7 @@ data:
             display:
               name: Observation period
               hidden: false
-            defaultValue:
-              singleValue: 30d
-              sliceValues: []
+            defaultValue:defaultValue: '30d'
             name: observation_period
             allowAllValue: false
             allowMultiple: false
@@ -122,18 +120,6 @@ data:
                 content:
                   $ref: '#/spec/panels/1_0'
       duration: 6h
-  example.yaml: |
-    kind: Dashboard
-    metadata:
-      name: myDashboardAsCode
-      createdAt: "0001-01-01T00:00:00Z"
-      project: myProject
-      updatedAt: "0001-01-01T00:00:00Z"
-      version: 0
-    spec:
-      panels: {}
-      layouts: []
-      duration: 1h
   node-memory.yaml: |
     kind: Dashboard
     metadata:
@@ -837,9 +823,7 @@ data:
             display:
               name: VM memory
               hidden: false
-            defaultValue:
-              singleValue: "8589934592"
-              sliceValues: []
+            defaultValue:defaultValue: '8589934592'
             name: vm_memory
             allowAllValue: false
             allowMultiple: false
@@ -862,9 +846,7 @@ data:
             display:
               name: VM CPU
               hidden: false
-            defaultValue:
-              singleValue: "4"
-              sliceValues: []
+            defaultValue:defaultValue: '4'
             name: vm_cpu
             allowAllValue: false
             allowMultiple: false
@@ -887,9 +869,7 @@ data:
             display:
               name: Memory overcommit
               hidden: false
-            defaultValue:
-              singleValue: "1"
-              sliceValues: []
+            defaultValue:defaultValue: '1'
             name: memory_overcommit
             allowAllValue: false
             allowMultiple: false
@@ -908,9 +888,7 @@ data:
             display:
               name: CPU overcommit
               hidden: false
-            defaultValue:
-              singleValue: "1"
-              sliceValues: []
+            defaultValue:defaultValue: '1'
             name: cpu_overcommit
             allowAllValue: false
             allowMultiple: false
@@ -1473,9 +1451,7 @@ data:
             display:
               name: Observation period
               hidden: false
-            defaultValue:
-              singleValue: 30d
-              sliceValues: []
+            defaultValue:defaultValue: '30d'
             name: observation_period
             allowAllValue: false
             allowMultiple: false
@@ -1496,9 +1472,7 @@ data:
             display:
               name: Memory quantile
               hidden: false
-            defaultValue:
-              singleValue: "0.95"
-              sliceValues: []
+            defaultValue:defaultValue: '0.95'
             name: memory_quantile
             allowAllValue: false
             allowMultiple: false
@@ -1523,9 +1497,7 @@ data:
             display:
               name: CPU quantile
               hidden: false
-            defaultValue:
-              singleValue: "0.80"
-              sliceValues: []
+            defaultValue:defaultValue: '0.80'
             name: cpu_quantile
             allowAllValue: false
             allowMultiple: false
@@ -1729,4 +1701,3 @@ data:
 kind: ConfigMap
 metadata:
   name: perses-ui-dashboards
-  namespace: openshift-operators
