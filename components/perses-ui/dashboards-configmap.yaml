@@ -1139,7 +1139,7 @@ data:
     spec:
       display:
         name: VM Memory
-        description: Guest memory decomposition (kernel, non-reclaimable, reclaimable, free) and launcher pod memory budget vs actual.
+        description: 'Guest memory decomposition (kernel, non-reclaimable, reclaimable, free) and launcher overhead: estimated vs actual.'
       variables:
         - kind: ListVariable
           spec:
@@ -1268,8 +1268,8 @@ data:
           kind: Panel
           spec:
             display:
-              name: Pod Margin
-              description: Pod memory request minus actual working_set. Positive = headroom. Negative = over budget, risk of eviction.
+              name: Overhead Δ
+              description: Estimated overhead minus actual overhead. Positive = headroom. Negative = virt-controller under-estimated.
             plugin:
               kind: StatChart
               spec:
@@ -1291,7 +1291,9 @@ data:
                   plugin:
                     kind: PrometheusTimeSeriesQuery
                     spec:
-                      query: kubevirt_vm_container_memory_request_margin_based_on_working_set_bytes{namespace=~"$namespace", pod=~"virt-launcher-$vm-.*"}
+                      query: |-
+                        scalar(kubevirt_vmi_launcher_memory_overhead_bytes{name=~"$vm", namespace=~"$namespace"})
+                        - scalar(vmi:virt_launcher_overhead_memory:bytes{name=~"$vm", namespace=~"$namespace"})
         "1_0":
           kind: Panel
           spec:
@@ -1361,8 +1363,8 @@ data:
           kind: Panel
           spec:
             display:
-              name: 'Pod Memory: Budget vs Actual'
-              description: Budget = domain + estimated overhead (pod memory request). Actual = pod working_set. When actual exceeds budget the pod is at risk of eviction.
+              name: 'Launcher Overhead: Estimated vs Actual'
+              description: Estimated = virt-controller prediction. Actual = pod working_set minus guest RSS (recording rule). When actual exceeds estimated, the overhead budget is too tight.
             plugin:
               kind: TimeSeriesChart
               spec:
@@ -1390,17 +1392,15 @@ data:
                   plugin:
                     kind: PrometheusTimeSeriesQuery
                     spec:
-                      query: |-
-                        scalar(kubevirt_vmi_memory_domain_bytes{name=~"$vm", namespace=~"$namespace"})
-                        + scalar(kubevirt_vmi_launcher_memory_overhead_bytes{name=~"$vm", namespace=~"$namespace"})
-                      seriesNameFormat: Budget (domain + overhead estimate)
+                      query: kubevirt_vmi_launcher_memory_overhead_bytes{name=~"$vm", namespace=~"$namespace"}
+                      seriesNameFormat: Estimated overhead
               - kind: TimeSeriesQuery
                 spec:
                   plugin:
                     kind: PrometheusTimeSeriesQuery
                     spec:
-                      query: container_memory_working_set_bytes{namespace=~"$namespace", pod=~"virt-launcher-$vm-.*", container=""}
-                      seriesNameFormat: Actual (pod working_set)
+                      query: vmi:virt_launcher_overhead_memory:bytes{name=~"$vm", namespace=~"$namespace"}
+                      seriesNameFormat: Actual overhead
       layouts:
         - kind: Grid
           spec:

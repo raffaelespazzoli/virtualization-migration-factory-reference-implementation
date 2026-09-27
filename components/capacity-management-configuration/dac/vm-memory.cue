@@ -84,24 +84,22 @@ _f: "name=~\"$vm\", namespace=~\"$namespace\""
 #domain:      "kubevirt_vmi_memory_domain_bytes{" + _f + "}"
 #available:   "kubevirt_vmi_memory_available_bytes{" + _f + "}"
 
-// Panel 2: Pod memory budget vs actual
+// Panel 2: Launcher overhead — estimated vs actual
 //
-// Budget  = domain + estimated overhead (what KubeVirt requests for the pod)
-// Actual  = container_memory_working_set_bytes at the pod cgroup level
+// Estimated = kubevirt_vmi_launcher_memory_overhead_bytes (virt-controller prediction)
+// Actual    = vmi:virt_launcher_overhead_memory:bytes     (recording rule:
+//             sum(working_set of all containers) − sum(resident_bytes))
 //
-// When actual exceeds budget, the pod is over-subscribed and at risk
-// of eviction.  The gap between the lines IS the margin.
+// When actual exceeds estimated the pod's memory request may be too tight.
 
-#podBudget: """
-	scalar(kubevirt_vmi_memory_domain_bytes{\( _f )})
-	+ scalar(kubevirt_vmi_launcher_memory_overhead_bytes{\( _f )})
+#overheadEstimated: "kubevirt_vmi_launcher_memory_overhead_bytes{" + _f + "}"
+#overheadActual:    "vmi:virt_launcher_overhead_memory:bytes{" + _f + "}"
+
+// Overhead delta: estimated − actual.  Positive = headroom, negative = under-estimated.
+#overheadDelta: """
+	scalar(kubevirt_vmi_launcher_memory_overhead_bytes{\( _f )})
+	- scalar(vmi:virt_launcher_overhead_memory:bytes{\( _f )})
 	"""
-
-#podActual: "container_memory_working_set_bytes{namespace=~\"$namespace\", pod=~\"virt-launcher-$vm-.*\", container=\"\"}"
-
-// The margin metric (pre-computed by virt-controller): request - working_set
-// Negative = over budget.
-#podMargin: "kubevirt_vm_container_memory_request_margin_based_on_working_set_bytes{namespace=~\"$namespace\", pod=~\"virt-launcher-$vm-.*\"}"
 
 // Summary stats
 #utilization: """
@@ -116,7 +114,7 @@ dashboardBuilder & {
 	#project: "openshift-operators"
 	#display: {
 		name:        "VM Memory"
-		description: "Guest memory decomposition (kernel, non-reclaimable, reclaimable, free) and launcher pod memory budget vs actual."
+		description: "Guest memory decomposition (kernel, non-reclaimable, reclaimable, free) and launcher overhead: estimated vs actual."
 	}
 	#duration: "6h"
 
@@ -236,8 +234,8 @@ dashboardBuilder & {
 					panelBuilder & {
 						spec: {
 							display: {
-								name:        "Pod Margin"
-								description: "Pod memory request minus actual working_set. Positive = headroom. Negative = over budget, risk of eviction."
+								name:        "Overhead Δ"
+								description: "Estimated overhead minus actual overhead. Positive = headroom. Negative = virt-controller under-estimated."
 							}
 							plugin: statChart & {
 								spec: {
@@ -253,7 +251,7 @@ dashboardBuilder & {
 							queries: [{
 								kind: "TimeSeriesQuery"
 								spec: plugin: promQuery & {
-									spec: query: #podMargin
+									spec: query: #overheadDelta
 								}
 							}]
 						}
@@ -297,12 +295,12 @@ dashboardBuilder & {
 							]
 						}
 					},
-					// Panel 2: Pod memory budget vs actual (line chart)
+					// Panel 2: Overhead — estimated vs actual (line chart)
 					panelBuilder & {
 						spec: {
 							display: {
-								name:        "Pod Memory: Budget vs Actual"
-								description: "Budget = domain + estimated overhead (pod memory request). Actual = pod working_set. When actual exceeds budget the pod is at risk of eviction."
+								name:        "Launcher Overhead: Estimated vs Actual"
+								description: "Estimated = virt-controller prediction. Actual = pod working_set minus guest RSS (recording rule). When actual exceeds estimated, the overhead budget is too tight."
 							}
 							plugin: #lineChart & {
 								spec: {
@@ -322,8 +320,8 @@ dashboardBuilder & {
 								}
 							}
 							queries: [
-								#memQuery & { #query: #podBudget, #segment: "Budget (domain + overhead estimate)" },
-								#memQuery & { #query: #podActual, #segment: "Actual (pod working_set)" },
+								#memQuery & { #query: #overheadEstimated, #segment: "Estimated overhead" },
+								#memQuery & { #query: #overheadActual, #segment:    "Actual overhead" },
 							]
 						}
 					},
