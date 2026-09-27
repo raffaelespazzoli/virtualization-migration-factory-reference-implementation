@@ -9,6 +9,7 @@ resources:
   - ./dac/built/vm-overcommit_output.yaml
   - ./dac/built/node-memory_output.yaml
   - ./dac/built/pod-memory_output.yaml
+  - ./dac/built/vm-memory_output.yaml
 
 patches:
   # percli emits ListVariable defaultValue as {singleValue, sliceValues}.

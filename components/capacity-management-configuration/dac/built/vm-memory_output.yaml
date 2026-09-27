@@ -1,0 +1,343 @@
+kind: Dashboard
+metadata:
+  name: vm-memory
+  createdAt: "0001-01-01T00:00:00Z"
+  project: openshift-operators
+  updatedAt: "0001-01-01T00:00:00Z"
+  version: 0
+spec:
+  display:
+    name: VM Memory
+    description: 'Guest memory decomposition (kernel, non-reclaimable, reclaimable, free) and launcher overhead: estimated vs actual.'
+  variables:
+    - kind: ListVariable
+      spec:
+        display:
+          name: Namespace
+          hidden: false
+        name: namespace
+        allowAllValue: false
+        allowMultiple: false
+        plugin:
+          kind: PrometheusLabelValuesVariable
+          spec:
+            datasource:
+              kind: PrometheusDatasource
+            labelName: namespace
+            matchers:
+              - kubevirt_vmi_memory_available_bytes{}
+    - kind: ListVariable
+      spec:
+        display:
+          name: VM
+          hidden: false
+        name: vm
+        allowAllValue: false
+        allowMultiple: false
+        plugin:
+          kind: PrometheusLabelValuesVariable
+          spec:
+            datasource:
+              kind: PrometheusDatasource
+            labelName: name
+            matchers:
+              - kubevirt_vmi_memory_available_bytes{namespace=~"$namespace"}
+  panels:
+    "0_0":
+      kind: Panel
+      spec:
+        display:
+          name: Domain
+          description: Total memory allocated to the QEMU domain — the VM's configured size.
+        plugin:
+          kind: StatChart
+          spec:
+            calculation: last-number
+            format:
+              unit: bytes
+              decimalPlaces: 1
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: kubevirt_vmi_memory_domain_bytes{name=~"$vm", namespace=~"$namespace"}
+    "0_1":
+      kind: Panel
+      spec:
+        display:
+          name: Available (MemTotal)
+          description: Usable memory inside the guest — domain minus kernel reserved.
+        plugin:
+          kind: StatChart
+          spec:
+            calculation: last-number
+            format:
+              unit: bytes
+              decimalPlaces: 1
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: kubevirt_vmi_memory_available_bytes{name=~"$vm", namespace=~"$namespace"}
+    "0_2":
+      kind: Panel
+      spec:
+        display:
+          name: Used (non-reclaimable)
+          description: Memory actively in use — cannot be freed without swap or OOM.
+        plugin:
+          kind: StatChart
+          spec:
+            calculation: last-number
+            format:
+              unit: bytes
+              decimalPlaces: 1
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: kubevirt_vmi_memory_used_bytes{name=~"$vm", namespace=~"$namespace"}
+    "0_3":
+      kind: Panel
+      spec:
+        display:
+          name: Utilization
+          description: used / available — how close to guest OOM.
+        plugin:
+          kind: StatChart
+          spec:
+            calculation: last-number
+            format:
+              unit: percent
+              decimalPlaces: 1
+            thresholds:
+              steps:
+                - value: 0
+                  color: '#32ac2d'
+                - value: 0.80
+                  color: '#ed8128'
+                - value: 0.95
+                  color: '#f53636'
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: |-
+                    kubevirt_vmi_memory_used_bytes{name=~"$vm", namespace=~"$namespace"}
+                    / kubevirt_vmi_memory_available_bytes{name=~"$vm", namespace=~"$namespace"}
+    "0_4":
+      kind: Panel
+      spec:
+        display:
+          name: Overhead Δ
+          description: Estimated overhead − actual overhead. Positive = headroom. Negative = pod exceeds estimate.
+        plugin:
+          kind: StatChart
+          spec:
+            calculation: last-number
+            format:
+              unit: bytes
+              decimalPlaces: 1
+            thresholds:
+              steps:
+                - value: -536870912
+                  color: '#f53636'
+                - value: 0
+                  color: '#ed8128'
+                - value: 104857600
+                  color: '#32ac2d'
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: |-
+                    scalar(kubevirt_vmi_launcher_memory_overhead_bytes{name=~"$vm", namespace=~"$namespace"})
+                    - (
+                      container_memory_working_set_bytes{namespace=~"$namespace", pod=~"virt-launcher-$vm-.*", container=""}
+                      - scalar(kubevirt_vmi_memory_domain_bytes{name=~"$vm", namespace=~"$namespace"})
+                    )
+    "1_0":
+      kind: Panel
+      spec:
+        display:
+          name: Guest Memory Decomposition
+          description: 'Four layers summing to domain: kernel reserved + non-reclaimable + reclaimable + free. Cached shown as dotted overlay.'
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              position: bottom
+              mode: list
+            visual:
+              display: line
+              areaOpacity: 0.7
+              lineWidth: 2
+              stack: all
+            querySettings:
+              - queryIndex: 4
+                colorMode: fixed-single
+                colorValue: '#FFFFFF'
+                lineStyle: dotted
+                stack: false
+                areaOpacity: 0
+              - queryIndex: 5
+                colorMode: fixed-single
+                colorValue: '#FFD700'
+                lineStyle: dotted
+                stack: false
+                areaOpacity: 0
+            yAxis:
+              format:
+                unit: bytes
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: |-
+                    kubevirt_vmi_memory_domain_bytes{name=~"$vm", namespace=~"$namespace"}
+                    - kubevirt_vmi_memory_available_bytes{name=~"$vm", namespace=~"$namespace"}
+                  seriesNameFormat: Kernel reserved
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: kubevirt_vmi_memory_used_bytes{name=~"$vm", namespace=~"$namespace"}
+                  seriesNameFormat: Non-reclaimable (used)
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: kubevirt_vmi_memory_usable_bytes{name=~"$vm", namespace=~"$namespace"} - kubevirt_vmi_memory_unused_bytes{name=~"$vm", namespace=~"$namespace"}
+                  seriesNameFormat: Reclaimable
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: kubevirt_vmi_memory_unused_bytes{name=~"$vm", namespace=~"$namespace"}
+                  seriesNameFormat: Free
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: kubevirt_vmi_memory_domain_bytes{name=~"$vm", namespace=~"$namespace"}
+                  seriesNameFormat: ── Domain (configured)
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: kubevirt_vmi_memory_cached_bytes{name=~"$vm", namespace=~"$namespace"}
+                  seriesNameFormat: ── Cached (overlay)
+    "1_1":
+      kind: Panel
+      spec:
+        display:
+          name: 'Launcher Overhead: Estimated vs Actual'
+          description: Estimated = virt-controller's calculated overhead. Actual = pod working_set minus domain. Gap = the margin metric.
+        plugin:
+          kind: TimeSeriesChart
+          spec:
+            legend:
+              position: bottom
+              mode: list
+            querySettings:
+              - queryIndex: 0
+                colorMode: fixed-single
+                colorValue: '#32ac2d'
+              - queryIndex: 1
+                colorMode: fixed-single
+                colorValue: '#f53636'
+            visual:
+              display: line
+              areaOpacity: 0
+              lineWidth: 2
+            yAxis:
+              format:
+                unit: bytes
+        queries:
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: kubevirt_vmi_launcher_memory_overhead_bytes{name=~"$vm", namespace=~"$namespace"}
+                  seriesNameFormat: Estimated overhead
+          - kind: TimeSeriesQuery
+            spec:
+              plugin:
+                kind: PrometheusTimeSeriesQuery
+                spec:
+                  query: |-
+                    container_memory_working_set_bytes{namespace=~"$namespace", pod=~"virt-launcher-$vm-.*", container=""}
+                    - scalar(kubevirt_vmi_memory_domain_bytes{name=~"$vm", namespace=~"$namespace"})
+                  seriesNameFormat: Actual overhead (ws − domain)
+  layouts:
+    - kind: Grid
+      spec:
+        display:
+          title: Summary
+        items:
+          - x: 0
+            "y": 0
+            width: 4
+            height: 8
+            content:
+              $ref: '#/spec/panels/0_0'
+          - x: 4
+            "y": 0
+            width: 4
+            height: 8
+            content:
+              $ref: '#/spec/panels/0_1'
+          - x: 8
+            "y": 0
+            width: 4
+            height: 8
+            content:
+              $ref: '#/spec/panels/0_2'
+          - x: 12
+            "y": 0
+            width: 4
+            height: 8
+            content:
+              $ref: '#/spec/panels/0_3'
+          - x: 16
+            "y": 0
+            width: 4
+            height: 8
+            content:
+              $ref: '#/spec/panels/0_4'
+    - kind: Grid
+      spec:
+        display:
+          title: Memory Decomposition
+        items:
+          - x: 0
+            "y": 0
+            width: 12
+            height: 8
+            content:
+              $ref: '#/spec/panels/1_0'
+          - x: 12
+            "y": 0
+            width: 12
+            height: 8
+            content:
+              $ref: '#/spec/panels/1_1'
+  duration: 6h
