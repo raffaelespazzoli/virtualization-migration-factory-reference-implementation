@@ -83,21 +83,25 @@ _f: "name=~\"$vm\", namespace=~\"$namespace\""
 #free:        "kubevirt_vmi_memory_unused_bytes{" + _f + "}"
 #domain:      "kubevirt_vmi_memory_domain_bytes{" + _f + "}"
 #available:   "kubevirt_vmi_memory_available_bytes{" + _f + "}"
-#cached:      "kubevirt_vmi_memory_cached_bytes{" + _f + "}"
 
-// Panel 2: Overhead comparison
-//   estimated = kubevirt_vmi_launcher_memory_overhead_bytes (from virt-controller)
-//   actual    = container_memory_working_set_bytes(pod) - domain_bytes
+// Panel 2: Pod memory budget vs actual
 //
-// The actual overhead uses scalar() for the domain subtraction
-// because the kubevirt and container metrics have different label sets.
+// Budget  = domain + estimated overhead (what KubeVirt requests for the pod)
+// Actual  = container_memory_working_set_bytes at the pod cgroup level
+//
+// When actual exceeds budget, the pod is over-subscribed and at risk
+// of eviction.  The gap between the lines IS the margin.
 
-#overheadEstimated: "kubevirt_vmi_launcher_memory_overhead_bytes{" + _f + "}"
-
-#overheadActual: """
-	container_memory_working_set_bytes{namespace=~"$namespace", pod=~"virt-launcher-$vm-.*", container=""}
-	- scalar(kubevirt_vmi_memory_domain_bytes{\( _f )})
+#podBudget: """
+	scalar(kubevirt_vmi_memory_domain_bytes{\( _f )})
+	+ scalar(kubevirt_vmi_launcher_memory_overhead_bytes{\( _f )})
 	"""
+
+#podActual: "container_memory_working_set_bytes{namespace=~\"$namespace\", pod=~\"virt-launcher-$vm-.*\", container=\"\"}"
+
+// The margin metric (pre-computed by virt-controller): request - working_set
+// Negative = over budget.
+#podMargin: "kubevirt_vm_container_memory_request_margin_based_on_working_set_bytes{namespace=~\"$namespace\", pod=~\"virt-launcher-$vm-.*\"}"
 
 // Summary stats
 #utilization: """
@@ -112,7 +116,7 @@ dashboardBuilder & {
 	#project: "openshift-operators"
 	#display: {
 		name:        "VM Memory"
-		description: "Guest memory decomposition (kernel, non-reclaimable, reclaimable, free) and launcher overhead: estimated vs actual."
+		description: "Guest memory decomposition (kernel, non-reclaimable, reclaimable, free) and launcher pod memory budget vs actual."
 	}
 	#duration: "6h"
 
@@ -213,18 +217,18 @@ dashboardBuilder & {
 							plugin: statChart & {
 								spec: {
 									calculation: "last-number"
-									format: { unit: "percent", decimalPlaces: 1 }
+									format: { unit: "percent-decimal", decimalPlaces: 1 }
 									thresholds: steps: [
 										{ value: 0, color: "#32ac2d" },
-										{ value: 0.80, color: "#ed8128" },
-										{ value: 0.95, color: "#f53636" },
+										{ value: 80, color: "#ed8128" },
+										{ value: 95, color: "#f53636" },
 									]
 								}
 							}
 							queries: [{
 								kind: "TimeSeriesQuery"
 								spec: plugin: promQuery & {
-									spec: query: #utilization
+									spec: query: #utilization + " * 100"
 								}
 							}]
 						}
@@ -232,8 +236,8 @@ dashboardBuilder & {
 					panelBuilder & {
 						spec: {
 							display: {
-								name:        "Overhead Δ"
-								description: "Estimated overhead − actual overhead. Positive = headroom. Negative = pod exceeds estimate."
+								name:        "Pod Margin"
+								description: "Pod memory request minus actual working_set. Positive = headroom. Negative = over budget, risk of eviction."
 							}
 							plugin: statChart & {
 								spec: {
@@ -249,13 +253,7 @@ dashboardBuilder & {
 							queries: [{
 								kind: "TimeSeriesQuery"
 								spec: plugin: promQuery & {
-									spec: query: """
-										scalar(kubevirt_vmi_launcher_memory_overhead_bytes{\( _f )})
-										- (
-										  container_memory_working_set_bytes{namespace=~"$namespace", pod=~"virt-launcher-$vm-.*", container=""}
-										  - scalar(kubevirt_vmi_memory_domain_bytes{\( _f )})
-										)
-										"""
+									spec: query: #podMargin
 								}
 							}]
 						}
@@ -272,7 +270,7 @@ dashboardBuilder & {
 						spec: {
 							display: {
 								name:        "Guest Memory Decomposition"
-								description: "Four layers summing to domain: kernel reserved + non-reclaimable + reclaimable + free. Cached shown as dotted overlay."
+								description: "Four layers summing to domain: kernel reserved + non-reclaimable + reclaimable + free."
 							}
 							plugin: #stackedAreaChart & {
 								spec: {
@@ -287,15 +285,6 @@ dashboardBuilder & {
 											stack:       false
 											areaOpacity: 0
 										},
-										// Cached overlay
-										{
-											queryIndex:  5
-											colorMode:   "fixed-single"
-											colorValue:  "#FFD700"
-											lineStyle:   "dotted"
-											stack:       false
-											areaOpacity: 0
-										},
 									]
 								}
 							}
@@ -305,16 +294,15 @@ dashboardBuilder & {
 								#memQuery & { #query: #reclaimable, #segment:    "Reclaimable" },
 								#memQuery & { #query: #free, #segment:           "Free" },
 								#memQuery & { #query: #domain, #segment:         "── Domain (configured)" },
-								#memQuery & { #query: #cached, #segment:         "── Cached (overlay)" },
 							]
 						}
 					},
-					// Panel 2: Overhead comparison (line chart)
+					// Panel 2: Pod memory budget vs actual (line chart)
 					panelBuilder & {
 						spec: {
 							display: {
-								name:        "Launcher Overhead: Estimated vs Actual"
-								description: "Estimated = virt-controller's calculated overhead. Actual = pod working_set minus domain. Gap = the margin metric."
+								name:        "Pod Memory: Budget vs Actual"
+								description: "Budget = domain + estimated overhead (pod memory request). Actual = pod working_set. When actual exceeds budget the pod is at risk of eviction."
 							}
 							plugin: #lineChart & {
 								spec: {
@@ -323,18 +311,19 @@ dashboardBuilder & {
 											queryIndex:  0
 											colorMode:   "fixed-single"
 											colorValue:  "#32ac2d"
+											lineStyle:   "dotted"
 										},
 										{
 											queryIndex:  1
 											colorMode:   "fixed-single"
-											colorValue:  "#f53636"
+											colorValue:  "#2E79B5"
 										},
 									]
 								}
 							}
 							queries: [
-								#memQuery & { #query: #overheadEstimated, #segment: "Estimated overhead" },
-								#memQuery & { #query: #overheadActual, #segment:    "Actual overhead (ws − domain)" },
+								#memQuery & { #query: #podBudget, #segment: "Budget (domain + overhead estimate)" },
+								#memQuery & { #query: #podActual, #segment: "Actual (pod working_set)" },
 							]
 						}
 					},

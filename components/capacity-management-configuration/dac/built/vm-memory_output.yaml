@@ -8,7 +8,7 @@ metadata:
 spec:
   display:
     name: VM Memory
-    description: 'Guest memory decomposition (kernel, non-reclaimable, reclaimable, free) and launcher overhead: estimated vs actual.'
+    description: Guest memory decomposition (kernel, non-reclaimable, reclaimable, free) and launcher pod memory budget vs actual.
   variables:
     - kind: ListVariable
       spec:
@@ -114,15 +114,15 @@ spec:
           spec:
             calculation: last-number
             format:
-              unit: percent
+              unit: percent-decimal
               decimalPlaces: 1
             thresholds:
               steps:
                 - value: 0
                   color: '#32ac2d'
-                - value: 0.80
+                - value: 80
                   color: '#ed8128'
-                - value: 0.95
+                - value: 95
                   color: '#f53636'
         queries:
           - kind: TimeSeriesQuery
@@ -132,13 +132,13 @@ spec:
                 spec:
                   query: |-
                     kubevirt_vmi_memory_used_bytes{name=~"$vm", namespace=~"$namespace"}
-                    / kubevirt_vmi_memory_available_bytes{name=~"$vm", namespace=~"$namespace"}
+                    / kubevirt_vmi_memory_available_bytes{name=~"$vm", namespace=~"$namespace"} * 100
     "0_4":
       kind: Panel
       spec:
         display:
-          name: Overhead Δ
-          description: Estimated overhead − actual overhead. Positive = headroom. Negative = pod exceeds estimate.
+          name: Pod Margin
+          description: Pod memory request minus actual working_set. Positive = headroom. Negative = over budget, risk of eviction.
         plugin:
           kind: StatChart
           spec:
@@ -160,18 +160,13 @@ spec:
               plugin:
                 kind: PrometheusTimeSeriesQuery
                 spec:
-                  query: |-
-                    scalar(kubevirt_vmi_launcher_memory_overhead_bytes{name=~"$vm", namespace=~"$namespace"})
-                    - (
-                      container_memory_working_set_bytes{namespace=~"$namespace", pod=~"virt-launcher-$vm-.*", container=""}
-                      - scalar(kubevirt_vmi_memory_domain_bytes{name=~"$vm", namespace=~"$namespace"})
-                    )
+                  query: kubevirt_vm_container_memory_request_margin_based_on_working_set_bytes{namespace=~"$namespace", pod=~"virt-launcher-$vm-.*"}
     "1_0":
       kind: Panel
       spec:
         display:
           name: Guest Memory Decomposition
-          description: 'Four layers summing to domain: kernel reserved + non-reclaimable + reclaimable + free. Cached shown as dotted overlay.'
+          description: 'Four layers summing to domain: kernel reserved + non-reclaimable + reclaimable + free.'
         plugin:
           kind: TimeSeriesChart
           spec:
@@ -187,12 +182,6 @@ spec:
               - queryIndex: 4
                 colorMode: fixed-single
                 colorValue: '#FFFFFF'
-                lineStyle: dotted
-                stack: false
-                areaOpacity: 0
-              - queryIndex: 5
-                colorMode: fixed-single
-                colorValue: '#FFD700'
                 lineStyle: dotted
                 stack: false
                 areaOpacity: 0
@@ -237,19 +226,12 @@ spec:
                 spec:
                   query: kubevirt_vmi_memory_domain_bytes{name=~"$vm", namespace=~"$namespace"}
                   seriesNameFormat: ── Domain (configured)
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: kubevirt_vmi_memory_cached_bytes{name=~"$vm", namespace=~"$namespace"}
-                  seriesNameFormat: ── Cached (overlay)
     "1_1":
       kind: Panel
       spec:
         display:
-          name: 'Launcher Overhead: Estimated vs Actual'
-          description: Estimated = virt-controller's calculated overhead. Actual = pod working_set minus domain. Gap = the margin metric.
+          name: 'Pod Memory: Budget vs Actual'
+          description: Budget = domain + estimated overhead (pod memory request). Actual = pod working_set. When actual exceeds budget the pod is at risk of eviction.
         plugin:
           kind: TimeSeriesChart
           spec:
@@ -260,9 +242,10 @@ spec:
               - queryIndex: 0
                 colorMode: fixed-single
                 colorValue: '#32ac2d'
+                lineStyle: dotted
               - queryIndex: 1
                 colorMode: fixed-single
-                colorValue: '#f53636'
+                colorValue: '#2E79B5'
             visual:
               display: line
               areaOpacity: 0
@@ -276,17 +259,17 @@ spec:
               plugin:
                 kind: PrometheusTimeSeriesQuery
                 spec:
-                  query: kubevirt_vmi_launcher_memory_overhead_bytes{name=~"$vm", namespace=~"$namespace"}
-                  seriesNameFormat: Estimated overhead
+                  query: |-
+                    scalar(kubevirt_vmi_memory_domain_bytes{name=~"$vm", namespace=~"$namespace"})
+                    + scalar(kubevirt_vmi_launcher_memory_overhead_bytes{name=~"$vm", namespace=~"$namespace"})
+                  seriesNameFormat: Budget (domain + overhead estimate)
           - kind: TimeSeriesQuery
             spec:
               plugin:
                 kind: PrometheusTimeSeriesQuery
                 spec:
-                  query: |-
-                    container_memory_working_set_bytes{namespace=~"$namespace", pod=~"virt-launcher-$vm-.*", container=""}
-                    - scalar(kubevirt_vmi_memory_domain_bytes{name=~"$vm", namespace=~"$namespace"})
-                  seriesNameFormat: Actual overhead (ws − domain)
+                  query: container_memory_working_set_bytes{namespace=~"$namespace", pod=~"virt-launcher-$vm-.*", container=""}
+                  seriesNameFormat: Actual (pod working_set)
   layouts:
     - kind: Grid
       spec:
