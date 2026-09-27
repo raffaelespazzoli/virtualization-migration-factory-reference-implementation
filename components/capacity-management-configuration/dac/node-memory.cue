@@ -25,6 +25,7 @@ import (
 			display:    "line"
 			areaOpacity: 0.7
 			stack:       "all"
+			...
 		}
 		yAxis: format: unit: "bytes"
 		...
@@ -307,13 +308,17 @@ dashboardBuilder & {
 								description: "Full node memory: system + workloads. Total height = node capacity."
 							}
 							plugin: #stackedAreaChart & {
-								spec: querySettings: [{
-									queryIndex: 5
-									colorMode:  "fixed-single"
-									colorValue: "#FFFFFF"
-									stack:      false
-									areaOpacity: 0
-								}]
+								spec: {
+									visual: lineWidth: 2
+									querySettings: [{
+										queryIndex: 5
+										colorMode:  "fixed-single"
+										colorValue: "#FFFFFF"
+										lineStyle:  "dotted"
+										stack:      false
+										areaOpacity: 0
+									}]
+								}
 							}
 							queries: [
 								#memQuery & {
@@ -385,13 +390,17 @@ dashboardBuilder & {
 								description: "OS and Kubernetes system services. Compare with Reserved stat above — system usage commonly exceeds reservation due to file cache."
 							}
 							plugin: #stackedAreaChart & {
-								spec: querySettings: [{
-									queryIndex: 4
-									colorMode:  "fixed-single"
-									colorValue: "#FF8C00"
-									stack:      false
-									areaOpacity: 0
-								}]
+								spec: {
+									visual: lineWidth: 2
+									querySettings: [{
+										queryIndex: 4
+										colorMode:  "fixed-single"
+										colorValue: "#FF8C00"
+										lineStyle:  "dotted"
+										stack:      false
+										areaOpacity: 0
+									}]
+								}
 							}
 							queries: [
 								#memQuery & {

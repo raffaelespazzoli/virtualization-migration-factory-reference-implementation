@@ -313,11 +313,13 @@ data:
                 - areaOpacity: 0
                   colorMode: fixed-single
                   colorValue: '#FFFFFF'
+                  lineStyle: dotted
                   queryIndex: 5
                   stack: false
                 visual:
                   areaOpacity: 0.7
                   display: line
+                  lineWidth: 2
                   stack: all
                 yAxis:
                   format:
@@ -457,11 +459,13 @@ data:
                 - areaOpacity: 0
                   colorMode: fixed-single
                   colorValue: '#FF8C00'
+                  lineStyle: dotted
                   queryIndex: 4
                   stack: false
                 visual:
                   areaOpacity: 0.7
                   display: line
+                  lineWidth: 2
                   stack: all
                 yAxis:
                   format:

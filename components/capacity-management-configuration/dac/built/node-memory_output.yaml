@@ -142,16 +142,18 @@ spec:
             legend:
               position: bottom
               mode: list
+            visual:
+              display: line
+              areaOpacity: 0.7
+              lineWidth: 2
+              stack: all
             querySettings:
               - queryIndex: 5
                 colorMode: fixed-single
                 colorValue: '#FFFFFF'
+                lineStyle: dotted
                 stack: false
                 areaOpacity: 0
-            visual:
-              display: line
-              areaOpacity: 0.7
-              stack: all
             yAxis:
               format:
                 unit: bytes
@@ -296,16 +298,18 @@ spec:
             legend:
               position: bottom
               mode: list
+            visual:
+              display: line
+              areaOpacity: 0.7
+              lineWidth: 2
+              stack: all
             querySettings:
               - queryIndex: 4
                 colorMode: fixed-single
                 colorValue: '#FF8C00'
+                lineStyle: dotted
                 stack: false
                 areaOpacity: 0
-            visual:
-              display: line
-              areaOpacity: 0.7
-              stack: all
             yAxis:
               format:
                 unit: bytes
