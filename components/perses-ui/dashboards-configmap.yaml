@@ -5,7 +5,7 @@ data:
     metadata:
       name: capacity-exhaustion
       createdAt: "0001-01-01T00:00:00Z"
-      project: openshift-monitoring
+      project: perses
       updatedAt: "0001-01-01T00:00:00Z"
       version: 0
     spec:
@@ -125,7 +125,7 @@ data:
     metadata:
       name: node-memory
       createdAt: "0001-01-01T00:00:00Z"
-      project: openshift-monitoring
+      project: perses
       updatedAt: "0001-01-01T00:00:00Z"
       version: 0
     spec:
@@ -543,7 +543,7 @@ data:
     metadata:
       name: pod-memory
       createdAt: "0001-01-01T00:00:00Z"
-      project: openshift-monitoring
+      project: perses
       updatedAt: "0001-01-01T00:00:00Z"
       version: 0
     spec:
@@ -810,7 +810,7 @@ data:
     metadata:
       name: vm-capacity
       createdAt: "0001-01-01T00:00:00Z"
-      project: openshift-monitoring
+      project: perses
       updatedAt: "0001-01-01T00:00:00Z"
       version: 0
     spec:
@@ -1111,7 +1111,7 @@ data:
     metadata:
       name: vm-memory
       createdAt: "0001-01-01T00:00:00Z"
-      project: openshift-monitoring
+      project: perses
       updatedAt: "0001-01-01T00:00:00Z"
       version: 0
     spec:
@@ -1438,7 +1438,7 @@ data:
     metadata:
       name: vm-overcommit
       createdAt: "0001-01-01T00:00:00Z"
-      project: openshift-monitoring
+      project: perses
       updatedAt: "0001-01-01T00:00:00Z"
       version: 0
     spec:
