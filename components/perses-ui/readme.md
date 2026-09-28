@@ -26,7 +26,7 @@ Browser → Route (TLS edge) → Service → Perses container (port 8080)
 The init container:
 1. Reads the projected SA token from `/var/run/secrets/kubernetes.io/serviceaccount/token`
 2. Generates a `GlobalDatasource` YAML with the bearer token in the `Authorization` header
-3. Creates a `Project` YAML for `openshift-operators`
+3. Creates a `Project` YAML for `openshift-monitoring`
 4. Copies dashboard YAML files from the `perses-ui-dashboards` ConfigMap
 5. All files land in `/etc/perses/provisioning/` — Perses loads them at startup
 

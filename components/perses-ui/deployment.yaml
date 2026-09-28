@@ -50,7 +50,7 @@ spec:
               cat > /provisioning/project.yaml <<EOF
               kind: Project
               metadata:
-                name: openshift-operators
+                name: openshift-monitoring
               spec: {}
               EOF
 
