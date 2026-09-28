@@ -34,28 +34,31 @@ import (
 	}
 }
 
-// ── PromQL fragments ────────────────────────────────────────────────
+// ── PromQL building blocks ──────────────────────────────────────────
 //
-// Recording rules pre-compute cluster-wide aggregates as time series:
+// Recording rules pre-compute cluster-wide aggregates:
 //   cluster:vm_memory_actual_used:bytes = sum(kubevirt_vmi_memory_used_bytes)
 //   cluster:vm_cpu_actual_used:cores    = sum(rate(kubevirt_vmi_cpu_usage_seconds_total[5m]))
 //
-// Both approaches below compute σ the same way: stddev_over_time on the
+// Both approaches compute σ the same way: stddev_over_time on the
 // aggregate recording rule.  They differ only in the multiplier:
 //   Normal    → z  (from the standard normal distribution table)
-//   Chebyshev → k = √(q / (1−q))  (Cantelli inequality, distribution-free)
+//   Chebyshev → k = √(q / (1−q))  (Cantelli inequality, any distribution)
 //
 // sum() around *_over_time() strips Thanos external labels so that
 // binary ops with label-free numerators produce results.
 
+// z-score lookup: maps $confidence → z using a discrete table.
+// PromQL has no inverse-normal-CDF, so we use == bool matching.
+_z: "((vector($confidence) == bool 0.95) * 1.645 + (vector($confidence) == bool 0.99) * 2.326 + (vector($confidence) == bool 0.995) * 2.576 + (vector($confidence) == bool 0.999) * 3.090 + (vector($confidence) == bool 0.9995) * 3.291 + (vector($confidence) == bool 0.9999) * 3.719)"
+
 // ── Normal approach ─────────────────────────────────────────────────
 // Overcommit = Granted / (μ + z × σ)
-// Assumes the aggregate VM usage follows a normal distribution.
 #memNormal: """
 	sum(kubevirt_vmi_memory_domain_bytes)
 	/ (
 	  sum(avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
-	  + $z_score
+	  + \(_z)
 	    * sum(stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
 	)
 	"""
@@ -64,22 +67,18 @@ import (
 	sum(vmi:kubevirt_vmi_vcpu:count)
 	/ (
 	  sum(avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
-	  + $z_score
+	  + \(_z)
 	    * sum(stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
 	)
 	"""
 
 // ── Chebyshev / Cantelli approach ───────────────────────────────────
 // Overcommit = Granted / (μ + k × σ)   where k = √(q / (1−q))
-// Cantelli inequality: P(X ≥ μ+kσ) ≤ 1/(1+k²) for ANY distribution.
-// Uses the same σ (aggregate stddev) as the Normal approach, but the
-// Cantelli multiplier is larger than the Normal z-score at the same
-// confidence level, making this approach more conservative.
 #memChebyshev: """
 	sum(kubevirt_vmi_memory_domain_bytes)
 	/ (
 	  sum(avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
-	  + sqrt(vector($risk_quantile / (1 - $risk_quantile)))
+	  + sqrt(vector($confidence / (1 - $confidence)))
 	    * sum(stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
 	)
 	"""
@@ -88,7 +87,7 @@ import (
 	sum(vmi:kubevirt_vmi_vcpu:count)
 	/ (
 	  sum(avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
-	  + sqrt(vector($risk_quantile / (1 - $risk_quantile)))
+	  + sqrt(vector($confidence / (1 - $confidence)))
 	    * sum(stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
 	)
 	"""
@@ -107,7 +106,7 @@ dashboardBuilder & {
 			Statistical overcommit analysis based on observed aggregate VM usage volatility.
 			Normal = assumes bell-curve distribution for VM load.
 			Chebyshev = no assumption on distribution, but more conservative.
-			Both use the same mean and standard deviation computed over the observation period.
+			Both use the same mean (μ) and standard deviation (σ) computed over the observation period.
 			"""
 	}
 	#duration: "5m"
@@ -126,26 +125,17 @@ dashboardBuilder & {
 				variable: spec: defaultValue: singleValue: "30d"
 			},
 			staticListVarBuilder & {
-				#name:    "risk_quantile"
+				#name:    "confidence"
 				#display: name: "Confidence level"
 				#values: [
-					{value: "0.95", label:  "95% (p=5%)"},
-					{value: "0.99", label:  "99% (p=1%)"},
-					{value: "0.995", label: "99.5% (p=0.5%)"},
-					{value: "0.999", label: "99.9% (p=0.1%)"},
+					{value: "0.95", label:   "95%"},
+					{value: "0.99", label:   "99%"},
+					{value: "0.995", label:  "99.5%"},
+					{value: "0.999", label:  "99.9%"},
+					{value: "0.9995", label: "99.95%"},
+					{value: "0.9999", label: "99.99%"},
 				]
 				variable: spec: defaultValue: singleValue: "0.999"
-			},
-			staticListVarBuilder & {
-				#name:    "z_score"
-				#display: name: "Normal z-score"
-				#values: [
-					{value: "1.645", label: "95% (z=1.645)"},
-					{value: "2.326", label: "99% (z=2.326)"},
-					{value: "2.576", label: "99.5% (z=2.576)"},
-					{value: "3.090", label: "99.9% (z=3.090)"},
-				]
-				variable: spec: defaultValue: singleValue: "3.090"
 			},
 		]
 	}}.variables
@@ -160,8 +150,8 @@ dashboardBuilder & {
 					panelBuilder & {
 						spec: {
 							display: {
-								name:        "Normal"
-								description: "Assumed normal distribution for VM load. Overcommit = Granted / (μ + z×σ)."
+								name:        "Normal — assumes normal distribution for VM load"
+								description: "Overcommit = Granted / (μ + z×σ). The z-score is looked up from the standard normal table for the selected confidence level."
 							}
 							plugin: statChart & {spec: {calculation: "last-number", format: {unit: "decimal", decimalPlaces: 2}}}
 							queries: [{#q & {#query: #memNormal, #format: "normal"}}]
@@ -170,8 +160,8 @@ dashboardBuilder & {
 					panelBuilder & {
 						spec: {
 							display: {
-								name:        "Chebyshev"
-								description: "No assumption on load distribution, but more conservative. Overcommit = Granted / (μ + k×σ) with Cantelli k = √(q/(1−q))."
+								name:        "Chebyshev — no assumption on load distribution, more conservative"
+								description: "Overcommit = Granted / (μ + k×σ) where k = √(q/(1−q)). The Cantelli inequality guarantees this bound for any distribution shape."
 							}
 							plugin: statChart & {spec: {calculation: "last-number", format: {unit: "decimal", decimalPlaces: 2}}}
 							queries: [{#q & {#query: #memChebyshev, #format: "chebyshev"}}]
@@ -188,8 +178,8 @@ dashboardBuilder & {
 					panelBuilder & {
 						spec: {
 							display: {
-								name:        "Normal"
-								description: "Assumed normal distribution for VM load. Overcommit = Granted / (μ + z×σ)."
+								name:        "Normal — assumes normal distribution for VM load"
+								description: "Overcommit = Granted / (μ + z×σ). The z-score is looked up from the standard normal table for the selected confidence level."
 							}
 							plugin: statChart & {spec: {calculation: "last-number", format: {unit: "decimal", decimalPlaces: 2}}}
 							queries: [{#q & {#query: #cpuNormal, #format: "normal"}}]
@@ -198,8 +188,8 @@ dashboardBuilder & {
 					panelBuilder & {
 						spec: {
 							display: {
-								name:        "Chebyshev"
-								description: "No assumption on load distribution, but more conservative. Overcommit = Granted / (μ + k×σ) with Cantelli k = √(q/(1−q))."
+								name:        "Chebyshev — no assumption on load distribution, more conservative"
+								description: "Overcommit = Granted / (μ + k×σ) where k = √(q/(1−q)). The Cantelli inequality guarantees this bound for any distribution shape."
 							}
 							plugin: statChart & {spec: {calculation: "last-number", format: {unit: "decimal", decimalPlaces: 2}}}
 							queries: [{#q & {#query: #cpuChebyshev, #format: "chebyshev"}}]

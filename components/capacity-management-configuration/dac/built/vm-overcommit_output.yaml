@@ -12,7 +12,7 @@ spec:
       Statistical overcommit analysis based on observed aggregate VM usage volatility.
       Normal = assumes bell-curve distribution for VM load.
       Chebyshev = no assumption on distribution, but more conservative.
-      Both use the same mean and standard deviation computed over the observation period.
+      Both use the same mean (μ) and standard deviation (σ) computed over the observation period.
   variables:
     - kind: ListVariable
       spec:
@@ -45,7 +45,7 @@ spec:
         defaultValue:
           singleValue: "0.999"
           sliceValues: []
-        name: risk_quantile
+        name: confidence
         allowAllValue: false
         allowMultiple: false
         plugin:
@@ -53,43 +53,24 @@ spec:
           spec:
             values:
               - value: "0.95"
-                label: 95% (p=5%)
+                label: 95%
               - value: "0.99"
-                label: 99% (p=1%)
+                label: 99%
               - value: "0.995"
-                label: 99.5% (p=0.5%)
+                label: 99.5%
               - value: "0.999"
-                label: 99.9% (p=0.1%)
-    - kind: ListVariable
-      spec:
-        display:
-          name: Normal z-score
-          hidden: false
-        defaultValue:
-          singleValue: "3.090"
-          sliceValues: []
-        name: z_score
-        allowAllValue: false
-        allowMultiple: false
-        plugin:
-          kind: StaticListVariable
-          spec:
-            values:
-              - value: "1.645"
-                label: 95% (z=1.645)
-              - value: "2.326"
-                label: 99% (z=2.326)
-              - value: "2.576"
-                label: 99.5% (z=2.576)
-              - value: "3.090"
-                label: 99.9% (z=3.090)
+                label: 99.9%
+              - value: "0.9995"
+                label: 99.95%
+              - value: "0.9999"
+                label: 99.99%
   panels:
     "0_0":
       kind: Panel
       spec:
         display:
-          name: Normal
-          description: Assumed normal distribution for VM load. Overcommit = Granted / (μ + z×σ).
+          name: Normal — assumes normal distribution for VM load
+          description: Overcommit = Granted / (μ + z×σ). The z-score is looked up from the standard normal table for the selected confidence level.
         plugin:
           kind: StatChart
           spec:
@@ -107,7 +88,7 @@ spec:
                     sum(kubevirt_vmi_memory_domain_bytes)
                     / (
                       sum(avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
-                      + $z_score
+                      + ((vector($confidence) == bool 0.95) * 1.645 + (vector($confidence) == bool 0.99) * 2.326 + (vector($confidence) == bool 0.995) * 2.576 + (vector($confidence) == bool 0.999) * 3.090 + (vector($confidence) == bool 0.9995) * 3.291 + (vector($confidence) == bool 0.9999) * 3.719)
                         * sum(stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
                     )
                   seriesNameFormat: normal
@@ -116,8 +97,8 @@ spec:
       kind: Panel
       spec:
         display:
-          name: Chebyshev
-          description: No assumption on load distribution, but more conservative. Overcommit = Granted / (μ + k×σ) with Cantelli k = √(q/(1−q)).
+          name: Chebyshev — no assumption on load distribution, more conservative
+          description: Overcommit = Granted / (μ + k×σ) where k = √(q/(1−q)). The Cantelli inequality guarantees this bound for any distribution shape.
         plugin:
           kind: StatChart
           spec:
@@ -135,7 +116,7 @@ spec:
                     sum(kubevirt_vmi_memory_domain_bytes)
                     / (
                       sum(avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
-                      + sqrt(vector($risk_quantile / (1 - $risk_quantile)))
+                      + sqrt(vector($confidence / (1 - $confidence)))
                         * sum(stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
                     )
                   seriesNameFormat: chebyshev
@@ -144,8 +125,8 @@ spec:
       kind: Panel
       spec:
         display:
-          name: Normal
-          description: Assumed normal distribution for VM load. Overcommit = Granted / (μ + z×σ).
+          name: Normal — assumes normal distribution for VM load
+          description: Overcommit = Granted / (μ + z×σ). The z-score is looked up from the standard normal table for the selected confidence level.
         plugin:
           kind: StatChart
           spec:
@@ -163,7 +144,7 @@ spec:
                     sum(vmi:kubevirt_vmi_vcpu:count)
                     / (
                       sum(avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
-                      + $z_score
+                      + ((vector($confidence) == bool 0.95) * 1.645 + (vector($confidence) == bool 0.99) * 2.326 + (vector($confidence) == bool 0.995) * 2.576 + (vector($confidence) == bool 0.999) * 3.090 + (vector($confidence) == bool 0.9995) * 3.291 + (vector($confidence) == bool 0.9999) * 3.719)
                         * sum(stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
                     )
                   seriesNameFormat: normal
@@ -172,8 +153,8 @@ spec:
       kind: Panel
       spec:
         display:
-          name: Chebyshev
-          description: No assumption on load distribution, but more conservative. Overcommit = Granted / (μ + k×σ) with Cantelli k = √(q/(1−q)).
+          name: Chebyshev — no assumption on load distribution, more conservative
+          description: Overcommit = Granted / (μ + k×σ) where k = √(q/(1−q)). The Cantelli inequality guarantees this bound for any distribution shape.
         plugin:
           kind: StatChart
           spec:
@@ -191,7 +172,7 @@ spec:
                     sum(vmi:kubevirt_vmi_vcpu:count)
                     / (
                       sum(avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
-                      + sqrt(vector($risk_quantile / (1 - $risk_quantile)))
+                      + sqrt(vector($confidence / (1 - $confidence)))
                         * sum(stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
                     )
                   seriesNameFormat: chebyshev
@@ -247,7 +228,7 @@ spec:
                     sum(kubevirt_vmi_memory_domain_bytes)
                     / (
                       sum(avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
-                      + $z_score
+                      + ((vector($confidence) == bool 0.95) * 1.645 + (vector($confidence) == bool 0.99) * 2.326 + (vector($confidence) == bool 0.995) * 2.576 + (vector($confidence) == bool 0.999) * 3.090 + (vector($confidence) == bool 0.9995) * 3.291 + (vector($confidence) == bool 0.9999) * 3.719)
                         * sum(stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
                     )
                   seriesNameFormat: Normal
@@ -261,7 +242,7 @@ spec:
                     sum(kubevirt_vmi_memory_domain_bytes)
                     / (
                       sum(avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
-                      + sqrt(vector($risk_quantile / (1 - $risk_quantile)))
+                      + sqrt(vector($confidence / (1 - $confidence)))
                         * sum(stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
                     )
                   seriesNameFormat: Chebyshev
@@ -295,7 +276,7 @@ spec:
                     sum(vmi:kubevirt_vmi_vcpu:count)
                     / (
                       sum(avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
-                      + $z_score
+                      + ((vector($confidence) == bool 0.95) * 1.645 + (vector($confidence) == bool 0.99) * 2.326 + (vector($confidence) == bool 0.995) * 2.576 + (vector($confidence) == bool 0.999) * 3.090 + (vector($confidence) == bool 0.9995) * 3.291 + (vector($confidence) == bool 0.9999) * 3.719)
                         * sum(stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
                     )
                   seriesNameFormat: Normal
@@ -309,7 +290,7 @@ spec:
                     sum(vmi:kubevirt_vmi_vcpu:count)
                     / (
                       sum(avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
-                      + sqrt(vector($risk_quantile / (1 - $risk_quantile)))
+                      + sqrt(vector($confidence / (1 - $confidence)))
                         * sum(stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
                     )
                   seriesNameFormat: Chebyshev
