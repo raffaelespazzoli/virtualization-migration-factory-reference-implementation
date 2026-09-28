@@ -140,6 +140,20 @@ spec:
             sum(rate(container_cpu_usage_seconds_total{pod!~"virt-launcher-.*",container!="",container!="POD",cpu="total"}[5m]))
             or vector(0)
 
+        # ── VM overcommit statistical aggregates ─────────────────────
+        # Cluster-wide aggregate of actual VM resource usage, recorded
+        # as time series so that stddev_over_time() and quantile_over_time()
+        # subqueries read from TSDB instead of re-evaluating the sum at
+        # every step across the observation window.
+        #
+        # These use KubeVirt guest-level metrics (not cAdvisor) to match
+        # the overcommit dashboard's notion of "actual VM usage."
+        - record: cluster:vm_memory_actual_used:bytes
+          expr: sum(kubevirt_vmi_memory_used_bytes) or vector(0)
+        - record: cluster:vm_cpu_actual_used:cores
+          expr: |
+            sum(rate(kubevirt_vmi_cpu_usage_seconds_total[5m])) or vector(0)
+
     # Per-VM virt-launcher overhead: cAdvisor usage of the virt-launcher pod
     # minus QEMU/domain usage reported by kubevirt_vmi_*. The join maps
     # virt-launcher pod → VM name via kube_pod_info.created_by_name.

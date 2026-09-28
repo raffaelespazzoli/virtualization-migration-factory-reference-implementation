@@ -2,11 +2,11 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
   labels:
-    operators.coreos.com/observability-operator.openshift-operators: ""
-  name: observability-operator
-  namespace: openshift-operators
+    operators.coreos.com/observability-operator.openshift-cluster-observability-operator: ""
+  name: cluster-observability-operator
+  namespace: openshift-cluster-observability-operator
 spec:
-  channel: development
+  channel: stable
   installPlanApproval: Automatic
   name: cluster-observability-operator
   source: redhat-operators
