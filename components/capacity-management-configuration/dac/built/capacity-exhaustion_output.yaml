@@ -2,7 +2,7 @@ kind: Dashboard
 metadata:
   name: capacity-exhaustion
   createdAt: "0001-01-01T00:00:00Z"
-  project: openshift-operators
+  project: perses
   updatedAt: "0001-01-01T00:00:00Z"
   version: 0
 spec:

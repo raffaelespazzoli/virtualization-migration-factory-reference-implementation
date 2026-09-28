@@ -94,7 +94,7 @@ _f: "namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\", contai
 
 dashboardBuilder & {
 	#name:    "pod-memory"
-	#project: "openshift-operators"
+	#project: "perses"
 	#display: {
 		name:        "Pod Memory"
 		description: "Container memory decomposition: non-reclaimable, hot/cold reclaimable, kernel overhead, with limit threshold."

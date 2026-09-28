@@ -2,18 +2,17 @@ kind: Dashboard
 metadata:
   name: vm-overcommit
   createdAt: "0001-01-01T00:00:00Z"
-  project: openshift-operators
+  project: perses
   updatedAt: "0001-01-01T00:00:00Z"
   version: 0
 spec:
   display:
     name: VM Overcommit
     description: |-
-      Statistical overcommit analysis.
-      Empirical = historical quantile (no assumptions).
-      Normal = parametric (assumes bell-curve aggregate).
-      Independence = parametric + uncorrelated VMs (optimistic).
-      Chebyshev = Cantelli bound (any distribution, most conservative).
+      Statistical overcommit analysis based on observed aggregate VM usage volatility.
+      Normal = assumes bell-curve distribution for VM load.
+      Chebyshev = no assumption on distribution, but more conservative.
+      Both use the same mean and standard deviation computed over the observation period.
   variables:
     - kind: ListVariable
       spec:
@@ -89,8 +88,8 @@ spec:
       kind: Panel
       spec:
         display:
-          name: Empirical
-          description: Granted / quantile of observed aggregate usage. Distribution-free; captures actual VM correlation.
+          name: Normal
+          description: Assumed normal distribution for VM load. Overcommit = Granted / (μ + z×σ).
         plugin:
           kind: StatChart
           spec:
@@ -106,76 +105,19 @@ spec:
                 spec:
                   query: |-
                     sum(kubevirt_vmi_memory_domain_bytes)
-                    /
-                    quantile_over_time($risk_quantile,
-                      cluster:vm_memory_actual_used:bytes[$observation_period]
+                    / (
+                      sum(avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
+                      + $z_score
+                        * sum(stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
                     )
-                  seriesNameFormat: empirical
+                  seriesNameFormat: normal
                   minStep: 5m
     "0_1":
       kind: Panel
       spec:
         display:
-          name: Normal
-          description: Granted / (μ + z×σ) of aggregate. Assumes normal distribution; captures VM correlation.
-        plugin:
-          kind: StatChart
-          spec:
-            calculation: last-number
-            format:
-              unit: decimal
-              decimalPlaces: 2
-        queries:
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: |-
-                    sum(kubevirt_vmi_memory_domain_bytes)
-                    / (
-                      avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period])
-                      + $z_score
-                        * stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period])
-                    )
-                  seriesNameFormat: normal
-                  minStep: 5m
-    "0_2":
-      kind: Panel
-      spec:
-        display:
-          name: Independence
-          description: Granted / (μ + z×√Σσᵢ²). Assumes normal + independent VMs. Optimistic if VMs correlate.
-        plugin:
-          kind: StatChart
-          spec:
-            calculation: last-number
-            format:
-              unit: decimal
-              decimalPlaces: 2
-        queries:
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: |-
-                    sum(kubevirt_vmi_memory_domain_bytes)
-                    / (
-                      sum(avg_over_time(kubevirt_vmi_memory_used_bytes[$observation_period]))
-                      + $z_score
-                        * sqrt(sum(
-                            stddev_over_time(kubevirt_vmi_memory_used_bytes[$observation_period]) ^ 2
-                          ))
-                    )
-                  seriesNameFormat: independence
-                  minStep: 5m
-    "0_3":
-      kind: Panel
-      spec:
-        display:
           name: Chebyshev
-          description: Granted / (μ + k×σ) with Cantelli k=√(q/(1−q)). Any distribution, most conservative.
+          description: No assumption on load distribution, but more conservative. Overcommit = Granted / (μ + k×σ) with Cantelli k = √(q/(1−q)).
         plugin:
           kind: StatChart
           spec:
@@ -192,9 +134,9 @@ spec:
                   query: |-
                     sum(kubevirt_vmi_memory_domain_bytes)
                     / (
-                      avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period])
+                      sum(avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
                       + sqrt(vector($risk_quantile / (1 - $risk_quantile)))
-                        * stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period])
+                        * sum(stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
                     )
                   seriesNameFormat: chebyshev
                   minStep: 5m
@@ -202,8 +144,8 @@ spec:
       kind: Panel
       spec:
         display:
-          name: Empirical
-          description: Granted vCPUs / quantile of aggregate CPU usage.
+          name: Normal
+          description: Assumed normal distribution for VM load. Overcommit = Granted / (μ + z×σ).
         plugin:
           kind: StatChart
           spec:
@@ -219,80 +161,19 @@ spec:
                 spec:
                   query: |-
                     sum(vmi:kubevirt_vmi_vcpu:count)
-                    /
-                    quantile_over_time($risk_quantile,
-                      cluster:vm_cpu_actual_used:cores[$observation_period]
+                    / (
+                      sum(avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
+                      + $z_score
+                        * sum(stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
                     )
-                  seriesNameFormat: empirical
+                  seriesNameFormat: normal
                   minStep: 5m
     "1_1":
       kind: Panel
       spec:
         display:
-          name: Normal
-          description: Granted vCPUs / (μ + z×σ) of aggregate CPU usage.
-        plugin:
-          kind: StatChart
-          spec:
-            calculation: last-number
-            format:
-              unit: decimal
-              decimalPlaces: 2
-        queries:
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: |-
-                    sum(vmi:kubevirt_vmi_vcpu:count)
-                    / (
-                      avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period])
-                      + $z_score
-                        * stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period])
-                    )
-                  seriesNameFormat: normal
-                  minStep: 5m
-    "1_2":
-      kind: Panel
-      spec:
-        display:
-          name: Independence
-          description: Granted vCPUs / (μ + z×√Σσᵢ²). Assumes independent VMs.
-        plugin:
-          kind: StatChart
-          spec:
-            calculation: last-number
-            format:
-              unit: decimal
-              decimalPlaces: 2
-        queries:
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: |-
-                    sum(vmi:kubevirt_vmi_vcpu:count)
-                    / (
-                      sum(avg_over_time(
-                        rate(kubevirt_vmi_cpu_usage_seconds_total[5m])[$observation_period:5m]
-                      ))
-                      + $z_score
-                        * sqrt(sum(
-                            stddev_over_time(
-                              rate(kubevirt_vmi_cpu_usage_seconds_total[5m])[$observation_period:5m]
-                            ) ^ 2
-                          ))
-                    )
-                  seriesNameFormat: independence
-                  minStep: 5m
-    "1_3":
-      kind: Panel
-      spec:
-        display:
           name: Chebyshev
-          description: Granted vCPUs / (μ + k×σ) with Cantelli bound.
+          description: No assumption on load distribution, but more conservative. Overcommit = Granted / (μ + k×σ) with Cantelli k = √(q/(1−q)).
         plugin:
           kind: StatChart
           spec:
@@ -309,69 +190,13 @@ spec:
                   query: |-
                     sum(vmi:kubevirt_vmi_vcpu:count)
                     / (
-                      avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period])
+                      sum(avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
                       + sqrt(vector($risk_quantile / (1 - $risk_quantile)))
-                        * stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period])
+                        * sum(stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
                     )
                   seriesNameFormat: chebyshev
                   minStep: 5m
     "2_0":
-      kind: Panel
-      spec:
-        display:
-          name: Memory correlation
-          description: σ_actual / σ_independent. >1 = VMs correlate (spikes coincide). ≈1 = independent. Explains the gap between Normal and Independence.
-        plugin:
-          kind: StatChart
-          spec:
-            calculation: last-number
-            format:
-              unit: decimal
-              decimalPlaces: 2
-        queries:
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: |-
-                    stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period])
-                    /
-                    sqrt(sum(
-                      stddev_over_time(kubevirt_vmi_memory_used_bytes[$observation_period]) ^ 2
-                    ))
-                  seriesNameFormat: ρ
-                  minStep: 5m
-    "2_1":
-      kind: Panel
-      spec:
-        display:
-          name: CPU correlation
-          description: Same ratio for CPU.
-        plugin:
-          kind: StatChart
-          spec:
-            calculation: last-number
-            format:
-              unit: decimal
-              decimalPlaces: 2
-        queries:
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: |-
-                    stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period])
-                    /
-                    sqrt(sum(
-                      stddev_over_time(
-                        rate(kubevirt_vmi_cpu_usage_seconds_total[5m])[$observation_period:5m]
-                      ) ^ 2
-                    ))
-                  seriesNameFormat: ρ
-                  minStep: 5m
-    "2_2":
       kind: Panel
       spec:
         display:
@@ -398,7 +223,7 @@ spec:
       spec:
         display:
           name: Memory
-          description: All four approaches over time. The spread between lines shows how much the choice of method matters.
+          description: Both approaches over time. The gap shows how much the distributional assumption matters.
         plugin:
           kind: TimeSeriesChart
           spec:
@@ -420,23 +245,10 @@ spec:
                 spec:
                   query: |-
                     sum(kubevirt_vmi_memory_domain_bytes)
-                    /
-                    quantile_over_time($risk_quantile,
-                      cluster:vm_memory_actual_used:bytes[$observation_period]
-                    )
-                  seriesNameFormat: Empirical
-                  minStep: 5m
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: |-
-                    sum(kubevirt_vmi_memory_domain_bytes)
                     / (
-                      avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period])
+                      sum(avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
                       + $z_score
-                        * stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period])
+                        * sum(stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
                     )
                   seriesNameFormat: Normal
                   minStep: 5m
@@ -448,25 +260,9 @@ spec:
                   query: |-
                     sum(kubevirt_vmi_memory_domain_bytes)
                     / (
-                      sum(avg_over_time(kubevirt_vmi_memory_used_bytes[$observation_period]))
-                      + $z_score
-                        * sqrt(sum(
-                            stddev_over_time(kubevirt_vmi_memory_used_bytes[$observation_period]) ^ 2
-                          ))
-                    )
-                  seriesNameFormat: Independence
-                  minStep: 5m
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: |-
-                    sum(kubevirt_vmi_memory_domain_bytes)
-                    / (
-                      avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period])
+                      sum(avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
                       + sqrt(vector($risk_quantile / (1 - $risk_quantile)))
-                        * stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period])
+                        * sum(stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
                     )
                   seriesNameFormat: Chebyshev
                   minStep: 5m
@@ -475,7 +271,7 @@ spec:
       spec:
         display:
           name: CPU
-          description: All four approaches over time.
+          description: Both approaches over time.
         plugin:
           kind: TimeSeriesChart
           spec:
@@ -497,23 +293,10 @@ spec:
                 spec:
                   query: |-
                     sum(vmi:kubevirt_vmi_vcpu:count)
-                    /
-                    quantile_over_time($risk_quantile,
-                      cluster:vm_cpu_actual_used:cores[$observation_period]
-                    )
-                  seriesNameFormat: Empirical
-                  minStep: 5m
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: |-
-                    sum(vmi:kubevirt_vmi_vcpu:count)
                     / (
-                      avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period])
+                      sum(avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
                       + $z_score
-                        * stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period])
+                        * sum(stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
                     )
                   seriesNameFormat: Normal
                   minStep: 5m
@@ -525,117 +308,11 @@ spec:
                   query: |-
                     sum(vmi:kubevirt_vmi_vcpu:count)
                     / (
-                      sum(avg_over_time(
-                        rate(kubevirt_vmi_cpu_usage_seconds_total[5m])[$observation_period:5m]
-                      ))
-                      + $z_score
-                        * sqrt(sum(
-                            stddev_over_time(
-                              rate(kubevirt_vmi_cpu_usage_seconds_total[5m])[$observation_period:5m]
-                            ) ^ 2
-                          ))
-                    )
-                  seriesNameFormat: Independence
-                  minStep: 5m
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: |-
-                    sum(vmi:kubevirt_vmi_vcpu:count)
-                    / (
-                      avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period])
+                      sum(avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
                       + sqrt(vector($risk_quantile / (1 - $risk_quantile)))
-                        * stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period])
+                        * sum(stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
                     )
                   seriesNameFormat: Chebyshev
-                  minStep: 5m
-    "5_0":
-      kind: Panel
-      spec:
-        display:
-          name: Memory
-          description: The ten VMs whose granted memory is largest relative to the selected quantile of actual usage.
-        plugin:
-          kind: Table
-          spec:
-            density: compact
-            columnSettings:
-              - name: namespace
-                header: Namespace
-                enableSorting: true
-              - name: name
-                header: VM
-                enableSorting: true
-              - name: value
-                header: Overcommit ratio
-                enableSorting: true
-                format:
-                  unit: decimal
-                  decimalPlaces: 2
-                sort: desc
-              - name: timestamp
-                hide: true
-        queries:
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: |-
-                    topk(10,
-                      sum by (namespace, name) (kubevirt_vmi_memory_domain_bytes)
-                      /
-                      sum by (namespace, name) (
-                        quantile_over_time($risk_quantile, kubevirt_vmi_memory_used_bytes[$observation_period])
-                      )
-                    )
-                  seriesNameFormat: '{{namespace}}/{{name}}'
-                  minStep: 5m
-    "5_1":
-      kind: Panel
-      spec:
-        display:
-          name: CPU
-          description: The ten VMs whose granted vCPUs are largest relative to the selected quantile of CPU usage.
-        plugin:
-          kind: Table
-          spec:
-            density: compact
-            columnSettings:
-              - name: namespace
-                header: Namespace
-                enableSorting: true
-              - name: name
-                header: VM
-                enableSorting: true
-              - name: value
-                header: Overcommit ratio
-                enableSorting: true
-                format:
-                  unit: decimal
-                  decimalPlaces: 2
-                sort: desc
-              - name: timestamp
-                hide: true
-        queries:
-          - kind: TimeSeriesQuery
-            spec:
-              plugin:
-                kind: PrometheusTimeSeriesQuery
-                spec:
-                  query: |-
-                    topk(10,
-                      sum by (namespace, name) (vmi:kubevirt_vmi_vcpu:count)
-                      /
-                      sum by (namespace, name) (
-                        quantile_over_time($risk_quantile,
-                          rate(kubevirt_vmi_cpu_usage_seconds_total[5m])[$observation_period:5m]
-                        )
-                      )
-                    )
-                  seriesNameFormat: '{{namespace}}/{{name}}'
                   minStep: 5m
   layouts:
     - kind: Grid
@@ -645,28 +322,16 @@ spec:
         items:
           - x: 0
             "y": 0
-            width: 6
+            width: 12
             height: 8
             content:
               $ref: '#/spec/panels/0_0'
-          - x: 6
+          - x: 12
             "y": 0
-            width: 6
+            width: 12
             height: 8
             content:
               $ref: '#/spec/panels/0_1'
-          - x: 12
-            "y": 0
-            width: 6
-            height: 8
-            content:
-              $ref: '#/spec/panels/0_2'
-          - x: 18
-            "y": 0
-            width: 6
-            height: 8
-            content:
-              $ref: '#/spec/panels/0_3'
     - kind: Grid
       spec:
         display:
@@ -674,28 +339,16 @@ spec:
         items:
           - x: 0
             "y": 0
-            width: 6
+            width: 12
             height: 8
             content:
               $ref: '#/spec/panels/1_0'
-          - x: 6
+          - x: 12
             "y": 0
-            width: 6
+            width: 12
             height: 8
             content:
               $ref: '#/spec/panels/1_1'
-          - x: 12
-            "y": 0
-            width: 6
-            height: 8
-            content:
-              $ref: '#/spec/panels/1_2'
-          - x: 18
-            "y": 0
-            width: 6
-            height: 8
-            content:
-              $ref: '#/spec/panels/1_3'
     - kind: Grid
       spec:
         display:
@@ -703,22 +356,10 @@ spec:
         items:
           - x: 0
             "y": 0
-            width: 8
+            width: 24
             height: 8
             content:
               $ref: '#/spec/panels/2_0'
-          - x: 8
-            "y": 0
-            width: 8
-            height: 8
-            content:
-              $ref: '#/spec/panels/2_1'
-          - x: 16
-            "y": 0
-            width: 8
-            height: 8
-            content:
-              $ref: '#/spec/panels/2_2'
     - kind: Grid
       spec:
         display:
@@ -741,21 +382,4 @@ spec:
             height: 12
             content:
               $ref: '#/spec/panels/4_0'
-    - kind: Grid
-      spec:
-        display:
-          title: Most Overestimated VMs
-        items:
-          - x: 0
-            "y": 0
-            width: 12
-            height: 12
-            content:
-              $ref: '#/spec/panels/5_0'
-          - x: 12
-            "y": 0
-            width: 12
-            height: 12
-            content:
-              $ref: '#/spec/panels/5_1'
   duration: 5m

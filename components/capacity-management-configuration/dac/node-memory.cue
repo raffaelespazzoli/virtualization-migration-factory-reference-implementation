@@ -46,116 +46,63 @@ import (
 }
 
 // ── Per-node vs all-nodes aggregation ───────────────────────────────
-// When $node is a specific node, the metric naturally has one series.
-// When $node is ".*" (all nodes), we sum across nodes so the chart
-// shows a single stacked area instead of interleaved per-node bands.
+// When $node is a specific node, the recording rule naturally has one
+// series per node.  When $node is ".*" (all nodes), sum() aggregates
+// across nodes so the chart shows a single stacked area.
 //
-// The variable filter is applied via {node=~"$node"} in each query.
-// For kube_node_status_* the label is also "node".
+// All panel queries reference recording rules from prometheus-rule.yaml
+// (group: capacity-management-node-memory.rules) which pre-aggregate
+// cAdvisor metrics by node.  This reduces Thanos query fan-out.
+
+// ── Node filter applied to recording rules ──────────────────────────
+_wk: "{node=~\"$node\"}" // workloads (kubepods.slice)
+_sy: "{node=~\"$node\"}" // system (system.slice)
 
 // ── PromQL fragments ────────────────────────────────────────────────
 
-// Panel 1: Full node — stacks from bottom: non-reclaimable, hot, cold, free
-// Total = capacity.
-#p1_nonReclaim: """
-	sum(container_memory_rss{id="/system.slice", node=~"$node"})
-	+ sum(container_memory_rss{id="/kubepods.slice", node=~"$node"})
-	"""
-#p1_hotReclaim: """
-	sum(container_memory_total_active_file_bytes{id="/system.slice", node=~"$node"})
-	+ sum(container_memory_total_active_file_bytes{id="/kubepods.slice", node=~"$node"})
-	"""
-#p1_coldReclaim: """
-	sum(container_memory_total_inactive_file_bytes{id="/system.slice", node=~"$node"})
-	+ sum(container_memory_total_inactive_file_bytes{id="/kubepods.slice", node=~"$node"})
-	"""
-#p1_overhead: """
-	(
-	  sum(container_memory_usage_bytes{id="/system.slice", node=~"$node"})
-	  + sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
-	)
-	- (
-	  sum(container_memory_rss{id="/system.slice", node=~"$node"})
-	  + sum(container_memory_rss{id="/kubepods.slice", node=~"$node"})
-	)
-	- (
-	  sum(container_memory_total_active_file_bytes{id="/system.slice", node=~"$node"})
-	  + sum(container_memory_total_active_file_bytes{id="/kubepods.slice", node=~"$node"})
-	)
-	- (
-	  sum(container_memory_total_inactive_file_bytes{id="/system.slice", node=~"$node"})
-	  + sum(container_memory_total_inactive_file_bytes{id="/kubepods.slice", node=~"$node"})
-	)
-	"""
+// Panel 1: Full node — stacks from bottom: non-reclaimable, overhead,
+//          hot, cold, free.  Total = capacity.
+#p1_nonReclaim: "sum(cluster:node:memory:workloads_non_reclaimable:bytes" + _wk + ") + sum(cluster:node:memory:system_non_reclaimable:bytes" + _sy + ")"
+#p1_overhead:   "sum(cluster:node:memory:workloads_overhead:bytes" + _wk + ") + sum(cluster:node:memory:system_overhead:bytes" + _sy + ")"
+#p1_hotReclaim: "sum(cluster:node:memory:workloads_hot_reclaimable:bytes" + _wk + ") + sum(cluster:node:memory:system_hot_reclaimable:bytes" + _sy + ")"
+#p1_coldReclaim: "sum(cluster:node:memory:workloads_cold:bytes" + _wk + ") + sum(cluster:node:memory:system_cold:bytes" + _sy + ")"
 #p1_free: """
 	sum(kube_node_status_capacity{resource="memory", node=~"$node"})
-	- sum(container_memory_usage_bytes{id="/system.slice", node=~"$node"})
-	- sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
+	- sum(cluster:node:memory:workloads_used:bytes\( _wk ))
+	- sum(cluster:node:memory:system_used:bytes\( _sy ))
 	"""
 
 // Panel 2: Workloads (kubepods.slice) — total = allocatable
-#p2_nonReclaim: """
-	sum(container_memory_rss{id="/kubepods.slice", node=~"$node"})
-	"""
-#p2_hotReclaim: """
-	sum(container_memory_total_active_file_bytes{id="/kubepods.slice", node=~"$node"})
-	"""
-#p2_coldReclaim: """
-	sum(container_memory_total_inactive_file_bytes{id="/kubepods.slice", node=~"$node"})
-	"""
-#p2_overhead: """
-	sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
-	- sum(container_memory_rss{id="/kubepods.slice", node=~"$node"})
-	- sum(container_memory_total_active_file_bytes{id="/kubepods.slice", node=~"$node"})
-	- sum(container_memory_total_inactive_file_bytes{id="/kubepods.slice", node=~"$node"})
-	"""
+#p2_nonReclaim:  "sum(cluster:node:memory:workloads_non_reclaimable:bytes" + _wk + ")"
+#p2_overhead:    "sum(cluster:node:memory:workloads_overhead:bytes" + _wk + ")"
+#p2_hotReclaim:  "sum(cluster:node:memory:workloads_hot_reclaimable:bytes" + _wk + ")"
+#p2_coldReclaim: "sum(cluster:node:memory:workloads_cold:bytes" + _wk + ")"
 #p2_free: """
 	sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
-	- sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
+	- sum(cluster:node:memory:workloads_used:bytes\( _wk ))
 	"""
 
 // Panel 3: System (system.slice) — no cap (system.slice has memory.max = max)
-#p3_nonReclaim: """
-	sum(container_memory_rss{id="/system.slice", node=~"$node"})
-	"""
-#p3_hotReclaim: """
-	sum(container_memory_total_active_file_bytes{id="/system.slice", node=~"$node"})
-	"""
-#p3_coldReclaim: """
-	sum(container_memory_total_inactive_file_bytes{id="/system.slice", node=~"$node"})
-	"""
-#p3_overhead: """
-	sum(container_memory_usage_bytes{id="/system.slice", node=~"$node"})
-	- sum(container_memory_rss{id="/system.slice", node=~"$node"})
-	- sum(container_memory_total_active_file_bytes{id="/system.slice", node=~"$node"})
-	- sum(container_memory_total_inactive_file_bytes{id="/system.slice", node=~"$node"})
-	"""
+#p3_nonReclaim:  "sum(cluster:node:memory:system_non_reclaimable:bytes" + _sy + ")"
+#p3_overhead:    "sum(cluster:node:memory:system_overhead:bytes" + _sy + ")"
+#p3_hotReclaim:  "sum(cluster:node:memory:system_hot_reclaimable:bytes" + _sy + ")"
+#p3_coldReclaim: "sum(cluster:node:memory:system_cold:bytes" + _sy + ")"
 
 // ── Summary stats PromQL ────────────────────────────────────────────
-#allocatable: """
-	sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
-	"""
+#allocatable: "sum(kube_node_status_allocatable{resource=\"memory\", node=~\"$node\"})"
 #reserved: """
 	sum(kube_node_status_capacity{resource="memory", node=~"$node"})
 	- sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
 	"""
-#capacity: """
-	sum(kube_node_status_capacity{resource="memory", node=~"$node"})
-	"""
-#workloadUtilization: """
-	sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
-	/
-	sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
-	"""
-#systemUsed: """
-	sum(container_memory_usage_bytes{id="/system.slice", node=~"$node"})
-	"""
+#capacity: "sum(kube_node_status_capacity{resource=\"memory\", node=~\"$node\"})"
+#workloadUtilization: "sum(cluster:node:memory:workloads_utilization:ratio" + _wk + ")"
+#systemUsed: "sum(cluster:node:memory:system_used:bytes" + _sy + ")"
 
 // ── Dashboard ───────────────────────────────────────────────────────
 
 dashboardBuilder & {
 	#name:    "node-memory"
-	#project: "openshift-operators"
+	#project: "perses"
 	#display: {
 		name:        "Node Memory"
 		description: "Runtime memory decomposition per node: non-reclaimable, hot-reclaimable, cold-reclaimable, and free."
@@ -249,7 +196,7 @@ dashboardBuilder & {
 						spec: {
 							display: {
 								name:        "Workload utilization"
-								description: "kubepods.slice usage / allocatable"
+								description: "kubepods.slice working_set / allocatable (kubelet eviction metric)"
 							}
 							plugin: statChart & {
 								spec: {

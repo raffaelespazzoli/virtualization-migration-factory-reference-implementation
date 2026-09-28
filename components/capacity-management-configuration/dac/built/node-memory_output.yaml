@@ -2,7 +2,7 @@ kind: Dashboard
 metadata:
   name: node-memory
   createdAt: "0001-01-01T00:00:00Z"
-  project: openshift-operators
+  project: perses
   updatedAt: "0001-01-01T00:00:00Z"
   version: 0
 spec:
@@ -92,7 +92,7 @@ spec:
       spec:
         display:
           name: Workload utilization
-          description: kubepods.slice usage / allocatable
+          description: kubepods.slice working_set / allocatable (kubelet eviction metric)
         plugin:
           kind: StatChart
           spec:
@@ -106,10 +106,7 @@ spec:
               plugin:
                 kind: PrometheusTimeSeriesQuery
                 spec:
-                  query: |-
-                    sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
-                    /
-                    sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
+                  query: sum(cluster:node:memory:workloads_utilization:ratio{node=~"$node"})
     "0_4":
       kind: Panel
       spec:
@@ -129,7 +126,7 @@ spec:
               plugin:
                 kind: PrometheusTimeSeriesQuery
                 spec:
-                  query: sum(container_memory_usage_bytes{id="/system.slice", node=~"$node"})
+                  query: sum(cluster:node:memory:system_used:bytes{node=~"$node"})
     "1_0":
       kind: Panel
       spec:
@@ -163,50 +160,28 @@ spec:
               plugin:
                 kind: PrometheusTimeSeriesQuery
                 spec:
-                  query: |-
-                    sum(container_memory_rss{id="/system.slice", node=~"$node"})
-                    + sum(container_memory_rss{id="/kubepods.slice", node=~"$node"})
+                  query: sum(cluster:node:memory:workloads_non_reclaimable:bytes{node=~"$node"}) + sum(cluster:node:memory:system_non_reclaimable:bytes{node=~"$node"})
                   seriesNameFormat: Non-reclaimable (anon)
           - kind: TimeSeriesQuery
             spec:
               plugin:
                 kind: PrometheusTimeSeriesQuery
                 spec:
-                  query: |-
-                    (
-                      sum(container_memory_usage_bytes{id="/system.slice", node=~"$node"})
-                      + sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
-                    )
-                    - (
-                      sum(container_memory_rss{id="/system.slice", node=~"$node"})
-                      + sum(container_memory_rss{id="/kubepods.slice", node=~"$node"})
-                    )
-                    - (
-                      sum(container_memory_total_active_file_bytes{id="/system.slice", node=~"$node"})
-                      + sum(container_memory_total_active_file_bytes{id="/kubepods.slice", node=~"$node"})
-                    )
-                    - (
-                      sum(container_memory_total_inactive_file_bytes{id="/system.slice", node=~"$node"})
-                      + sum(container_memory_total_inactive_file_bytes{id="/kubepods.slice", node=~"$node"})
-                    )
+                  query: sum(cluster:node:memory:workloads_overhead:bytes{node=~"$node"}) + sum(cluster:node:memory:system_overhead:bytes{node=~"$node"})
                   seriesNameFormat: Kernel overhead
           - kind: TimeSeriesQuery
             spec:
               plugin:
                 kind: PrometheusTimeSeriesQuery
                 spec:
-                  query: |-
-                    sum(container_memory_total_active_file_bytes{id="/system.slice", node=~"$node"})
-                    + sum(container_memory_total_active_file_bytes{id="/kubepods.slice", node=~"$node"})
+                  query: sum(cluster:node:memory:workloads_hot_reclaimable:bytes{node=~"$node"}) + sum(cluster:node:memory:system_hot_reclaimable:bytes{node=~"$node"})
                   seriesNameFormat: Reclaimable hot (active file)
           - kind: TimeSeriesQuery
             spec:
               plugin:
                 kind: PrometheusTimeSeriesQuery
                 spec:
-                  query: |-
-                    sum(container_memory_total_inactive_file_bytes{id="/system.slice", node=~"$node"})
-                    + sum(container_memory_total_inactive_file_bytes{id="/kubepods.slice", node=~"$node"})
+                  query: sum(cluster:node:memory:workloads_cold:bytes{node=~"$node"}) + sum(cluster:node:memory:system_cold:bytes{node=~"$node"})
                   seriesNameFormat: Reclaimable cold (inactive file)
           - kind: TimeSeriesQuery
             spec:
@@ -215,8 +190,8 @@ spec:
                 spec:
                   query: |-
                     sum(kube_node_status_capacity{resource="memory", node=~"$node"})
-                    - sum(container_memory_usage_bytes{id="/system.slice", node=~"$node"})
-                    - sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
+                    - sum(cluster:node:memory:workloads_used:bytes{node=~"$node"})
+                    - sum(cluster:node:memory:system_used:bytes{node=~"$node"})
                   seriesNameFormat: Free
           - kind: TimeSeriesQuery
             spec:
@@ -250,32 +225,28 @@ spec:
               plugin:
                 kind: PrometheusTimeSeriesQuery
                 spec:
-                  query: sum(container_memory_rss{id="/kubepods.slice", node=~"$node"})
+                  query: sum(cluster:node:memory:workloads_non_reclaimable:bytes{node=~"$node"})
                   seriesNameFormat: Non-reclaimable (anon)
           - kind: TimeSeriesQuery
             spec:
               plugin:
                 kind: PrometheusTimeSeriesQuery
                 spec:
-                  query: |-
-                    sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
-                    - sum(container_memory_rss{id="/kubepods.slice", node=~"$node"})
-                    - sum(container_memory_total_active_file_bytes{id="/kubepods.slice", node=~"$node"})
-                    - sum(container_memory_total_inactive_file_bytes{id="/kubepods.slice", node=~"$node"})
+                  query: sum(cluster:node:memory:workloads_overhead:bytes{node=~"$node"})
                   seriesNameFormat: Kernel overhead
           - kind: TimeSeriesQuery
             spec:
               plugin:
                 kind: PrometheusTimeSeriesQuery
                 spec:
-                  query: sum(container_memory_total_active_file_bytes{id="/kubepods.slice", node=~"$node"})
+                  query: sum(cluster:node:memory:workloads_hot_reclaimable:bytes{node=~"$node"})
                   seriesNameFormat: Reclaimable hot (active file)
           - kind: TimeSeriesQuery
             spec:
               plugin:
                 kind: PrometheusTimeSeriesQuery
                 spec:
-                  query: sum(container_memory_total_inactive_file_bytes{id="/kubepods.slice", node=~"$node"})
+                  query: sum(cluster:node:memory:workloads_cold:bytes{node=~"$node"})
                   seriesNameFormat: Reclaimable cold (inactive file)
           - kind: TimeSeriesQuery
             spec:
@@ -284,7 +255,7 @@ spec:
                 spec:
                   query: |-
                     sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
-                    - sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
+                    - sum(cluster:node:memory:workloads_used:bytes{node=~"$node"})
                   seriesNameFormat: Free
     "1_2":
       kind: Panel
@@ -319,32 +290,28 @@ spec:
               plugin:
                 kind: PrometheusTimeSeriesQuery
                 spec:
-                  query: sum(container_memory_rss{id="/system.slice", node=~"$node"})
+                  query: sum(cluster:node:memory:system_non_reclaimable:bytes{node=~"$node"})
                   seriesNameFormat: Non-reclaimable (anon)
           - kind: TimeSeriesQuery
             spec:
               plugin:
                 kind: PrometheusTimeSeriesQuery
                 spec:
-                  query: |-
-                    sum(container_memory_usage_bytes{id="/system.slice", node=~"$node"})
-                    - sum(container_memory_rss{id="/system.slice", node=~"$node"})
-                    - sum(container_memory_total_active_file_bytes{id="/system.slice", node=~"$node"})
-                    - sum(container_memory_total_inactive_file_bytes{id="/system.slice", node=~"$node"})
+                  query: sum(cluster:node:memory:system_overhead:bytes{node=~"$node"})
                   seriesNameFormat: Kernel overhead
           - kind: TimeSeriesQuery
             spec:
               plugin:
                 kind: PrometheusTimeSeriesQuery
                 spec:
-                  query: sum(container_memory_total_active_file_bytes{id="/system.slice", node=~"$node"})
+                  query: sum(cluster:node:memory:system_hot_reclaimable:bytes{node=~"$node"})
                   seriesNameFormat: Reclaimable hot (active file)
           - kind: TimeSeriesQuery
             spec:
               plugin:
                 kind: PrometheusTimeSeriesQuery
                 spec:
-                  query: sum(container_memory_total_inactive_file_bytes{id="/system.slice", node=~"$node"})
+                  query: sum(cluster:node:memory:system_cold:bytes{node=~"$node"})
                   seriesNameFormat: Reclaimable cold (inactive file)
           - kind: TimeSeriesQuery
             spec:

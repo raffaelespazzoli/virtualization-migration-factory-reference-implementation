@@ -7,7 +7,6 @@ import (
 	panelBuilder "github.com/perses/plugins/prometheus/sdk/cue/panel"
 	promQuery "github.com/perses/plugins/prometheus/schemas/prometheus-time-series-query:model"
 	statChart "github.com/perses/plugins/statchart/schemas:model"
-	table "github.com/perses/plugins/table/schemas:model"
 	staticListVarBuilder "github.com/perses/plugins/staticlistvariable/sdk/cue:staticlist"
 )
 
@@ -41,162 +40,74 @@ import (
 //   cluster:vm_memory_actual_used:bytes = sum(kubevirt_vmi_memory_used_bytes)
 //   cluster:vm_cpu_actual_used:cores    = sum(rate(kubevirt_vmi_cpu_usage_seconds_total[5m]))
 //
-// This lets stddev_over_time() and quantile_over_time() read from
-// TSDB rather than re-evaluating the sum at every 5m step over the
-// observation window (up to 8 640 evaluations for 30d).
+// Both approaches below compute σ the same way: stddev_over_time on the
+// aggregate recording rule.  They differ only in the multiplier:
+//   Normal    → z  (from the standard normal distribution table)
+//   Chebyshev → k = √(q / (1−q))  (Cantelli inequality, distribution-free)
+//
+// sum() around *_over_time() strips Thanos external labels so that
+// binary ops with label-free numerators produce results.
 
-// ── Approach 1: Empirical (no assumptions) ──────────────────────────
-// Direct historical quantile of the aggregate usage series.
-// No distributional or independence assumptions.
-#memEmpirical: """
-	sum(kubevirt_vmi_memory_domain_bytes)
-	/
-	quantile_over_time($risk_quantile,
-	  cluster:vm_memory_actual_used:bytes[$observation_period]
-	)
-	"""
-
-#cpuEmpirical: """
-	sum(vmi:kubevirt_vmi_vcpu:count)
-	/
-	quantile_over_time($risk_quantile,
-	  cluster:vm_cpu_actual_used:cores[$observation_period]
-	)
-	"""
-
-// ── Approach 2: Normal + actual correlation ─────────────────────────
-// mean + z×σ on the aggregate. Captures real VM correlation.
-// Assumes the aggregate sum follows a normal distribution.
+// ── Normal approach ─────────────────────────────────────────────────
+// Overcommit = Granted / (μ + z × σ)
+// Assumes the aggregate VM usage follows a normal distribution.
 #memNormal: """
 	sum(kubevirt_vmi_memory_domain_bytes)
 	/ (
-	  avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period])
+	  sum(avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
 	  + $z_score
-	    * stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period])
+	    * sum(stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
 	)
 	"""
 
 #cpuNormal: """
 	sum(vmi:kubevirt_vmi_vcpu:count)
 	/ (
-	  avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period])
+	  sum(avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
 	  + $z_score
-	    * stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period])
+	    * sum(stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
 	)
 	"""
 
-// ── Approach 3: Normal + independence ───────────────────────────────
-// mean + z×√Σσᵢ².  Diversified stddev is smaller than the actual
-// aggregate stddev when VMs are correlated, so this approach gives
-// a higher (more optimistic) overcommit than approach 2.
-#memIndependence: """
-	sum(kubevirt_vmi_memory_domain_bytes)
-	/ (
-	  sum(avg_over_time(kubevirt_vmi_memory_used_bytes[$observation_period]))
-	  + $z_score
-	    * sqrt(sum(
-	        stddev_over_time(kubevirt_vmi_memory_used_bytes[$observation_period]) ^ 2
-	      ))
-	)
-	"""
-
-#cpuIndependence: """
-	sum(vmi:kubevirt_vmi_vcpu:count)
-	/ (
-	  sum(avg_over_time(
-	    rate(kubevirt_vmi_cpu_usage_seconds_total[5m])[$observation_period:5m]
-	  ))
-	  + $z_score
-	    * sqrt(sum(
-	        stddev_over_time(
-	          rate(kubevirt_vmi_cpu_usage_seconds_total[5m])[$observation_period:5m]
-	        ) ^ 2
-	      ))
-	)
-	"""
-
-// ── Approach 4: Chebyshev / Cantelli (distribution-free bound) ──────
+// ── Chebyshev / Cantelli approach ───────────────────────────────────
+// Overcommit = Granted / (μ + k × σ)   where k = √(q / (1−q))
 // Cantelli inequality: P(X ≥ μ+kσ) ≤ 1/(1+k²) for ANY distribution.
-// Solving for k given quantile q (= 1−eviction probability):
-//   k = √(q / (1−q))
-// Most conservative — makes no distributional assumption.
+// Uses the same σ (aggregate stddev) as the Normal approach, but the
+// Cantelli multiplier is larger than the Normal z-score at the same
+// confidence level, making this approach more conservative.
 #memChebyshev: """
 	sum(kubevirt_vmi_memory_domain_bytes)
 	/ (
-	  avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period])
+	  sum(avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
 	  + sqrt(vector($risk_quantile / (1 - $risk_quantile)))
-	    * stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period])
+	    * sum(stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))
 	)
 	"""
 
 #cpuChebyshev: """
 	sum(vmi:kubevirt_vmi_vcpu:count)
 	/ (
-	  avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period])
+	  sum(avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
 	  + sqrt(vector($risk_quantile / (1 - $risk_quantile)))
-	    * stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period])
+	    * sum(stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))
 	)
 	"""
 
 // ── Diagnostics ─────────────────────────────────────────────────────
-// Correlation index: actual aggregate σ / independence-assumed σ.
-// >1 → VMs correlate (spikes coincide).  ≈1 → independent.
-#memCorrelation: """
-	stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period])
-	/
-	sqrt(sum(
-	  stddev_over_time(kubevirt_vmi_memory_used_bytes[$observation_period]) ^ 2
-	))
-	"""
-
-#cpuCorrelation: """
-	stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period])
-	/
-	sqrt(sum(
-	  stddev_over_time(
-	    rate(kubevirt_vmi_cpu_usage_seconds_total[5m])[$observation_period:5m]
-	  ) ^ 2
-	))
-	"""
-
 #vmCount: "count(kubevirt_vmi_memory_domain_bytes)"
-
-// ── Per-VM tables (empirical quantile per VM) ───────────────────────
-#topMemory: """
-	topk(10,
-	  sum by (namespace, name) (kubevirt_vmi_memory_domain_bytes)
-	  /
-	  sum by (namespace, name) (
-	    quantile_over_time($risk_quantile, kubevirt_vmi_memory_used_bytes[$observation_period])
-	  )
-	)
-	"""
-
-#topCPU: """
-	topk(10,
-	  sum by (namespace, name) (vmi:kubevirt_vmi_vcpu:count)
-	  /
-	  sum by (namespace, name) (
-	    quantile_over_time($risk_quantile,
-	      rate(kubevirt_vmi_cpu_usage_seconds_total[5m])[$observation_period:5m]
-	    )
-	  )
-	)
-	"""
 
 // ── Dashboard ───────────────────────────────────────────────────────
 
 dashboardBuilder & {
 	#name:    "vm-overcommit"
-	#project: "openshift-operators"
+	#project: "perses"
 	#display: {
 		name: "VM Overcommit"
 		description: """
-			Statistical overcommit analysis.
-			Empirical = historical quantile (no assumptions).
-			Normal = parametric (assumes bell-curve aggregate).
-			Independence = parametric + uncorrelated VMs (optimistic).
-			Chebyshev = Cantelli bound (any distribution, most conservative).
+			Statistical overcommit analysis based on observed aggregate VM usage volatility.
+			Normal = assumes bell-curve distribution for VM load.
+			Chebyshev = no assumption on distribution, but more conservative.
+			Both use the same mean and standard deviation computed over the observation period.
 			"""
 	}
 	#duration: "5m"
@@ -244,23 +155,13 @@ dashboardBuilder & {
 			// ── Row 1: Memory overcommit ratios ─────────────
 			{
 				#title: "Memory Overcommit Ratio"
-				#cols:  4
+				#cols:  2
 				#panels: [
 					panelBuilder & {
 						spec: {
 							display: {
-								name:        "Empirical"
-								description: "Granted / quantile of observed aggregate usage. Distribution-free; captures actual VM correlation."
-							}
-							plugin: statChart & {spec: {calculation: "last-number", format: {unit: "decimal", decimalPlaces: 2}}}
-							queries: [{#q & {#query: #memEmpirical, #format: "empirical"}}]
-						}
-					},
-					panelBuilder & {
-						spec: {
-							display: {
 								name:        "Normal"
-								description: "Granted / (μ + z×σ) of aggregate. Assumes normal distribution; captures VM correlation."
+								description: "Assumed normal distribution for VM load. Overcommit = Granted / (μ + z×σ)."
 							}
 							plugin: statChart & {spec: {calculation: "last-number", format: {unit: "decimal", decimalPlaces: 2}}}
 							queries: [{#q & {#query: #memNormal, #format: "normal"}}]
@@ -269,18 +170,8 @@ dashboardBuilder & {
 					panelBuilder & {
 						spec: {
 							display: {
-								name:        "Independence"
-								description: "Granted / (μ + z×√Σσᵢ²). Assumes normal + independent VMs. Optimistic if VMs correlate."
-							}
-							plugin: statChart & {spec: {calculation: "last-number", format: {unit: "decimal", decimalPlaces: 2}}}
-							queries: [{#q & {#query: #memIndependence, #format: "independence"}}]
-						}
-					},
-					panelBuilder & {
-						spec: {
-							display: {
 								name:        "Chebyshev"
-								description: "Granted / (μ + k×σ) with Cantelli k=√(q/(1−q)). Any distribution, most conservative."
+								description: "No assumption on load distribution, but more conservative. Overcommit = Granted / (μ + k×σ) with Cantelli k = √(q/(1−q))."
 							}
 							plugin: statChart & {spec: {calculation: "last-number", format: {unit: "decimal", decimalPlaces: 2}}}
 							queries: [{#q & {#query: #memChebyshev, #format: "chebyshev"}}]
@@ -292,23 +183,13 @@ dashboardBuilder & {
 			// ── Row 2: CPU overcommit ratios ────────────────
 			{
 				#title: "CPU Overcommit Ratio"
-				#cols:  4
+				#cols:  2
 				#panels: [
 					panelBuilder & {
 						spec: {
 							display: {
-								name:        "Empirical"
-								description: "Granted vCPUs / quantile of aggregate CPU usage."
-							}
-							plugin: statChart & {spec: {calculation: "last-number", format: {unit: "decimal", decimalPlaces: 2}}}
-							queries: [{#q & {#query: #cpuEmpirical, #format: "empirical"}}]
-						}
-					},
-					panelBuilder & {
-						spec: {
-							display: {
 								name:        "Normal"
-								description: "Granted vCPUs / (μ + z×σ) of aggregate CPU usage."
+								description: "Assumed normal distribution for VM load. Overcommit = Granted / (μ + z×σ)."
 							}
 							plugin: statChart & {spec: {calculation: "last-number", format: {unit: "decimal", decimalPlaces: 2}}}
 							queries: [{#q & {#query: #cpuNormal, #format: "normal"}}]
@@ -317,18 +198,8 @@ dashboardBuilder & {
 					panelBuilder & {
 						spec: {
 							display: {
-								name:        "Independence"
-								description: "Granted vCPUs / (μ + z×√Σσᵢ²). Assumes independent VMs."
-							}
-							plugin: statChart & {spec: {calculation: "last-number", format: {unit: "decimal", decimalPlaces: 2}}}
-							queries: [{#q & {#query: #cpuIndependence, #format: "independence"}}]
-						}
-					},
-					panelBuilder & {
-						spec: {
-							display: {
 								name:        "Chebyshev"
-								description: "Granted vCPUs / (μ + k×σ) with Cantelli bound."
+								description: "No assumption on load distribution, but more conservative. Overcommit = Granted / (μ + k×σ) with Cantelli k = √(q/(1−q))."
 							}
 							plugin: statChart & {spec: {calculation: "last-number", format: {unit: "decimal", decimalPlaces: 2}}}
 							queries: [{#q & {#query: #cpuChebyshev, #format: "chebyshev"}}]
@@ -340,28 +211,8 @@ dashboardBuilder & {
 			// ── Row 3: Diagnostics ──────────────────────────
 			{
 				#title: "Diagnostics"
-				#cols:  3
+				#cols:  1
 				#panels: [
-					panelBuilder & {
-						spec: {
-							display: {
-								name:        "Memory correlation"
-								description: "σ_actual / σ_independent. >1 = VMs correlate (spikes coincide). ≈1 = independent. Explains the gap between Normal and Independence."
-							}
-							plugin: statChart & {spec: {calculation: "last-number", format: {unit: "decimal", decimalPlaces: 2}}}
-							queries: [{#q & {#query: #memCorrelation, #format: "ρ"}}]
-						}
-					},
-					panelBuilder & {
-						spec: {
-							display: {
-								name:        "CPU correlation"
-								description: "Same ratio for CPU."
-							}
-							plugin: statChart & {spec: {calculation: "last-number", format: {unit: "decimal", decimalPlaces: 2}}}
-							queries: [{#q & {#query: #cpuCorrelation, #format: "ρ"}}]
-						}
-					},
 					panelBuilder & {
 						spec: {
 							display: {
@@ -385,13 +236,11 @@ dashboardBuilder & {
 						spec: {
 							display: {
 								name:        "Memory"
-								description: "All four approaches over time. The spread between lines shows how much the choice of method matters."
+								description: "Both approaches over time. The gap shows how much the distributional assumption matters."
 							}
 							plugin: #trendChart
 							queries: [
-								{#q & {#query: #memEmpirical, #format: "Empirical"}},
 								{#q & {#query: #memNormal, #format: "Normal"}},
-								{#q & {#query: #memIndependence, #format: "Independence"}},
 								{#q & {#query: #memChebyshev, #format: "Chebyshev"}},
 							]
 						}
@@ -409,76 +258,13 @@ dashboardBuilder & {
 						spec: {
 							display: {
 								name:        "CPU"
-								description: "All four approaches over time."
+								description: "Both approaches over time."
 							}
 							plugin: #trendChart
 							queries: [
-								{#q & {#query: #cpuEmpirical, #format: "Empirical"}},
 								{#q & {#query: #cpuNormal, #format: "Normal"}},
-								{#q & {#query: #cpuIndependence, #format: "Independence"}},
 								{#q & {#query: #cpuChebyshev, #format: "Chebyshev"}},
 							]
-						}
-					},
-				]
-			},
-
-			// ── Row 6: Per-VM tables ────────────────────────
-			{
-				#title:  "Most Overestimated VMs"
-				#cols:   2
-				#height: 12
-				#panels: [
-					panelBuilder & {
-						spec: {
-							display: {
-								name:        "Memory"
-								description: "The ten VMs whose granted memory is largest relative to the selected quantile of actual usage."
-							}
-							plugin: table & {
-								spec: {
-									density: "compact"
-									columnSettings: [
-										{name: "namespace", header: "Namespace", enableSorting: true},
-										{name: "name", header: "VM", enableSorting: true},
-										{
-											name:          "value"
-											header:        "Overcommit ratio"
-											enableSorting: true
-											sort:          "desc"
-											format: {unit: "decimal", decimalPlaces: 2}
-										},
-										{name: "timestamp", hide: true},
-									]
-								}
-							}
-							queries: [{#q & {#query: #topMemory, #format: "{{namespace}}/{{name}}"}}]
-						}
-					},
-					panelBuilder & {
-						spec: {
-							display: {
-								name:        "CPU"
-								description: "The ten VMs whose granted vCPUs are largest relative to the selected quantile of CPU usage."
-							}
-							plugin: table & {
-								spec: {
-									density: "compact"
-									columnSettings: [
-										{name: "namespace", header: "Namespace", enableSorting: true},
-										{name: "name", header: "VM", enableSorting: true},
-										{
-											name:          "value"
-											header:        "Overcommit ratio"
-											enableSorting: true
-											sort:          "desc"
-											format: {unit: "decimal", decimalPlaces: 2}
-										},
-										{name: "timestamp", hide: true},
-									]
-								}
-							}
-							queries: [{#q & {#query: #topCPU, #format: "{{namespace}}/{{name}}"}}]
 						}
 					},
 				]

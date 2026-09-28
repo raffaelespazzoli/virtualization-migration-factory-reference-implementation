@@ -1,2194 +1,294 @@
 apiVersion: v1
 data:
-  capacity-exhaustion.yaml: |
-    kind: Dashboard
-    metadata:
-      name: capacity-exhaustion
-      createdAt: "0001-01-01T00:00:00Z"
-      project: perses
-      updatedAt: "0001-01-01T00:00:00Z"
-      version: 0
-    spec:
-      display:
-        name: Time to Capacity Exhaustion
-        description: Days until the cluster runs out of schedulable capacity based on recent trends.
-      variables:
-        - kind: ListVariable
-          spec:
-            display:
-              name: Observation period
-              hidden: false
-            defaultValue:defaultValue: '30d'
-            name: observation_period
-            allowAllValue: false
-            allowMultiple: false
-            plugin:
-              kind: StaticListVariable
-              spec:
-                values:
-                  - value: 7d
-                    label: 7 days
-                  - value: 30d
-                    label: 30 days
-                  - value: 180d
-                    label: 180 days
-                  - value: 360d
-                    label: 360 days
-      panels:
-        "0_0":
-          kind: Panel
-          spec:
-            display:
-              name: Days to Exhaustion
-              description: Days until the cluster runs out of capacity (whichever resource exhausts first). Gauge capped at 365; values at max mean capacity is stable or growing.
-            plugin:
-              kind: GaugeChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: decimal
-                  decimalPlaces: 0
-                max: 365
-                thresholds:
-                  steps:
-                    - value: 0
-                      color: '#f53636'
-                    - value: 30
-                      color: '#ed8128'
-                    - value: 90
-                      color: '#32ac2d'
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: clamp_max(cluster:days_to_exhaustion_$observation_period:days, 365)
-                      seriesNameFormat: days to exhaustion
-        "1_0":
-          kind: Panel
-          spec:
-            display:
-              name: Days to Exhaustion Trend
-              description: How the estimated days until exhaustion has changed over time for memory and CPU. Lines disappear when capacity is stable or growing (+Inf).
-            plugin:
-              kind: TimeSeriesChart
-              spec:
-                legend:
-                  position: bottom
-                  mode: list
-                yAxis:
-                  format:
-                    unit: decimal
-                    decimalPlaces: 0
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: cluster:days_to_exhaustion_memory_$observation_period:days
-                      seriesNameFormat: Memory
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: cluster:days_to_exhaustion_cpu_$observation_period:days
-                      seriesNameFormat: CPU
-      layouts:
-        - kind: Grid
-          spec:
-            display:
-              title: Current Estimate
-            items:
-              - x: 0
-                "y": 0
-                width: 24
-                height: 8
-                content:
-                  $ref: '#/spec/panels/0_0'
-        - kind: Grid
-          spec:
-            display:
-              title: Trend
-            items:
-              - x: 0
-                "y": 0
-                width: 24
-                height: 12
-                content:
-                  $ref: '#/spec/panels/1_0'
-      duration: 6h
-  node-memory.yaml: |
-    kind: Dashboard
-    metadata:
-      name: node-memory
-      createdAt: "0001-01-01T00:00:00Z"
-      project: perses
-      updatedAt: "0001-01-01T00:00:00Z"
-      version: 0
-    spec:
-      display:
-        name: Node Memory
-        description: 'Runtime memory decomposition per node: non-reclaimable, hot-reclaimable, cold-reclaimable, and free.'
-      variables:
-        - kind: ListVariable
-          spec:
-            display:
-              name: Node
-              hidden: false
-            name: node
-            allowAllValue: true
-            allowMultiple: false
-            plugin:
-              kind: PrometheusLabelValuesVariable
-              spec:
-                datasource:
-                  kind: PrometheusDatasource
-                labelName: node
-                matchers:
-                  - kube_node_status_capacity{}
-      panels:
-        "0_0":
-          kind: Panel
-          spec:
-            display:
-              name: Capacity
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: bytes
-                  decimalPlaces: 1
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: sum(kube_node_status_capacity{resource="memory", node=~"$node"})
-        "0_1":
-          kind: Panel
-          spec:
-            display:
-              name: Allocatable
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: bytes
-                  decimalPlaces: 1
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
-        "0_2":
-          kind: Panel
-          spec:
-            display:
-              name: Reserved
-              description: system-reserved + kube-reserved + eviction-threshold
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: bytes
-                  decimalPlaces: 1
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(kube_node_status_capacity{resource="memory", node=~"$node"})
-                        - sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
-        "0_3":
-          kind: Panel
-          spec:
-            display:
-              name: Workload utilization
-              description: kubepods.slice usage / allocatable
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: percent
-                  decimalPlaces: 1
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
-                        /
-                        sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
-        "0_4":
-          kind: Panel
-          spec:
-            display:
-              name: System used
-              description: system.slice total usage (can exceed reserved via file cache)
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: bytes
-                  decimalPlaces: 1
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: sum(container_memory_usage_bytes{id="/system.slice", node=~"$node"})
-        "1_0":
-          kind: Panel
-          spec:
-            display:
-              name: Node Total
-              description: 'Full node memory: system + workloads. Total height = node capacity.'
-            plugin:
-              kind: TimeSeriesChart
-              spec:
-                legend:
-                  position: bottom
-                  mode: list
-                visual:
-                  display: line
-                  areaOpacity: 0.7
-                  lineWidth: 2
-                  stack: all
-                querySettings:
-                  - queryIndex: 5
-                    colorMode: fixed-single
-                    colorValue: '#FFFFFF'
-                    lineStyle: dotted
-                    stack: false
-                    areaOpacity: 0
-                yAxis:
-                  format:
-                    unit: bytes
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(container_memory_rss{id="/system.slice", node=~"$node"})
-                        + sum(container_memory_rss{id="/kubepods.slice", node=~"$node"})
-                      seriesNameFormat: Non-reclaimable (anon)
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        (
-                          sum(container_memory_usage_bytes{id="/system.slice", node=~"$node"})
-                          + sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
-                        )
-                        - (
-                          sum(container_memory_rss{id="/system.slice", node=~"$node"})
-                          + sum(container_memory_rss{id="/kubepods.slice", node=~"$node"})
-                        )
-                        - (
-                          sum(container_memory_total_active_file_bytes{id="/system.slice", node=~"$node"})
-                          + sum(container_memory_total_active_file_bytes{id="/kubepods.slice", node=~"$node"})
-                        )
-                        - (
-                          sum(container_memory_total_inactive_file_bytes{id="/system.slice", node=~"$node"})
-                          + sum(container_memory_total_inactive_file_bytes{id="/kubepods.slice", node=~"$node"})
-                        )
-                      seriesNameFormat: Kernel overhead
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(container_memory_total_active_file_bytes{id="/system.slice", node=~"$node"})
-                        + sum(container_memory_total_active_file_bytes{id="/kubepods.slice", node=~"$node"})
-                      seriesNameFormat: Reclaimable hot (active file)
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(container_memory_total_inactive_file_bytes{id="/system.slice", node=~"$node"})
-                        + sum(container_memory_total_inactive_file_bytes{id="/kubepods.slice", node=~"$node"})
-                      seriesNameFormat: Reclaimable cold (inactive file)
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(kube_node_status_capacity{resource="memory", node=~"$node"})
-                        - sum(container_memory_usage_bytes{id="/system.slice", node=~"$node"})
-                        - sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
-                      seriesNameFormat: Free
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
-                      seriesNameFormat: ── Allocatable
-        "1_1":
-          kind: Panel
-          spec:
-            display:
-              name: Workloads (kubepods.slice)
-              description: Pod memory only. Total height = node allocatable.
-            plugin:
-              kind: TimeSeriesChart
-              spec:
-                legend:
-                  position: bottom
-                  mode: list
-                visual:
-                  display: line
-                  areaOpacity: 0.7
-                  stack: all
-                yAxis:
-                  format:
-                    unit: bytes
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: sum(container_memory_rss{id="/kubepods.slice", node=~"$node"})
-                      seriesNameFormat: Non-reclaimable (anon)
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
-                        - sum(container_memory_rss{id="/kubepods.slice", node=~"$node"})
-                        - sum(container_memory_total_active_file_bytes{id="/kubepods.slice", node=~"$node"})
-                        - sum(container_memory_total_inactive_file_bytes{id="/kubepods.slice", node=~"$node"})
-                      seriesNameFormat: Kernel overhead
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: sum(container_memory_total_active_file_bytes{id="/kubepods.slice", node=~"$node"})
-                      seriesNameFormat: Reclaimable hot (active file)
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: sum(container_memory_total_inactive_file_bytes{id="/kubepods.slice", node=~"$node"})
-                      seriesNameFormat: Reclaimable cold (inactive file)
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
-                        - sum(container_memory_usage_bytes{id="/kubepods.slice", node=~"$node"})
-                      seriesNameFormat: Free
-        "1_2":
-          kind: Panel
-          spec:
-            display:
-              name: System (system.slice)
-              description: OS and Kubernetes system services. Compare with Reserved stat above — system usage commonly exceeds reservation due to file cache.
-            plugin:
-              kind: TimeSeriesChart
-              spec:
-                legend:
-                  position: bottom
-                  mode: list
-                visual:
-                  display: line
-                  areaOpacity: 0.7
-                  lineWidth: 2
-                  stack: all
-                querySettings:
-                  - queryIndex: 4
-                    colorMode: fixed-single
-                    colorValue: '#FF8C00'
-                    lineStyle: dotted
-                    stack: false
-                    areaOpacity: 0
-                yAxis:
-                  format:
-                    unit: bytes
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: sum(container_memory_rss{id="/system.slice", node=~"$node"})
-                      seriesNameFormat: Non-reclaimable (anon)
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(container_memory_usage_bytes{id="/system.slice", node=~"$node"})
-                        - sum(container_memory_rss{id="/system.slice", node=~"$node"})
-                        - sum(container_memory_total_active_file_bytes{id="/system.slice", node=~"$node"})
-                        - sum(container_memory_total_inactive_file_bytes{id="/system.slice", node=~"$node"})
-                      seriesNameFormat: Kernel overhead
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: sum(container_memory_total_active_file_bytes{id="/system.slice", node=~"$node"})
-                      seriesNameFormat: Reclaimable hot (active file)
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: sum(container_memory_total_inactive_file_bytes{id="/system.slice", node=~"$node"})
-                      seriesNameFormat: Reclaimable cold (inactive file)
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(kube_node_status_capacity{resource="memory", node=~"$node"})
-                        - sum(kube_node_status_allocatable{resource="memory", node=~"$node"})
-                      seriesNameFormat: ── Reserved
-      layouts:
-        - kind: Grid
-          spec:
-            display:
-              title: Summary
-            items:
-              - x: 0
-                "y": 0
-                width: 4
-                height: 8
-                content:
-                  $ref: '#/spec/panels/0_0'
-              - x: 4
-                "y": 0
-                width: 4
-                height: 8
-                content:
-                  $ref: '#/spec/panels/0_1'
-              - x: 8
-                "y": 0
-                width: 4
-                height: 8
-                content:
-                  $ref: '#/spec/panels/0_2'
-              - x: 12
-                "y": 0
-                width: 4
-                height: 8
-                content:
-                  $ref: '#/spec/panels/0_3'
-              - x: 16
-                "y": 0
-                width: 4
-                height: 8
-                content:
-                  $ref: '#/spec/panels/0_4'
-        - kind: Grid
-          spec:
-            display:
-              title: Memory Decomposition
-            items:
-              - x: 0
-                "y": 0
-                width: 8
-                height: 14
-                content:
-                  $ref: '#/spec/panels/1_0'
-              - x: 8
-                "y": 0
-                width: 8
-                height: 14
-                content:
-                  $ref: '#/spec/panels/1_1'
-              - x: 16
-                "y": 0
-                width: 8
-                height: 14
-                content:
-                  $ref: '#/spec/panels/1_2'
-      duration: 6h
-  pod-memory.yaml: |
-    kind: Dashboard
-    metadata:
-      name: pod-memory
-      createdAt: "0001-01-01T00:00:00Z"
-      project: perses
-      updatedAt: "0001-01-01T00:00:00Z"
-      version: 0
-    spec:
-      display:
-        name: Pod Memory
-        description: 'Container memory decomposition: non-reclaimable, hot/cold reclaimable, kernel overhead, with limit threshold.'
-      variables:
-        - kind: ListVariable
-          spec:
-            display:
-              name: Namespace
-              hidden: false
-            name: namespace
-            allowAllValue: false
-            allowMultiple: false
-            plugin:
-              kind: PrometheusLabelValuesVariable
-              spec:
-                datasource:
-                  kind: PrometheusDatasource
-                labelName: namespace
-                matchers:
-                  - container_memory_working_set_bytes{}
-        - kind: ListVariable
-          spec:
-            display:
-              name: Pod
-              hidden: false
-            name: pod
-            allowAllValue: true
-            allowMultiple: false
-            plugin:
-              kind: PrometheusLabelValuesVariable
-              spec:
-                datasource:
-                  kind: PrometheusDatasource
-                labelName: pod
-                matchers:
-                  - container_memory_working_set_bytes{namespace=~"$namespace",container!="",container!="POD"}
-        - kind: ListVariable
-          spec:
-            display:
-              name: Container
-              hidden: false
-            name: container
-            allowAllValue: true
-            allowMultiple: false
-            plugin:
-              kind: PrometheusLabelValuesVariable
-              spec:
-                datasource:
-                  kind: PrometheusDatasource
-                labelName: container
-                matchers:
-                  - container_memory_working_set_bytes{namespace=~"$namespace",pod=~"$pod",container!="",container!="POD"}
-      panels:
-        "0_0":
-          kind: Panel
-          spec:
-            display:
-              name: Working Set
-              description: Memory that cannot be freely reclaimed (usage minus inactive file cache). This is what the kubelet uses for eviction and OOM decisions.
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: bytes
-                  decimalPlaces: 1
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: sum(container_memory_working_set_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
-        "0_1":
-          kind: Panel
-          spec:
-            display:
-              name: Memory Limit
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: bytes
-                  decimalPlaces: 1
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: sum(kube_pod_container_resource_limits{resource="memory", namespace=~"$namespace", pod=~"$pod", container=~"$container"})
-        "0_2":
-          kind: Panel
-          spec:
-            display:
-              name: Utilization
-              description: working_set / limit — how close to OOM
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: percent
-                  decimalPlaces: 1
-                thresholds:
-                  steps:
-                    - value: 0
-                      color: '#32ac2d'
-                    - value: 0.80
-                      color: '#ed8128'
-                    - value: 0.95
-                      color: '#f53636'
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(container_memory_working_set_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
-                        /
-                        sum(kube_pod_container_resource_limits{resource="memory", namespace=~"$namespace", pod=~"$pod", container=~"$container"})
-        "0_3":
-          kind: Panel
-          spec:
-            display:
-              name: RSS
-              description: Anonymous memory (heap, stack). Cannot be reclaimed without swap — primary driver of OOM kills.
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: bytes
-                  decimalPlaces: 1
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: sum(container_memory_rss{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
-        "1_0":
-          kind: Panel
-          spec:
-            display:
-              name: Memory Breakdown
-              description: Stacked memory usage with limit threshold. Total height = container_memory_usage_bytes.
-            plugin:
-              kind: TimeSeriesChart
-              spec:
-                legend:
-                  position: bottom
-                  mode: list
-                visual:
-                  display: line
-                  areaOpacity: 0.7
-                  lineWidth: 2
-                  stack: all
-                querySettings:
-                  - queryIndex: 4
-                    colorMode: fixed-single
-                    colorValue: '#FFFFFF'
-                    lineStyle: dotted
-                    stack: false
-                    areaOpacity: 0
-                yAxis:
-                  format:
-                    unit: bytes
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: sum(container_memory_rss{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
-                      seriesNameFormat: Non-reclaimable (anon/RSS)
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(container_memory_usage_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
-                        - sum(container_memory_rss{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
-                        - sum(container_memory_cache{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
-                      seriesNameFormat: Kernel overhead
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(container_memory_cache{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
-                        - (
-                          sum(container_memory_usage_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
-                          - sum(container_memory_working_set_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
-                        )
-                      seriesNameFormat: Reclaimable hot (active file)
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(container_memory_usage_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
-                        - sum(container_memory_working_set_bytes{namespace=~"$namespace", pod=~"$pod", container=~"$container", container!="POD", container!=""})
-                      seriesNameFormat: Reclaimable cold (inactive file)
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: sum(kube_pod_container_resource_limits{resource="memory", namespace=~"$namespace", pod=~"$pod", container=~"$container"})
-                      seriesNameFormat: ── Memory Limit
-      layouts:
-        - kind: Grid
-          spec:
-            display:
-              title: Summary
-            items:
-              - x: 0
-                "y": 0
-                width: 6
-                height: 8
-                content:
-                  $ref: '#/spec/panels/0_0'
-              - x: 6
-                "y": 0
-                width: 6
-                height: 8
-                content:
-                  $ref: '#/spec/panels/0_1'
-              - x: 12
-                "y": 0
-                width: 6
-                height: 8
-                content:
-                  $ref: '#/spec/panels/0_2'
-              - x: 18
-                "y": 0
-                width: 6
-                height: 8
-                content:
-                  $ref: '#/spec/panels/0_3'
-        - kind: Grid
-          spec:
-            display:
-              title: Memory Decomposition
-            items:
-              - x: 0
-                "y": 0
-                width: 24
-                height: 16
-                content:
-                  $ref: '#/spec/panels/1_0'
-      duration: 6h
-  vm-capacity.yaml: |
-    kind: Dashboard
-    metadata:
-      name: vm-capacity
-      createdAt: "0001-01-01T00:00:00Z"
-      project: perses
-      updatedAt: "0001-01-01T00:00:00Z"
-      version: 0
-    spec:
-      display:
-        name: How many VMs fit
-        description: How many more virtual machines of a chosen shape fit in the remaining schedulable capacity.
-      variables:
-        - kind: ListVariable
-          spec:
-            display:
-              name: VM memory
-              hidden: false
-            defaultValue:defaultValue: '8589934592'
-            name: vm_memory
-            allowAllValue: false
-            allowMultiple: false
-            plugin:
-              kind: StaticListVariable
-              spec:
-                values:
-                  - value: "4294967296"
-                    label: 4 GiB
-                  - value: "8589934592"
-                    label: 8 GiB
-                  - value: "17179869184"
-                    label: 16 GiB
-                  - value: "34359738368"
-                    label: 32 GiB
-                  - value: "68719476736"
-                    label: 64 GiB
-        - kind: ListVariable
-          spec:
-            display:
-              name: VM CPU
-              hidden: false
-            defaultValue:defaultValue: '4'
-            name: vm_cpu
-            allowAllValue: false
-            allowMultiple: false
-            plugin:
-              kind: StaticListVariable
-              spec:
-                values:
-                  - value: "1"
-                    label: 1 vCPU
-                  - value: "2"
-                    label: 2 vCPU
-                  - value: "4"
-                    label: 4 vCPU
-                  - value: "8"
-                    label: 8 vCPU
-                  - value: "16"
-                    label: 16 vCPU
-        - kind: ListVariable
-          spec:
-            display:
-              name: Memory overcommit
-              hidden: false
-            defaultValue:defaultValue: '1'
-            name: memory_overcommit
-            allowAllValue: false
-            allowMultiple: false
-            plugin:
-              kind: StaticListVariable
-              spec:
-                values:
-                  - "1"
-                  - "1.5"
-                  - "2"
-                  - "2.5"
-                  - "3"
-                  - "4"
-        - kind: ListVariable
-          spec:
-            display:
-              name: CPU overcommit
-              hidden: false
-            defaultValue:defaultValue: '1'
-            name: cpu_overcommit
-            allowAllValue: false
-            allowMultiple: false
-            plugin:
-              kind: StaticListVariable
-              spec:
-                values:
-                  - "1"
-                  - "2"
-                  - "4"
-                  - "6"
-                  - "8"
-                  - "10"
-                  - "12"
-      panels:
-        "0_0":
-          kind: Panel
-          spec:
-            display:
-              name: VMs that fit
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: decimal
-                  decimalPlaces: 0
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        floor(clamp_max(
-                          cluster:available_capacity_memory:bytes / $vm_memory * $memory_overcommit,
-                          scalar(cluster:available_capacity_cpu:cores / $vm_cpu * $cpu_overcommit)
-                        ))
-        "0_1":
-          kind: Panel
-          spec:
-            display:
-              name: Limited by
-              description: Whether remaining capacity runs out of memory or CPU first for the selected VM shape.
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: decimal
-                  decimalPlaces: 0
-                mappings:
-                  - kind: Range
-                    spec:
-                      from: 0
-                      to: 0.5
-                      result:
-                        value: Memory bound
-                  - kind: Range
-                    spec:
-                      from: 0.5
-                      to: 1.5
-                      result:
-                        value: CPU bound
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        (
-                          cluster:available_capacity_memory:bytes / $vm_memory * $memory_overcommit
-                          > bool
-                          scalar(cluster:available_capacity_cpu:cores / $vm_cpu * $cpu_overcommit)
-                        )
-        "0_2":
-          kind: Panel
-          spec:
-            display:
-              name: Memory / CPU
-              description: GiB of memory request per CPU request. The node shape that matches the current workload.
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: decimal
-                  decimalPlaces: 2
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: cluster:memory_cpu_ratio:gib_per_core
-                      seriesNameFormat: GiB per core
-        "1_0":
-          kind: Panel
-          spec:
-            display:
-              name: Memory
-            plugin:
-              kind: TimeSeriesChart
-              spec:
-                legend:
-                  position: bottom
-                  mode: list
-                visual:
-                  display: bar
-                  stack: all
-                yAxis:
-                  format:
-                    unit: bytes
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: cluster:non_vm_used_capacity_memory:bytes
-                      seriesNameFormat: Non-VM used
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: cluster:vm_used_capacity_memory:bytes
-                      seriesNameFormat: VM used
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: cluster:available_capacity_memory:bytes
-                      seriesNameFormat: Available
-        "1_1":
-          kind: Panel
-          spec:
-            display:
-              name: CPU
-            plugin:
-              kind: TimeSeriesChart
-              spec:
-                legend:
-                  position: bottom
-                  mode: list
-                visual:
-                  display: bar
-                  stack: all
-                yAxis:
-                  format:
-                    unit: decimal
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: cluster:non_vm_used_capacity_cpu:cores
-                      seriesNameFormat: Non-VM used
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: cluster:vm_used_capacity_cpu:cores
-                      seriesNameFormat: VM used
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: cluster:available_capacity_cpu:cores
-                      seriesNameFormat: Available
-      layouts:
-        - kind: Grid
-          spec:
-            display:
-              title: How many more VMs fit
-            items:
-              - x: 0
-                "y": 0
-                width: 8
-                height: 8
-                content:
-                  $ref: '#/spec/panels/0_0'
-              - x: 8
-                "y": 0
-                width: 8
-                height: 8
-                content:
-                  $ref: '#/spec/panels/0_1'
-              - x: 16
-                "y": 0
-                width: 8
-                height: 8
-                content:
-                  $ref: '#/spec/panels/0_2'
-        - kind: Grid
-          spec:
-            display:
-              title: Capacity
-            items:
-              - x: 0
-                "y": 0
-                width: 12
-                height: 12
-                content:
-                  $ref: '#/spec/panels/1_0'
-              - x: 12
-                "y": 0
-                width: 12
-                height: 12
-                content:
-                  $ref: '#/spec/panels/1_1'
-      duration: 1h
-  vm-memory.yaml: |
-    kind: Dashboard
-    metadata:
-      name: vm-memory
-      createdAt: "0001-01-01T00:00:00Z"
-      project: perses
-      updatedAt: "0001-01-01T00:00:00Z"
-      version: 0
-    spec:
-      display:
-        name: VM Memory
-        description: 'Guest memory decomposition (kernel, non-reclaimable, reclaimable, free) and launcher overhead: estimated vs actual.'
-      variables:
-        - kind: ListVariable
-          spec:
-            display:
-              name: Namespace
-              hidden: false
-            name: namespace
-            allowAllValue: false
-            allowMultiple: false
-            plugin:
-              kind: PrometheusLabelValuesVariable
-              spec:
-                datasource:
-                  kind: PrometheusDatasource
-                labelName: namespace
-                matchers:
-                  - kubevirt_vmi_memory_available_bytes{}
-        - kind: ListVariable
-          spec:
-            display:
-              name: VM
-              hidden: false
-            name: vm
-            allowAllValue: false
-            allowMultiple: false
-            plugin:
-              kind: PrometheusLabelValuesVariable
-              spec:
-                datasource:
-                  kind: PrometheusDatasource
-                labelName: name
-                matchers:
-                  - kubevirt_vmi_memory_available_bytes{namespace=~"$namespace"}
-      panels:
-        "0_0":
-          kind: Panel
-          spec:
-            display:
-              name: Domain
-              description: Total memory allocated to the QEMU domain — the VM's configured size.
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: bytes
-                  decimalPlaces: 1
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: kubevirt_vmi_memory_domain_bytes{name=~"$vm", namespace=~"$namespace"}
-        "0_1":
-          kind: Panel
-          spec:
-            display:
-              name: Available (MemTotal)
-              description: Usable memory inside the guest — domain minus kernel reserved.
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: bytes
-                  decimalPlaces: 1
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: kubevirt_vmi_memory_available_bytes{name=~"$vm", namespace=~"$namespace"}
-        "0_2":
-          kind: Panel
-          spec:
-            display:
-              name: Used (non-reclaimable)
-              description: Memory actively in use — cannot be freed without swap or OOM.
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: bytes
-                  decimalPlaces: 1
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: kubevirt_vmi_memory_used_bytes{name=~"$vm", namespace=~"$namespace"}
-        "0_3":
-          kind: Panel
-          spec:
-            display:
-              name: Utilization
-              description: used / available — how close to guest OOM.
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: percent-decimal
-                  decimalPlaces: 1
-                thresholds:
-                  steps:
-                    - value: 0
-                      color: '#32ac2d'
-                    - value: 80
-                      color: '#ed8128'
-                    - value: 95
-                      color: '#f53636'
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        kubevirt_vmi_memory_used_bytes{name=~"$vm", namespace=~"$namespace"}
-                        / kubevirt_vmi_memory_available_bytes{name=~"$vm", namespace=~"$namespace"} * 100
-        "0_4":
-          kind: Panel
-          spec:
-            display:
-              name: Overhead Δ
-              description: Estimated overhead minus actual overhead. Positive = headroom. Negative = virt-controller under-estimated.
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: bytes
-                  decimalPlaces: 1
-                thresholds:
-                  steps:
-                    - value: -536870912
-                      color: '#f53636'
-                    - value: 0
-                      color: '#ed8128'
-                    - value: 104857600
-                      color: '#32ac2d'
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        scalar(kubevirt_vmi_launcher_memory_overhead_bytes{name=~"$vm", namespace=~"$namespace"})
-                        - scalar(vmi:virt_launcher_overhead_memory:bytes{name=~"$vm", namespace=~"$namespace"})
-        "1_0":
-          kind: Panel
-          spec:
-            display:
-              name: Guest Memory Decomposition
-              description: 'Four layers summing to domain: kernel reserved + non-reclaimable + reclaimable + free.'
-            plugin:
-              kind: TimeSeriesChart
-              spec:
-                legend:
-                  position: bottom
-                  mode: list
-                visual:
-                  display: line
-                  areaOpacity: 0.7
-                  lineWidth: 2
-                  stack: all
-                querySettings:
-                  - queryIndex: 4
-                    colorMode: fixed-single
-                    colorValue: '#FFFFFF'
-                    lineStyle: dotted
-                    stack: false
-                    areaOpacity: 0
-                yAxis:
-                  format:
-                    unit: bytes
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        kubevirt_vmi_memory_domain_bytes{name=~"$vm", namespace=~"$namespace"}
-                        - kubevirt_vmi_memory_available_bytes{name=~"$vm", namespace=~"$namespace"}
-                      seriesNameFormat: Kernel reserved
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: kubevirt_vmi_memory_used_bytes{name=~"$vm", namespace=~"$namespace"}
-                      seriesNameFormat: Non-reclaimable (used)
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: kubevirt_vmi_memory_usable_bytes{name=~"$vm", namespace=~"$namespace"} - kubevirt_vmi_memory_unused_bytes{name=~"$vm", namespace=~"$namespace"}
-                      seriesNameFormat: Reclaimable
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: kubevirt_vmi_memory_unused_bytes{name=~"$vm", namespace=~"$namespace"}
-                      seriesNameFormat: Free
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: kubevirt_vmi_memory_domain_bytes{name=~"$vm", namespace=~"$namespace"}
-                      seriesNameFormat: ── Domain (configured)
-        "1_1":
-          kind: Panel
-          spec:
-            display:
-              name: 'Launcher Overhead: Estimated vs Actual'
-              description: Estimated = virt-controller prediction. Actual = pod working_set minus guest RSS (recording rule). When actual exceeds estimated, the overhead budget is too tight.
-            plugin:
-              kind: TimeSeriesChart
-              spec:
-                legend:
-                  position: bottom
-                  mode: list
-                querySettings:
-                  - queryIndex: 0
-                    colorMode: fixed-single
-                    colorValue: '#32ac2d'
-                    lineStyle: dotted
-                  - queryIndex: 1
-                    colorMode: fixed-single
-                    colorValue: '#2E79B5'
-                visual:
-                  display: line
-                  areaOpacity: 0
-                  lineWidth: 2
-                yAxis:
-                  format:
-                    unit: bytes
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: kubevirt_vmi_launcher_memory_overhead_bytes{name=~"$vm", namespace=~"$namespace"}
-                      seriesNameFormat: Estimated overhead
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: vmi:virt_launcher_overhead_memory:bytes{name=~"$vm", namespace=~"$namespace"}
-                      seriesNameFormat: Actual overhead
-      layouts:
-        - kind: Grid
-          spec:
-            display:
-              title: Summary
-            items:
-              - x: 0
-                "y": 0
-                width: 4
-                height: 8
-                content:
-                  $ref: '#/spec/panels/0_0'
-              - x: 4
-                "y": 0
-                width: 4
-                height: 8
-                content:
-                  $ref: '#/spec/panels/0_1'
-              - x: 8
-                "y": 0
-                width: 4
-                height: 8
-                content:
-                  $ref: '#/spec/panels/0_2'
-              - x: 12
-                "y": 0
-                width: 4
-                height: 8
-                content:
-                  $ref: '#/spec/panels/0_3'
-              - x: 16
-                "y": 0
-                width: 4
-                height: 8
-                content:
-                  $ref: '#/spec/panels/0_4'
-        - kind: Grid
-          spec:
-            display:
-              title: Memory Decomposition
-            items:
-              - x: 0
-                "y": 0
-                width: 12
-                height: 8
-                content:
-                  $ref: '#/spec/panels/1_0'
-              - x: 12
-                "y": 0
-                width: 12
-                height: 8
-                content:
-                  $ref: '#/spec/panels/1_1'
-      duration: 6h
-  vm-overcommit.yaml: |
-    kind: Dashboard
-    metadata:
-      name: vm-overcommit
-      createdAt: "0001-01-01T00:00:00Z"
-      project: perses
-      updatedAt: "0001-01-01T00:00:00Z"
-      version: 0
-    spec:
-      display:
-        name: VM Overcommit
-        description: |-
-          Statistical overcommit analysis.
-          Empirical = historical quantile (no assumptions).
-          Normal = parametric (assumes bell-curve aggregate).
-          Independence = parametric + uncorrelated VMs (optimistic).
-          Chebyshev = Cantelli bound (any distribution, most conservative).
-      variables:
-        - kind: ListVariable
-          spec:
-            display:
-              name: Observation period
-              hidden: false
-            defaultValue:defaultValue: '30d'
-            name: observation_period
-            allowAllValue: false
-            allowMultiple: false
-            plugin:
-              kind: StaticListVariable
-              spec:
-                values:
-                  - value: 7d
-                    label: 7 days
-                  - value: 30d
-                    label: 30 days
-                  - value: 180d
-                    label: 180 days
-                  - value: 360d
-                    label: 360 days
-        - kind: ListVariable
-          spec:
-            display:
-              name: Confidence level
-              hidden: false
-            defaultValue:defaultValue: '0.999'
-            name: risk_quantile
-            allowAllValue: false
-            allowMultiple: false
-            plugin:
-              kind: StaticListVariable
-              spec:
-                values:
-                  - value: "0.95"
-                    label: 95% (p=5%)
-                  - value: "0.99"
-                    label: 99% (p=1%)
-                  - value: "0.995"
-                    label: 99.5% (p=0.5%)
-                  - value: "0.999"
-                    label: 99.9% (p=0.1%)
-        - kind: ListVariable
-          spec:
-            display:
-              name: Normal z-score
-              hidden: false
-            defaultValue:defaultValue: '3.090'
-            name: z_score
-            allowAllValue: false
-            allowMultiple: false
-            plugin:
-              kind: StaticListVariable
-              spec:
-                values:
-                  - value: "1.645"
-                    label: 95% (z=1.645)
-                  - value: "2.326"
-                    label: 99% (z=2.326)
-                  - value: "2.576"
-                    label: 99.5% (z=2.576)
-                  - value: "3.090"
-                    label: 99.9% (z=3.090)
-      panels:
-        "0_0":
-          kind: Panel
-          spec:
-            display:
-              name: Empirical
-              description: Granted / quantile of observed aggregate usage. Distribution-free; captures actual VM correlation.
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: decimal
-                  decimalPlaces: 2
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(kubevirt_vmi_memory_domain_bytes)
-                        /
-                        quantile_over_time($risk_quantile,
-                          cluster:vm_memory_actual_used:bytes[$observation_period]
-                        )
-                      seriesNameFormat: empirical
-                      minStep: 5m
-        "0_1":
-          kind: Panel
-          spec:
-            display:
-              name: Normal
-              description: Granted / (μ + z×σ) of aggregate. Assumes normal distribution; captures VM correlation.
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: decimal
-                  decimalPlaces: 2
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(kubevirt_vmi_memory_domain_bytes)
-                        / (
-                          avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period])
-                          + $z_score
-                            * stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period])
-                        )
-                      seriesNameFormat: normal
-                      minStep: 5m
-        "0_2":
-          kind: Panel
-          spec:
-            display:
-              name: Independence
-              description: Granted / (μ + z×√Σσᵢ²). Assumes normal + independent VMs. Optimistic if VMs correlate.
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: decimal
-                  decimalPlaces: 2
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(kubevirt_vmi_memory_domain_bytes)
-                        / (
-                          sum(avg_over_time(kubevirt_vmi_memory_used_bytes[$observation_period]))
-                          + $z_score
-                            * sqrt(sum(
-                                stddev_over_time(kubevirt_vmi_memory_used_bytes[$observation_period]) ^ 2
-                              ))
-                        )
-                      seriesNameFormat: independence
-                      minStep: 5m
-        "0_3":
-          kind: Panel
-          spec:
-            display:
-              name: Chebyshev
-              description: Granted / (μ + k×σ) with Cantelli k=√(q/(1−q)). Any distribution, most conservative.
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: decimal
-                  decimalPlaces: 2
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(kubevirt_vmi_memory_domain_bytes)
-                        / (
-                          avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period])
-                          + sqrt(vector($risk_quantile / (1 - $risk_quantile)))
-                            * stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period])
-                        )
-                      seriesNameFormat: chebyshev
-                      minStep: 5m
-        "1_0":
-          kind: Panel
-          spec:
-            display:
-              name: Empirical
-              description: Granted vCPUs / quantile of aggregate CPU usage.
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: decimal
-                  decimalPlaces: 2
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(vmi:kubevirt_vmi_vcpu:count)
-                        /
-                        quantile_over_time($risk_quantile,
-                          cluster:vm_cpu_actual_used:cores[$observation_period]
-                        )
-                      seriesNameFormat: empirical
-                      minStep: 5m
-        "1_1":
-          kind: Panel
-          spec:
-            display:
-              name: Normal
-              description: Granted vCPUs / (μ + z×σ) of aggregate CPU usage.
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: decimal
-                  decimalPlaces: 2
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(vmi:kubevirt_vmi_vcpu:count)
-                        / (
-                          avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period])
-                          + $z_score
-                            * stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period])
-                        )
-                      seriesNameFormat: normal
-                      minStep: 5m
-        "1_2":
-          kind: Panel
-          spec:
-            display:
-              name: Independence
-              description: Granted vCPUs / (μ + z×√Σσᵢ²). Assumes independent VMs.
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: decimal
-                  decimalPlaces: 2
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(vmi:kubevirt_vmi_vcpu:count)
-                        / (
-                          sum(avg_over_time(
-                            rate(kubevirt_vmi_cpu_usage_seconds_total[5m])[$observation_period:5m]
-                          ))
-                          + $z_score
-                            * sqrt(sum(
-                                stddev_over_time(
-                                  rate(kubevirt_vmi_cpu_usage_seconds_total[5m])[$observation_period:5m]
-                                ) ^ 2
-                              ))
-                        )
-                      seriesNameFormat: independence
-                      minStep: 5m
-        "1_3":
-          kind: Panel
-          spec:
-            display:
-              name: Chebyshev
-              description: Granted vCPUs / (μ + k×σ) with Cantelli bound.
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: decimal
-                  decimalPlaces: 2
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(vmi:kubevirt_vmi_vcpu:count)
-                        / (
-                          avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period])
-                          + sqrt(vector($risk_quantile / (1 - $risk_quantile)))
-                            * stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period])
-                        )
-                      seriesNameFormat: chebyshev
-                      minStep: 5m
-        "2_0":
-          kind: Panel
-          spec:
-            display:
-              name: Memory correlation
-              description: σ_actual / σ_independent. >1 = VMs correlate (spikes coincide). ≈1 = independent. Explains the gap between Normal and Independence.
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: decimal
-                  decimalPlaces: 2
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period])
-                        /
-                        sqrt(sum(
-                          stddev_over_time(kubevirt_vmi_memory_used_bytes[$observation_period]) ^ 2
-                        ))
-                      seriesNameFormat: ρ
-                      minStep: 5m
-        "2_1":
-          kind: Panel
-          spec:
-            display:
-              name: CPU correlation
-              description: Same ratio for CPU.
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: decimal
-                  decimalPlaces: 2
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period])
-                        /
-                        sqrt(sum(
-                          stddev_over_time(
-                            rate(kubevirt_vmi_cpu_usage_seconds_total[5m])[$observation_period:5m]
-                          ) ^ 2
-                        ))
-                      seriesNameFormat: ρ
-                      minStep: 5m
-        "2_2":
-          kind: Panel
-          spec:
-            display:
-              name: VM count
-              description: Number of running VMs contributing to the aggregate.
-            plugin:
-              kind: StatChart
-              spec:
-                calculation: last-number
-                format:
-                  unit: decimal
-                  decimalPlaces: 0
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: count(kubevirt_vmi_memory_domain_bytes)
-                      seriesNameFormat: VMs
-                      minStep: 5m
-        "3_0":
-          kind: Panel
-          spec:
-            display:
-              name: Memory
-              description: All four approaches over time. The spread between lines shows how much the choice of method matters.
-            plugin:
-              kind: TimeSeriesChart
-              spec:
-                legend:
-                  position: bottom
-                  mode: list
-                visual:
-                  display: line
-                  areaOpacity: 0
-                  lineWidth: 2
-                yAxis:
-                  format:
-                    unit: decimal
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(kubevirt_vmi_memory_domain_bytes)
-                        /
-                        quantile_over_time($risk_quantile,
-                          cluster:vm_memory_actual_used:bytes[$observation_period]
-                        )
-                      seriesNameFormat: Empirical
-                      minStep: 5m
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(kubevirt_vmi_memory_domain_bytes)
-                        / (
-                          avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period])
-                          + $z_score
-                            * stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period])
-                        )
-                      seriesNameFormat: Normal
-                      minStep: 5m
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(kubevirt_vmi_memory_domain_bytes)
-                        / (
-                          sum(avg_over_time(kubevirt_vmi_memory_used_bytes[$observation_period]))
-                          + $z_score
-                            * sqrt(sum(
-                                stddev_over_time(kubevirt_vmi_memory_used_bytes[$observation_period]) ^ 2
-                              ))
-                        )
-                      seriesNameFormat: Independence
-                      minStep: 5m
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(kubevirt_vmi_memory_domain_bytes)
-                        / (
-                          avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period])
-                          + sqrt(vector($risk_quantile / (1 - $risk_quantile)))
-                            * stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period])
-                        )
-                      seriesNameFormat: Chebyshev
-                      minStep: 5m
-        "4_0":
-          kind: Panel
-          spec:
-            display:
-              name: CPU
-              description: All four approaches over time.
-            plugin:
-              kind: TimeSeriesChart
-              spec:
-                legend:
-                  position: bottom
-                  mode: list
-                visual:
-                  display: line
-                  areaOpacity: 0
-                  lineWidth: 2
-                yAxis:
-                  format:
-                    unit: decimal
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(vmi:kubevirt_vmi_vcpu:count)
-                        /
-                        quantile_over_time($risk_quantile,
-                          cluster:vm_cpu_actual_used:cores[$observation_period]
-                        )
-                      seriesNameFormat: Empirical
-                      minStep: 5m
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(vmi:kubevirt_vmi_vcpu:count)
-                        / (
-                          avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period])
-                          + $z_score
-                            * stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period])
-                        )
-                      seriesNameFormat: Normal
-                      minStep: 5m
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(vmi:kubevirt_vmi_vcpu:count)
-                        / (
-                          sum(avg_over_time(
-                            rate(kubevirt_vmi_cpu_usage_seconds_total[5m])[$observation_period:5m]
-                          ))
-                          + $z_score
-                            * sqrt(sum(
-                                stddev_over_time(
-                                  rate(kubevirt_vmi_cpu_usage_seconds_total[5m])[$observation_period:5m]
-                                ) ^ 2
-                              ))
-                        )
-                      seriesNameFormat: Independence
-                      minStep: 5m
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        sum(vmi:kubevirt_vmi_vcpu:count)
-                        / (
-                          avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period])
-                          + sqrt(vector($risk_quantile / (1 - $risk_quantile)))
-                            * stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period])
-                        )
-                      seriesNameFormat: Chebyshev
-                      minStep: 5m
-        "5_0":
-          kind: Panel
-          spec:
-            display:
-              name: Memory
-              description: The ten VMs whose granted memory is largest relative to the selected quantile of actual usage.
-            plugin:
-              kind: Table
-              spec:
-                density: compact
-                columnSettings:
-                  - name: namespace
-                    header: Namespace
-                    enableSorting: true
-                  - name: name
-                    header: VM
-                    enableSorting: true
-                  - name: value
-                    header: Overcommit ratio
-                    enableSorting: true
-                    format:
-                      unit: decimal
-                      decimalPlaces: 2
-                    sort: desc
-                  - name: timestamp
-                    hide: true
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        topk(10,
-                          sum by (namespace, name) (kubevirt_vmi_memory_domain_bytes)
-                          /
-                          sum by (namespace, name) (
-                            quantile_over_time($risk_quantile, kubevirt_vmi_memory_used_bytes[$observation_period])
-                          )
-                        )
-                      seriesNameFormat: '{{namespace}}/{{name}}'
-                      minStep: 5m
-        "5_1":
-          kind: Panel
-          spec:
-            display:
-              name: CPU
-              description: The ten VMs whose granted vCPUs are largest relative to the selected quantile of CPU usage.
-            plugin:
-              kind: Table
-              spec:
-                density: compact
-                columnSettings:
-                  - name: namespace
-                    header: Namespace
-                    enableSorting: true
-                  - name: name
-                    header: VM
-                    enableSorting: true
-                  - name: value
-                    header: Overcommit ratio
-                    enableSorting: true
-                    format:
-                      unit: decimal
-                      decimalPlaces: 2
-                    sort: desc
-                  - name: timestamp
-                    hide: true
-            queries:
-              - kind: TimeSeriesQuery
-                spec:
-                  plugin:
-                    kind: PrometheusTimeSeriesQuery
-                    spec:
-                      query: |-
-                        topk(10,
-                          sum by (namespace, name) (vmi:kubevirt_vmi_vcpu:count)
-                          /
-                          sum by (namespace, name) (
-                            quantile_over_time($risk_quantile,
-                              rate(kubevirt_vmi_cpu_usage_seconds_total[5m])[$observation_period:5m]
-                            )
-                          )
-                        )
-                      seriesNameFormat: '{{namespace}}/{{name}}'
-                      minStep: 5m
-      layouts:
-        - kind: Grid
-          spec:
-            display:
-              title: Memory Overcommit Ratio
-            items:
-              - x: 0
-                "y": 0
-                width: 6
-                height: 8
-                content:
-                  $ref: '#/spec/panels/0_0'
-              - x: 6
-                "y": 0
-                width: 6
-                height: 8
-                content:
-                  $ref: '#/spec/panels/0_1'
-              - x: 12
-                "y": 0
-                width: 6
-                height: 8
-                content:
-                  $ref: '#/spec/panels/0_2'
-              - x: 18
-                "y": 0
-                width: 6
-                height: 8
-                content:
-                  $ref: '#/spec/panels/0_3'
-        - kind: Grid
-          spec:
-            display:
-              title: CPU Overcommit Ratio
-            items:
-              - x: 0
-                "y": 0
-                width: 6
-                height: 8
-                content:
-                  $ref: '#/spec/panels/1_0'
-              - x: 6
-                "y": 0
-                width: 6
-                height: 8
-                content:
-                  $ref: '#/spec/panels/1_1'
-              - x: 12
-                "y": 0
-                width: 6
-                height: 8
-                content:
-                  $ref: '#/spec/panels/1_2'
-              - x: 18
-                "y": 0
-                width: 6
-                height: 8
-                content:
-                  $ref: '#/spec/panels/1_3'
-        - kind: Grid
-          spec:
-            display:
-              title: Diagnostics
-            items:
-              - x: 0
-                "y": 0
-                width: 8
-                height: 8
-                content:
-                  $ref: '#/spec/panels/2_0'
-              - x: 8
-                "y": 0
-                width: 8
-                height: 8
-                content:
-                  $ref: '#/spec/panels/2_1'
-              - x: 16
-                "y": 0
-                width: 8
-                height: 8
-                content:
-                  $ref: '#/spec/panels/2_2'
-        - kind: Grid
-          spec:
-            display:
-              title: Memory Overcommit Trend
-            items:
-              - x: 0
-                "y": 0
-                width: 24
-                height: 12
-                content:
-                  $ref: '#/spec/panels/3_0'
-        - kind: Grid
-          spec:
-            display:
-              title: CPU Overcommit Trend
-            items:
-              - x: 0
-                "y": 0
-                width: 24
-                height: 12
-                content:
-                  $ref: '#/spec/panels/4_0'
-        - kind: Grid
-          spec:
-            display:
-              title: Most Overestimated VMs
-            items:
-              - x: 0
-                "y": 0
-                width: 12
-                height: 12
-                content:
-                  $ref: '#/spec/panels/5_0'
-              - x: 12
-                "y": 0
-                width: 12
-                height: 12
-                content:
-                  $ref: '#/spec/panels/5_1'
-      duration: 5m
+  capacity-exhaustion.yaml: "kind: Dashboard\nmetadata:\n  name: capacity-exhaustion\n  createdAt: \"0001-01-01T00:00:00Z\"\n  project: perses\n  updatedAt: \"0001-01-01T00:00:00Z\"\n  version: 0\nspec:\n\
+    \  display:\n    name: Time to Capacity Exhaustion\n    description: Days until the cluster runs out of schedulable capacity based on recent trends.\n  variables:\n    - kind: ListVariable\n      spec:\n\
+    \        display:\n          name: Observation period\n          hidden: false\n        defaultValue: '30d'\n        name: observation_period\n        allowAllValue: false\n        allowMultiple: false\n\
+    \        plugin:\n          kind: StaticListVariable\n          spec:\n            values:\n              - value: 7d\n                label: 7 days\n              - value: 30d\n                label:\
+    \ 30 days\n              - value: 180d\n                label: 180 days\n              - value: 360d\n                label: 360 days\n  panels:\n    \"0_0\":\n      kind: Panel\n      spec:\n     \
+    \   display:\n          name: Days to Exhaustion\n          description: Days until the cluster runs out of capacity (whichever resource exhausts first). Gauge capped at 365; values at max mean capacity\
+    \ is stable or growing.\n        plugin:\n          kind: GaugeChart\n          spec:\n            calculation: last-number\n            format:\n              unit: decimal\n              decimalPlaces:\
+    \ 0\n            max: 365\n            thresholds:\n              steps:\n                - value: 0\n                  color: '#f53636'\n                - value: 30\n                  color: '#ed8128'\n\
+    \                - value: 90\n                  color: '#32ac2d'\n        queries:\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n\
+    \                spec:\n                  query: clamp_max(cluster:days_to_exhaustion_$observation_period:days, 365)\n                  seriesNameFormat: days to exhaustion\n    \"1_0\":\n      kind:\
+    \ Panel\n      spec:\n        display:\n          name: Days to Exhaustion Trend\n          description: How the estimated days until exhaustion has changed over time for memory and CPU. Lines disappear\
+    \ when capacity is stable or growing (+Inf).\n        plugin:\n          kind: TimeSeriesChart\n          spec:\n            legend:\n              position: bottom\n              mode: list\n     \
+    \       yAxis:\n              format:\n                unit: decimal\n                decimalPlaces: 0\n        queries:\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n\
+    \                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: cluster:days_to_exhaustion_memory_$observation_period:days\n                  seriesNameFormat: Memory\n\
+    \          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: cluster:days_to_exhaustion_cpu_$observation_period:days\n\
+    \                  seriesNameFormat: CPU\n  layouts:\n    - kind: Grid\n      spec:\n        display:\n          title: Current Estimate\n        items:\n          - x: 0\n            \"y\": 0\n   \
+    \         width: 24\n            height: 8\n            content:\n              $ref: '#/spec/panels/0_0'\n    - kind: Grid\n      spec:\n        display:\n          title: Trend\n        items:\n \
+    \         - x: 0\n            \"y\": 0\n            width: 24\n            height: 12\n            content:\n              $ref: '#/spec/panels/1_0'\n  duration: 6h\n"
+  node-memory.yaml: "kind: Dashboard\nmetadata:\n  name: node-memory\n  createdAt: \"0001-01-01T00:00:00Z\"\n  project: perses\n  updatedAt: \"0001-01-01T00:00:00Z\"\n  version: 0\nspec:\n  display:\n \
+    \   name: Node Memory\n    description: 'Runtime memory decomposition per node: non-reclaimable, hot-reclaimable, cold-reclaimable, and free.'\n  variables:\n    - kind: ListVariable\n      spec:\n\
+    \        display:\n          name: Node\n          hidden: false\n        name: node\n        allowAllValue: true\n        allowMultiple: false\n        plugin:\n          kind: PrometheusLabelValuesVariable\n\
+    \          spec:\n            datasource:\n              kind: PrometheusDatasource\n            labelName: node\n            matchers:\n              - kube_node_status_capacity{}\n  panels:\n    \"\
+    0_0\":\n      kind: Panel\n      spec:\n        display:\n          name: Capacity\n        plugin:\n          kind: StatChart\n          spec:\n            calculation: last-number\n            format:\n\
+    \              unit: bytes\n              decimalPlaces: 1\n        queries:\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n\
+    \                spec:\n                  query: sum(kube_node_status_capacity{resource=\"memory\", node=~\"$node\"})\n    \"0_1\":\n      kind: Panel\n      spec:\n        display:\n          name:\
+    \ Allocatable\n        plugin:\n          kind: StatChart\n          spec:\n            calculation: last-number\n            format:\n              unit: bytes\n              decimalPlaces: 1\n   \
+    \     queries:\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: sum(kube_node_status_allocatable{resource=\"\
+    memory\", node=~\"$node\"})\n    \"0_2\":\n      kind: Panel\n      spec:\n        display:\n          name: Reserved\n          description: system-reserved + kube-reserved + eviction-threshold\n \
+    \       plugin:\n          kind: StatChart\n          spec:\n            calculation: last-number\n            format:\n              unit: bytes\n              decimalPlaces: 1\n        queries:\n\
+    \          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: |-\n                  \
+    \  sum(kube_node_status_capacity{resource=\"memory\", node=~\"$node\"})\n                    - sum(kube_node_status_allocatable{resource=\"memory\", node=~\"$node\"})\n    \"0_3\":\n      kind: Panel\n\
+    \      spec:\n        display:\n          name: Workload utilization\n          description: kubepods.slice working_set / allocatable (kubelet eviction metric)\n        plugin:\n          kind: StatChart\n\
+    \          spec:\n            calculation: last-number\n            format:\n              unit: percent\n              decimalPlaces: 1\n        queries:\n          - kind: TimeSeriesQuery\n      \
+    \      spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: sum(cluster:node:memory:workloads_utilization:ratio{node=~\"$node\"\
+    })\n    \"0_4\":\n      kind: Panel\n      spec:\n        display:\n          name: System used\n          description: system.slice total usage (can exceed reserved via file cache)\n        plugin:\n\
+    \          kind: StatChart\n          spec:\n            calculation: last-number\n            format:\n              unit: bytes\n              decimalPlaces: 1\n        queries:\n          - kind:\
+    \ TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: sum(cluster:node:memory:system_used:bytes{node=~\"\
+    $node\"})\n    \"1_0\":\n      kind: Panel\n      spec:\n        display:\n          name: Node Total\n          description: 'Full node memory: system + workloads. Total height = node capacity.'\n\
+    \        plugin:\n          kind: TimeSeriesChart\n          spec:\n            legend:\n              position: bottom\n              mode: list\n            visual:\n              display: line\n\
+    \              areaOpacity: 0.7\n              lineWidth: 2\n              stack: all\n            querySettings:\n              - queryIndex: 5\n                colorMode: fixed-single\n          \
+    \      colorValue: '#FFFFFF'\n                lineStyle: dotted\n                stack: false\n                areaOpacity: 0\n            yAxis:\n              format:\n                unit: bytes\n\
+    \        queries:\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: sum(cluster:node:memory:workloads_non_reclaimable:bytes{node=~\"\
+    $node\"}) + sum(cluster:node:memory:system_non_reclaimable:bytes{node=~\"$node\"})\n                  seriesNameFormat: Non-reclaimable (anon)\n          - kind: TimeSeriesQuery\n            spec:\n\
+    \              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: sum(cluster:node:memory:workloads_overhead:bytes{node=~\"$node\"}) + sum(cluster:node:memory:system_overhead:bytes{node=~\"\
+    $node\"})\n                  seriesNameFormat: Kernel overhead\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n       \
+    \         spec:\n                  query: sum(cluster:node:memory:workloads_hot_reclaimable:bytes{node=~\"$node\"}) + sum(cluster:node:memory:system_hot_reclaimable:bytes{node=~\"$node\"})\n       \
+    \           seriesNameFormat: Reclaimable hot (active file)\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n          \
+    \      spec:\n                  query: sum(cluster:node:memory:workloads_cold:bytes{node=~\"$node\"}) + sum(cluster:node:memory:system_cold:bytes{node=~\"$node\"})\n                  seriesNameFormat:\
+    \ Reclaimable cold (inactive file)\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n            \
+    \      query: |-\n                    sum(kube_node_status_capacity{resource=\"memory\", node=~\"$node\"})\n                    - sum(cluster:node:memory:workloads_used:bytes{node=~\"$node\"})\n   \
+    \                 - sum(cluster:node:memory:system_used:bytes{node=~\"$node\"})\n                  seriesNameFormat: Free\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n\
+    \                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: sum(kube_node_status_allocatable{resource=\"memory\", node=~\"$node\"})\n                  seriesNameFormat:\
+    \ ── Allocatable\n    \"1_1\":\n      kind: Panel\n      spec:\n        display:\n          name: Workloads (kubepods.slice)\n          description: Pod memory only. Total height = node allocatable.\n\
+    \        plugin:\n          kind: TimeSeriesChart\n          spec:\n            legend:\n              position: bottom\n              mode: list\n            visual:\n              display: line\n\
+    \              areaOpacity: 0.7\n              stack: all\n            yAxis:\n              format:\n                unit: bytes\n        queries:\n          - kind: TimeSeriesQuery\n            spec:\n\
+    \              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: sum(cluster:node:memory:workloads_non_reclaimable:bytes{node=~\"$node\"})\n \
+    \                 seriesNameFormat: Non-reclaimable (anon)\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n           \
+    \     spec:\n                  query: sum(cluster:node:memory:workloads_overhead:bytes{node=~\"$node\"})\n                  seriesNameFormat: Kernel overhead\n          - kind: TimeSeriesQuery\n   \
+    \         spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: sum(cluster:node:memory:workloads_hot_reclaimable:bytes{node=~\"\
+    $node\"})\n                  seriesNameFormat: Reclaimable hot (active file)\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n\
+    \                spec:\n                  query: sum(cluster:node:memory:workloads_cold:bytes{node=~\"$node\"})\n                  seriesNameFormat: Reclaimable cold (inactive file)\n          - kind:\
+    \ TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: |-\n                    sum(kube_node_status_allocatable{resource=\"\
+    memory\", node=~\"$node\"})\n                    - sum(cluster:node:memory:workloads_used:bytes{node=~\"$node\"})\n                  seriesNameFormat: Free\n    \"1_2\":\n      kind: Panel\n      spec:\n\
+    \        display:\n          name: System (system.slice)\n          description: OS and Kubernetes system services. Compare with Reserved stat above — system usage commonly exceeds reservation due to\
+    \ file cache.\n        plugin:\n          kind: TimeSeriesChart\n          spec:\n            legend:\n              position: bottom\n              mode: list\n            visual:\n              display:\
+    \ line\n              areaOpacity: 0.7\n              lineWidth: 2\n              stack: all\n            querySettings:\n              - queryIndex: 4\n                colorMode: fixed-single\n   \
+    \             colorValue: '#FF8C00'\n                lineStyle: dotted\n                stack: false\n                areaOpacity: 0\n            yAxis:\n              format:\n                unit:\
+    \ bytes\n        queries:\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query:\
+    \ sum(cluster:node:memory:system_non_reclaimable:bytes{node=~\"$node\"})\n                  seriesNameFormat: Non-reclaimable (anon)\n          - kind: TimeSeriesQuery\n            spec:\n         \
+    \     plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: sum(cluster:node:memory:system_overhead:bytes{node=~\"$node\"})\n                  seriesNameFormat:\
+    \ Kernel overhead\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: sum(cluster:node:memory:system_hot_reclaimable:bytes{node=~\"\
+    $node\"})\n                  seriesNameFormat: Reclaimable hot (active file)\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n\
+    \                spec:\n                  query: sum(cluster:node:memory:system_cold:bytes{node=~\"$node\"})\n                  seriesNameFormat: Reclaimable cold (inactive file)\n          - kind:\
+    \ TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: |-\n                    sum(kube_node_status_capacity{resource=\"\
+    memory\", node=~\"$node\"})\n                    - sum(kube_node_status_allocatable{resource=\"memory\", node=~\"$node\"})\n                  seriesNameFormat: ── Reserved\n  layouts:\n    - kind: Grid\n\
+    \      spec:\n        display:\n          title: Summary\n        items:\n          - x: 0\n            \"y\": 0\n            width: 4\n            height: 8\n            content:\n              $ref:\
+    \ '#/spec/panels/0_0'\n          - x: 4\n            \"y\": 0\n            width: 4\n            height: 8\n            content:\n              $ref: '#/spec/panels/0_1'\n          - x: 8\n        \
+    \    \"y\": 0\n            width: 4\n            height: 8\n            content:\n              $ref: '#/spec/panels/0_2'\n          - x: 12\n            \"y\": 0\n            width: 4\n           \
+    \ height: 8\n            content:\n              $ref: '#/spec/panels/0_3'\n          - x: 16\n            \"y\": 0\n            width: 4\n            height: 8\n            content:\n             \
+    \ $ref: '#/spec/panels/0_4'\n    - kind: Grid\n      spec:\n        display:\n          title: Memory Decomposition\n        items:\n          - x: 0\n            \"y\": 0\n            width: 8\n  \
+    \          height: 14\n            content:\n              $ref: '#/spec/panels/1_0'\n          - x: 8\n            \"y\": 0\n            width: 8\n            height: 14\n            content:\n   \
+    \           $ref: '#/spec/panels/1_1'\n          - x: 16\n            \"y\": 0\n            width: 8\n            height: 14\n            content:\n              $ref: '#/spec/panels/1_2'\n  duration:\
+    \ 6h\n"
+  pod-memory.yaml: "kind: Dashboard\nmetadata:\n  name: pod-memory\n  createdAt: \"0001-01-01T00:00:00Z\"\n  project: perses\n  updatedAt: \"0001-01-01T00:00:00Z\"\n  version: 0\nspec:\n  display:\n   \
+    \ name: Pod Memory\n    description: 'Container memory decomposition: non-reclaimable, hot/cold reclaimable, kernel overhead, with limit threshold.'\n  variables:\n    - kind: ListVariable\n      spec:\n\
+    \        display:\n          name: Namespace\n          hidden: false\n        name: namespace\n        allowAllValue: false\n        allowMultiple: false\n        plugin:\n          kind: PrometheusLabelValuesVariable\n\
+    \          spec:\n            datasource:\n              kind: PrometheusDatasource\n            labelName: namespace\n            matchers:\n              - container_memory_working_set_bytes{}\n \
+    \   - kind: ListVariable\n      spec:\n        display:\n          name: Pod\n          hidden: false\n        name: pod\n        allowAllValue: true\n        allowMultiple: false\n        plugin:\n\
+    \          kind: PrometheusLabelValuesVariable\n          spec:\n            datasource:\n              kind: PrometheusDatasource\n            labelName: pod\n            matchers:\n              -\
+    \ container_memory_working_set_bytes{namespace=~\"$namespace\",container!=\"\",container!=\"POD\"}\n    - kind: ListVariable\n      spec:\n        display:\n          name: Container\n          hidden:\
+    \ false\n        name: container\n        allowAllValue: true\n        allowMultiple: false\n        plugin:\n          kind: PrometheusLabelValuesVariable\n          spec:\n            datasource:\n\
+    \              kind: PrometheusDatasource\n            labelName: container\n            matchers:\n              - container_memory_working_set_bytes{namespace=~\"$namespace\",pod=~\"$pod\",container!=\"\
+    \",container!=\"POD\"}\n  panels:\n    \"0_0\":\n      kind: Panel\n      spec:\n        display:\n          name: Working Set\n          description: Memory that cannot be freely reclaimed (usage minus\
+    \ inactive file cache). This is what the kubelet uses for eviction and OOM decisions.\n        plugin:\n          kind: StatChart\n          spec:\n            calculation: last-number\n           \
+    \ format:\n              unit: bytes\n              decimalPlaces: 1\n        queries:\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n\
+    \                spec:\n                  query: sum(container_memory_working_set_bytes{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\", container!=\"POD\", container!=\"\"})\n \
+    \   \"0_1\":\n      kind: Panel\n      spec:\n        display:\n          name: Memory Limit\n        plugin:\n          kind: StatChart\n          spec:\n            calculation: last-number\n    \
+    \        format:\n              unit: bytes\n              decimalPlaces: 1\n        queries:\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n\
+    \                spec:\n                  query: sum(kube_pod_container_resource_limits{resource=\"memory\", namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"})\n    \"0_2\":\n   \
+    \   kind: Panel\n      spec:\n        display:\n          name: Utilization\n          description: working_set / limit — how close to OOM\n        plugin:\n          kind: StatChart\n          spec:\n\
+    \            calculation: last-number\n            format:\n              unit: percent\n              decimalPlaces: 1\n            thresholds:\n              steps:\n                - value: 0\n \
+    \                 color: '#32ac2d'\n                - value: 0.80\n                  color: '#ed8128'\n                - value: 0.95\n                  color: '#f53636'\n        queries:\n         \
+    \ - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: |-\n                    sum(container_memory_working_set_bytes{namespace=~\"\
+    $namespace\", pod=~\"$pod\", container=~\"$container\", container!=\"POD\", container!=\"\"})\n                    /\n                    sum(kube_pod_container_resource_limits{resource=\"memory\",\
+    \ namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"})\n    \"0_3\":\n      kind: Panel\n      spec:\n        display:\n          name: RSS\n          description: Anonymous memory\
+    \ (heap, stack). Cannot be reclaimed without swap — primary driver of OOM kills.\n        plugin:\n          kind: StatChart\n          spec:\n            calculation: last-number\n            format:\n\
+    \              unit: bytes\n              decimalPlaces: 1\n        queries:\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n\
+    \                spec:\n                  query: sum(container_memory_rss{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\", container!=\"POD\", container!=\"\"})\n    \"1_0\":\n \
+    \     kind: Panel\n      spec:\n        display:\n          name: Memory Breakdown\n          description: Stacked memory usage with limit threshold. Total height = container_memory_usage_bytes.\n \
+    \       plugin:\n          kind: TimeSeriesChart\n          spec:\n            legend:\n              position: bottom\n              mode: list\n            visual:\n              display: line\n \
+    \             areaOpacity: 0.7\n              lineWidth: 2\n              stack: all\n            querySettings:\n              - queryIndex: 4\n                colorMode: fixed-single\n           \
+    \     colorValue: '#FFFFFF'\n                lineStyle: dotted\n                stack: false\n                areaOpacity: 0\n            yAxis:\n              format:\n                unit: bytes\n\
+    \        queries:\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: sum(container_memory_rss{namespace=~\"\
+    $namespace\", pod=~\"$pod\", container=~\"$container\", container!=\"POD\", container!=\"\"})\n                  seriesNameFormat: Non-reclaimable (anon/RSS)\n          - kind: TimeSeriesQuery\n   \
+    \         spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: |-\n                    sum(container_memory_usage_bytes{namespace=~\"\
+    $namespace\", pod=~\"$pod\", container=~\"$container\", container!=\"POD\", container!=\"\"})\n                    - sum(container_memory_rss{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"\
+    $container\", container!=\"POD\", container!=\"\"})\n                    - sum(container_memory_cache{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\", container!=\"POD\", container!=\"\
+    \"})\n                  seriesNameFormat: Kernel overhead\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n            \
+    \    spec:\n                  query: |-\n                    sum(container_memory_cache{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\", container!=\"POD\", container!=\"\"})\n \
+    \                   - (\n                      sum(container_memory_usage_bytes{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\", container!=\"POD\", container!=\"\"})\n         \
+    \             - sum(container_memory_working_set_bytes{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\", container!=\"POD\", container!=\"\"})\n                    )\n           \
+    \       seriesNameFormat: Reclaimable hot (active file)\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n              \
+    \  spec:\n                  query: |-\n                    sum(container_memory_usage_bytes{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\", container!=\"POD\", container!=\"\"})\n\
+    \                    - sum(container_memory_working_set_bytes{namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\", container!=\"POD\", container!=\"\"})\n                  seriesNameFormat:\
+    \ Reclaimable cold (inactive file)\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n            \
+    \      query: sum(kube_pod_container_resource_limits{resource=\"memory\", namespace=~\"$namespace\", pod=~\"$pod\", container=~\"$container\"})\n                  seriesNameFormat: ── Memory Limit\n\
+    \  layouts:\n    - kind: Grid\n      spec:\n        display:\n          title: Summary\n        items:\n          - x: 0\n            \"y\": 0\n            width: 6\n            height: 8\n        \
+    \    content:\n              $ref: '#/spec/panels/0_0'\n          - x: 6\n            \"y\": 0\n            width: 6\n            height: 8\n            content:\n              $ref: '#/spec/panels/0_1'\n\
+    \          - x: 12\n            \"y\": 0\n            width: 6\n            height: 8\n            content:\n              $ref: '#/spec/panels/0_2'\n          - x: 18\n            \"y\": 0\n      \
+    \      width: 6\n            height: 8\n            content:\n              $ref: '#/spec/panels/0_3'\n    - kind: Grid\n      spec:\n        display:\n          title: Memory Decomposition\n      \
+    \  items:\n          - x: 0\n            \"y\": 0\n            width: 24\n            height: 16\n            content:\n              $ref: '#/spec/panels/1_0'\n  duration: 6h\n"
+  vm-capacity.yaml: "kind: Dashboard\nmetadata:\n  name: vm-capacity\n  createdAt: \"0001-01-01T00:00:00Z\"\n  project: perses\n  updatedAt: \"0001-01-01T00:00:00Z\"\n  version: 0\nspec:\n  display:\n \
+    \   name: How many VMs fit\n    description: How many more virtual machines of a chosen shape fit in the remaining schedulable capacity.\n  variables:\n    - kind: ListVariable\n      spec:\n      \
+    \  display:\n          name: VM memory\n          hidden: false\n        defaultValue: '\"8589934592\"'\n        name: vm_memory\n        allowAllValue: false\n        allowMultiple: false\n       \
+    \ plugin:\n          kind: StaticListVariable\n          spec:\n            values:\n              - value: \"4294967296\"\n                label: 4 GiB\n              - value: \"8589934592\"\n    \
+    \            label: 8 GiB\n              - value: \"17179869184\"\n                label: 16 GiB\n              - value: \"34359738368\"\n                label: 32 GiB\n              - value: \"68719476736\"\
+    \n                label: 64 GiB\n    - kind: ListVariable\n      spec:\n        display:\n          name: VM CPU\n          hidden: false\n        defaultValue: '\"4\"'\n        name: vm_cpu\n     \
+    \   allowAllValue: false\n        allowMultiple: false\n        plugin:\n          kind: StaticListVariable\n          spec:\n            values:\n              - value: \"1\"\n                label:\
+    \ 1 vCPU\n              - value: \"2\"\n                label: 2 vCPU\n              - value: \"4\"\n                label: 4 vCPU\n              - value: \"8\"\n                label: 8 vCPU\n    \
+    \          - value: \"16\"\n                label: 16 vCPU\n    - kind: ListVariable\n      spec:\n        display:\n          name: Memory overcommit\n          hidden: false\n        defaultValue:\
+    \ '\"1\"'\n        name: memory_overcommit\n        allowAllValue: false\n        allowMultiple: false\n        plugin:\n          kind: StaticListVariable\n          spec:\n            values:\n  \
+    \            - \"1\"\n              - \"1.5\"\n              - \"2\"\n              - \"2.5\"\n              - \"3\"\n              - \"4\"\n    - kind: ListVariable\n      spec:\n        display:\n\
+    \          name: CPU overcommit\n          hidden: false\n        defaultValue: '\"1\"'\n        name: cpu_overcommit\n        allowAllValue: false\n        allowMultiple: false\n        plugin:\n \
+    \         kind: StaticListVariable\n          spec:\n            values:\n              - \"1\"\n              - \"2\"\n              - \"4\"\n              - \"6\"\n              - \"8\"\n        \
+    \      - \"10\"\n              - \"12\"\n  panels:\n    \"0_0\":\n      kind: Panel\n      spec:\n        display:\n          name: VMs that fit\n        plugin:\n          kind: StatChart\n       \
+    \   spec:\n            calculation: last-number\n            format:\n              unit: decimal\n              decimalPlaces: 0\n        queries:\n          - kind: TimeSeriesQuery\n            spec:\n\
+    \              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: |-\n                    floor(clamp_max(\n                      cluster:available_capacity_memory:bytes\
+    \ / $vm_memory * $memory_overcommit,\n                      scalar(cluster:available_capacity_cpu:cores / $vm_cpu * $cpu_overcommit)\n                    ))\n    \"0_1\":\n      kind: Panel\n      spec:\n\
+    \        display:\n          name: Limited by\n          description: Whether remaining capacity runs out of memory or CPU first for the selected VM shape.\n        plugin:\n          kind: StatChart\n\
+    \          spec:\n            calculation: last-number\n            format:\n              unit: decimal\n              decimalPlaces: 0\n            mappings:\n              - kind: Range\n       \
+    \         spec:\n                  from: 0\n                  to: 0.5\n                  result:\n                    value: Memory bound\n              - kind: Range\n                spec:\n      \
+    \            from: 0.5\n                  to: 1.5\n                  result:\n                    value: CPU bound\n        queries:\n          - kind: TimeSeriesQuery\n            spec:\n         \
+    \     plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: |-\n                    (\n                      cluster:available_capacity_memory:bytes\
+    \ / $vm_memory * $memory_overcommit\n                      > bool\n                      scalar(cluster:available_capacity_cpu:cores / $vm_cpu * $cpu_overcommit)\n                    )\n    \"0_2\"\
+    :\n      kind: Panel\n      spec:\n        display:\n          name: Memory / CPU\n          description: GiB of memory request per CPU request. The node shape that matches the current workload.\n \
+    \       plugin:\n          kind: StatChart\n          spec:\n            calculation: last-number\n            format:\n              unit: decimal\n              decimalPlaces: 2\n        queries:\n\
+    \          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: cluster:memory_cpu_ratio:gib_per_core\n\
+    \                  seriesNameFormat: GiB per core\n    \"1_0\":\n      kind: Panel\n      spec:\n        display:\n          name: Memory\n        plugin:\n          kind: TimeSeriesChart\n        \
+    \  spec:\n            legend:\n              position: bottom\n              mode: list\n            visual:\n              display: bar\n              stack: all\n            yAxis:\n             \
+    \ format:\n                unit: bytes\n        queries:\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n             \
+    \   spec:\n                  query: cluster:non_vm_used_capacity_memory:bytes\n                  seriesNameFormat: Non-VM used\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n\
+    \                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: cluster:vm_used_capacity_memory:bytes\n                  seriesNameFormat: VM used\n          - kind:\
+    \ TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: cluster:available_capacity_memory:bytes\n\
+    \                  seriesNameFormat: Available\n    \"1_1\":\n      kind: Panel\n      spec:\n        display:\n          name: CPU\n        plugin:\n          kind: TimeSeriesChart\n          spec:\n\
+    \            legend:\n              position: bottom\n              mode: list\n            visual:\n              display: bar\n              stack: all\n            yAxis:\n              format:\n\
+    \                unit: decimal\n        queries:\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n\
+    \                  query: cluster:non_vm_used_capacity_cpu:cores\n                  seriesNameFormat: Non-VM used\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n     \
+    \           kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: cluster:vm_used_capacity_cpu:cores\n                  seriesNameFormat: VM used\n          - kind: TimeSeriesQuery\n\
+    \            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: cluster:available_capacity_cpu:cores\n                  seriesNameFormat:\
+    \ Available\n  layouts:\n    - kind: Grid\n      spec:\n        display:\n          title: How many more VMs fit\n        items:\n          - x: 0\n            \"y\": 0\n            width: 8\n     \
+    \       height: 8\n            content:\n              $ref: '#/spec/panels/0_0'\n          - x: 8\n            \"y\": 0\n            width: 8\n            height: 8\n            content:\n        \
+    \      $ref: '#/spec/panels/0_1'\n          - x: 16\n            \"y\": 0\n            width: 8\n            height: 8\n            content:\n              $ref: '#/spec/panels/0_2'\n    - kind: Grid\n\
+    \      spec:\n        display:\n          title: Capacity\n        items:\n          - x: 0\n            \"y\": 0\n            width: 12\n            height: 12\n            content:\n             \
+    \ $ref: '#/spec/panels/1_0'\n          - x: 12\n            \"y\": 0\n            width: 12\n            height: 12\n            content:\n              $ref: '#/spec/panels/1_1'\n  duration: 1h\n"
+  vm-memory.yaml: "kind: Dashboard\nmetadata:\n  name: vm-memory\n  createdAt: \"0001-01-01T00:00:00Z\"\n  project: perses\n  updatedAt: \"0001-01-01T00:00:00Z\"\n  version: 0\nspec:\n  display:\n    name:\
+    \ VM Memory\n    description: 'Guest memory decomposition (kernel, non-reclaimable, reclaimable, free) and launcher overhead: estimated vs actual.'\n  variables:\n    - kind: ListVariable\n      spec:\n\
+    \        display:\n          name: Namespace\n          hidden: false\n        name: namespace\n        allowAllValue: false\n        allowMultiple: false\n        plugin:\n          kind: PrometheusLabelValuesVariable\n\
+    \          spec:\n            datasource:\n              kind: PrometheusDatasource\n            labelName: namespace\n            matchers:\n              - kubevirt_vmi_memory_available_bytes{}\n\
+    \    - kind: ListVariable\n      spec:\n        display:\n          name: VM\n          hidden: false\n        name: vm\n        allowAllValue: false\n        allowMultiple: false\n        plugin:\n\
+    \          kind: PrometheusLabelValuesVariable\n          spec:\n            datasource:\n              kind: PrometheusDatasource\n            labelName: name\n            matchers:\n             \
+    \ - kubevirt_vmi_memory_available_bytes{namespace=~\"$namespace\"}\n  panels:\n    \"0_0\":\n      kind: Panel\n      spec:\n        display:\n          name: Domain\n          description: Total memory\
+    \ allocated to the QEMU domain — the VM's configured size.\n        plugin:\n          kind: StatChart\n          spec:\n            calculation: last-number\n            format:\n              unit:\
+    \ bytes\n              decimalPlaces: 1\n        queries:\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n            \
+    \    spec:\n                  query: kubevirt_vmi_memory_domain_bytes{name=~\"$vm\", namespace=~\"$namespace\"}\n    \"0_1\":\n      kind: Panel\n      spec:\n        display:\n          name: Available\
+    \ (MemTotal)\n          description: Usable memory inside the guest — domain minus kernel reserved.\n        plugin:\n          kind: StatChart\n          spec:\n            calculation: last-number\n\
+    \            format:\n              unit: bytes\n              decimalPlaces: 1\n        queries:\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind:\
+    \ PrometheusTimeSeriesQuery\n                spec:\n                  query: kubevirt_vmi_memory_available_bytes{name=~\"$vm\", namespace=~\"$namespace\"}\n    \"0_2\":\n      kind: Panel\n      spec:\n\
+    \        display:\n          name: Used (non-reclaimable)\n          description: Memory actively in use — cannot be freed without swap or OOM.\n        plugin:\n          kind: StatChart\n        \
+    \  spec:\n            calculation: last-number\n            format:\n              unit: bytes\n              decimalPlaces: 1\n        queries:\n          - kind: TimeSeriesQuery\n            spec:\n\
+    \              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: kubevirt_vmi_memory_used_bytes{name=~\"$vm\", namespace=~\"$namespace\"}\n  \
+    \  \"0_3\":\n      kind: Panel\n      spec:\n        display:\n          name: Utilization\n          description: used / available — how close to guest OOM.\n        plugin:\n          kind: StatChart\n\
+    \          spec:\n            calculation: last-number\n            format:\n              unit: percent-decimal\n              decimalPlaces: 1\n            thresholds:\n              steps:\n    \
+    \            - value: 0\n                  color: '#32ac2d'\n                - value: 80\n                  color: '#ed8128'\n                - value: 95\n                  color: '#f53636'\n      \
+    \  queries:\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: |-\n      \
+    \              kubevirt_vmi_memory_used_bytes{name=~\"$vm\", namespace=~\"$namespace\"}\n                    / kubevirt_vmi_memory_available_bytes{name=~\"$vm\", namespace=~\"$namespace\"} * 100\n \
+    \   \"0_4\":\n      kind: Panel\n      spec:\n        display:\n          name: Overhead Δ\n          description: Estimated overhead minus actual overhead. Positive = headroom. Negative = virt-controller\
+    \ under-estimated.\n        plugin:\n          kind: StatChart\n          spec:\n            calculation: last-number\n            format:\n              unit: bytes\n              decimalPlaces: 1\n\
+    \            thresholds:\n              steps:\n                - value: -536870912\n                  color: '#f53636'\n                - value: 0\n                  color: '#ed8128'\n            \
+    \    - value: 104857600\n                  color: '#32ac2d'\n        queries:\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n\
+    \                spec:\n                  query: |-\n                    scalar(kubevirt_vmi_launcher_memory_overhead_bytes{name=~\"$vm\", namespace=~\"$namespace\"})\n                    - scalar(vmi:virt_launcher_overhead_memory:bytes{name=~\"\
+    $vm\", namespace=~\"$namespace\"})\n    \"1_0\":\n      kind: Panel\n      spec:\n        display:\n          name: Guest Memory Decomposition\n          description: 'Four layers summing to domain:\
+    \ kernel reserved + non-reclaimable + reclaimable + free.'\n        plugin:\n          kind: TimeSeriesChart\n          spec:\n            legend:\n              position: bottom\n              mode:\
+    \ list\n            visual:\n              display: line\n              areaOpacity: 0.7\n              lineWidth: 2\n              stack: all\n            querySettings:\n              - queryIndex:\
+    \ 4\n                colorMode: fixed-single\n                colorValue: '#FFFFFF'\n                lineStyle: dotted\n                stack: false\n                areaOpacity: 0\n            yAxis:\n\
+    \              format:\n                unit: bytes\n        queries:\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n\
+    \                spec:\n                  query: |-\n                    kubevirt_vmi_memory_domain_bytes{name=~\"$vm\", namespace=~\"$namespace\"}\n                    - kubevirt_vmi_memory_available_bytes{name=~\"\
+    $vm\", namespace=~\"$namespace\"}\n                  seriesNameFormat: Kernel reserved\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n\
+    \                spec:\n                  query: kubevirt_vmi_memory_used_bytes{name=~\"$vm\", namespace=~\"$namespace\"}\n                  seriesNameFormat: Non-reclaimable (used)\n          - kind:\
+    \ TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: kubevirt_vmi_memory_usable_bytes{name=~\"\
+    $vm\", namespace=~\"$namespace\"} - kubevirt_vmi_memory_unused_bytes{name=~\"$vm\", namespace=~\"$namespace\"}\n                  seriesNameFormat: Reclaimable\n          - kind: TimeSeriesQuery\n \
+    \           spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: kubevirt_vmi_memory_unused_bytes{name=~\"$vm\", namespace=~\"\
+    $namespace\"}\n                  seriesNameFormat: Free\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n              \
+    \  spec:\n                  query: kubevirt_vmi_memory_domain_bytes{name=~\"$vm\", namespace=~\"$namespace\"}\n                  seriesNameFormat: ── Domain (configured)\n    \"1_1\":\n      kind: Panel\n\
+    \      spec:\n        display:\n          name: 'Launcher Overhead: Estimated vs Actual'\n          description: Estimated = virt-controller prediction. Actual = pod working_set minus guest RSS (recording\
+    \ rule). When actual exceeds estimated, the overhead budget is too tight.\n        plugin:\n          kind: TimeSeriesChart\n          spec:\n            legend:\n              position: bottom\n  \
+    \            mode: list\n            querySettings:\n              - queryIndex: 0\n                colorMode: fixed-single\n                colorValue: '#32ac2d'\n                lineStyle: dotted\n\
+    \              - queryIndex: 1\n                colorMode: fixed-single\n                colorValue: '#2E79B5'\n            visual:\n              display: line\n              areaOpacity: 0\n     \
+    \         lineWidth: 2\n            yAxis:\n              format:\n                unit: bytes\n        queries:\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n      \
+    \          kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: kubevirt_vmi_launcher_memory_overhead_bytes{name=~\"$vm\", namespace=~\"$namespace\"}\n                  seriesNameFormat:\
+    \ Estimated overhead\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: vmi:virt_launcher_overhead_memory:bytes{name=~\"\
+    $vm\", namespace=~\"$namespace\"}\n                  seriesNameFormat: Actual overhead\n  layouts:\n    - kind: Grid\n      spec:\n        display:\n          title: Summary\n        items:\n      \
+    \    - x: 0\n            \"y\": 0\n            width: 4\n            height: 8\n            content:\n              $ref: '#/spec/panels/0_0'\n          - x: 4\n            \"y\": 0\n            width:\
+    \ 4\n            height: 8\n            content:\n              $ref: '#/spec/panels/0_1'\n          - x: 8\n            \"y\": 0\n            width: 4\n            height: 8\n            content:\n\
+    \              $ref: '#/spec/panels/0_2'\n          - x: 12\n            \"y\": 0\n            width: 4\n            height: 8\n            content:\n              $ref: '#/spec/panels/0_3'\n      \
+    \    - x: 16\n            \"y\": 0\n            width: 4\n            height: 8\n            content:\n              $ref: '#/spec/panels/0_4'\n    - kind: Grid\n      spec:\n        display:\n    \
+    \      title: Memory Decomposition\n        items:\n          - x: 0\n            \"y\": 0\n            width: 12\n            height: 8\n            content:\n              $ref: '#/spec/panels/1_0'\n\
+    \          - x: 12\n            \"y\": 0\n            width: 12\n            height: 8\n            content:\n              $ref: '#/spec/panels/1_1'\n  duration: 6h\n"
+  vm-overcommit.yaml: "kind: Dashboard\nmetadata:\n  name: vm-overcommit\n  createdAt: \"0001-01-01T00:00:00Z\"\n  project: perses\n  updatedAt: \"0001-01-01T00:00:00Z\"\n  version: 0\nspec:\n  display:\n\
+    \    name: VM Overcommit\n    description: |-\n      Statistical overcommit analysis based on observed aggregate VM usage volatility.\n      Normal = assumes bell-curve distribution for VM load.\n \
+    \     Chebyshev = no assumption on distribution, but more conservative.\n      Both use the same mean and standard deviation computed over the observation period.\n  variables:\n    - kind: ListVariable\n\
+    \      spec:\n        display:\n          name: Observation period\n          hidden: false\n        defaultValue: '30d'\n        name: observation_period\n        allowAllValue: false\n        allowMultiple:\
+    \ false\n        plugin:\n          kind: StaticListVariable\n          spec:\n            values:\n              - value: 7d\n                label: 7 days\n              - value: 30d\n           \
+    \     label: 30 days\n              - value: 180d\n                label: 180 days\n              - value: 360d\n                label: 360 days\n    - kind: ListVariable\n      spec:\n        display:\n\
+    \          name: Confidence level\n          hidden: false\n        defaultValue: '\"0.999\"'\n        name: risk_quantile\n        allowAllValue: false\n        allowMultiple: false\n        plugin:\n\
+    \          kind: StaticListVariable\n          spec:\n            values:\n              - value: \"0.95\"\n                label: 95% (p=5%)\n              - value: \"0.99\"\n                label:\
+    \ 99% (p=1%)\n              - value: \"0.995\"\n                label: 99.5% (p=0.5%)\n              - value: \"0.999\"\n                label: 99.9% (p=0.1%)\n    - kind: ListVariable\n      spec:\n\
+    \        display:\n          name: Normal z-score\n          hidden: false\n        defaultValue: '\"3.090\"'\n        name: z_score\n        allowAllValue: false\n        allowMultiple: false\n   \
+    \     plugin:\n          kind: StaticListVariable\n          spec:\n            values:\n              - value: \"1.645\"\n                label: 95% (z=1.645)\n              - value: \"2.326\"\n  \
+    \              label: 99% (z=2.326)\n              - value: \"2.576\"\n                label: 99.5% (z=2.576)\n              - value: \"3.090\"\n                label: 99.9% (z=3.090)\n  panels:\n \
+    \   \"0_0\":\n      kind: Panel\n      spec:\n        display:\n          name: Normal\n          description: Assumed normal distribution for VM load. Overcommit = Granted / (μ + z×σ).\n        plugin:\n\
+    \          kind: StatChart\n          spec:\n            calculation: last-number\n            format:\n              unit: decimal\n              decimalPlaces: 2\n        queries:\n          - kind:\
+    \ TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: |-\n                    sum(kubevirt_vmi_memory_domain_bytes)\n\
+    \                    / (\n                      sum(avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))\n                      + $z_score\n                        * sum(stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))\n\
+    \                    )\n                  seriesNameFormat: normal\n                  minStep: 5m\n    \"0_1\":\n      kind: Panel\n      spec:\n        display:\n          name: Chebyshev\n       \
+    \   description: No assumption on load distribution, but more conservative. Overcommit = Granted / (μ + k×σ) with Cantelli k = √(q/(1−q)).\n        plugin:\n          kind: StatChart\n          spec:\n\
+    \            calculation: last-number\n            format:\n              unit: decimal\n              decimalPlaces: 2\n        queries:\n          - kind: TimeSeriesQuery\n            spec:\n    \
+    \          plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: |-\n                    sum(kubevirt_vmi_memory_domain_bytes)\n                 \
+    \   / (\n                      sum(avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))\n                      + sqrt(vector($risk_quantile / (1 - $risk_quantile)))\n           \
+    \             * sum(stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))\n                    )\n                  seriesNameFormat: chebyshev\n                  minStep: 5m\n\
+    \    \"1_0\":\n      kind: Panel\n      spec:\n        display:\n          name: Normal\n          description: Assumed normal distribution for VM load. Overcommit = Granted / (μ + z×σ).\n        plugin:\n\
+    \          kind: StatChart\n          spec:\n            calculation: last-number\n            format:\n              unit: decimal\n              decimalPlaces: 2\n        queries:\n          - kind:\
+    \ TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: |-\n                    sum(vmi:kubevirt_vmi_vcpu:count)\n\
+    \                    / (\n                      sum(avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))\n                      + $z_score\n                        * sum(stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))\n\
+    \                    )\n                  seriesNameFormat: normal\n                  minStep: 5m\n    \"1_1\":\n      kind: Panel\n      spec:\n        display:\n          name: Chebyshev\n       \
+    \   description: No assumption on load distribution, but more conservative. Overcommit = Granted / (μ + k×σ) with Cantelli k = √(q/(1−q)).\n        plugin:\n          kind: StatChart\n          spec:\n\
+    \            calculation: last-number\n            format:\n              unit: decimal\n              decimalPlaces: 2\n        queries:\n          - kind: TimeSeriesQuery\n            spec:\n    \
+    \          plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: |-\n                    sum(vmi:kubevirt_vmi_vcpu:count)\n                    / (\n\
+    \                      sum(avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))\n                      + sqrt(vector($risk_quantile / (1 - $risk_quantile)))\n                      \
+    \  * sum(stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))\n                    )\n                  seriesNameFormat: chebyshev\n                  minStep: 5m\n    \"2_0\":\n\
+    \      kind: Panel\n      spec:\n        display:\n          name: VM count\n          description: Number of running VMs contributing to the aggregate.\n        plugin:\n          kind: StatChart\n\
+    \          spec:\n            calculation: last-number\n            format:\n              unit: decimal\n              decimalPlaces: 0\n        queries:\n          - kind: TimeSeriesQuery\n      \
+    \      spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: count(kubevirt_vmi_memory_domain_bytes)\n                  seriesNameFormat:\
+    \ VMs\n                  minStep: 5m\n    \"3_0\":\n      kind: Panel\n      spec:\n        display:\n          name: Memory\n          description: Both approaches over time. The gap shows how much\
+    \ the distributional assumption matters.\n        plugin:\n          kind: TimeSeriesChart\n          spec:\n            legend:\n              position: bottom\n              mode: list\n         \
+    \   visual:\n              display: line\n              areaOpacity: 0\n              lineWidth: 2\n            yAxis:\n              format:\n                unit: decimal\n        queries:\n     \
+    \     - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: |-\n                    sum(kubevirt_vmi_memory_domain_bytes)\n\
+    \                    / (\n                      sum(avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))\n                      + $z_score\n                        * sum(stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))\n\
+    \                    )\n                  seriesNameFormat: Normal\n                  minStep: 5m\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind:\
+    \ PrometheusTimeSeriesQuery\n                spec:\n                  query: |-\n                    sum(kubevirt_vmi_memory_domain_bytes)\n                    / (\n                      sum(avg_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))\n\
+    \                      + sqrt(vector($risk_quantile / (1 - $risk_quantile)))\n                        * sum(stddev_over_time(cluster:vm_memory_actual_used:bytes[$observation_period]))\n            \
+    \        )\n                  seriesNameFormat: Chebyshev\n                  minStep: 5m\n    \"4_0\":\n      kind: Panel\n      spec:\n        display:\n          name: CPU\n          description:\
+    \ Both approaches over time.\n        plugin:\n          kind: TimeSeriesChart\n          spec:\n            legend:\n              position: bottom\n              mode: list\n            visual:\n\
+    \              display: line\n              areaOpacity: 0\n              lineWidth: 2\n            yAxis:\n              format:\n                unit: decimal\n        queries:\n          - kind:\
+    \ TimeSeriesQuery\n            spec:\n              plugin:\n                kind: PrometheusTimeSeriesQuery\n                spec:\n                  query: |-\n                    sum(vmi:kubevirt_vmi_vcpu:count)\n\
+    \                    / (\n                      sum(avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))\n                      + $z_score\n                        * sum(stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))\n\
+    \                    )\n                  seriesNameFormat: Normal\n                  minStep: 5m\n          - kind: TimeSeriesQuery\n            spec:\n              plugin:\n                kind:\
+    \ PrometheusTimeSeriesQuery\n                spec:\n                  query: |-\n                    sum(vmi:kubevirt_vmi_vcpu:count)\n                    / (\n                      sum(avg_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))\n\
+    \                      + sqrt(vector($risk_quantile / (1 - $risk_quantile)))\n                        * sum(stddev_over_time(cluster:vm_cpu_actual_used:cores[$observation_period]))\n               \
+    \     )\n                  seriesNameFormat: Chebyshev\n                  minStep: 5m\n  layouts:\n    - kind: Grid\n      spec:\n        display:\n          title: Memory Overcommit Ratio\n       \
+    \ items:\n          - x: 0\n            \"y\": 0\n            width: 12\n            height: 8\n            content:\n              $ref: '#/spec/panels/0_0'\n          - x: 12\n            \"y\": 0\n\
+    \            width: 12\n            height: 8\n            content:\n              $ref: '#/spec/panels/0_1'\n    - kind: Grid\n      spec:\n        display:\n          title: CPU Overcommit Ratio\n\
+    \        items:\n          - x: 0\n            \"y\": 0\n            width: 12\n            height: 8\n            content:\n              $ref: '#/spec/panels/1_0'\n          - x: 12\n            \"\
+    y\": 0\n            width: 12\n            height: 8\n            content:\n              $ref: '#/spec/panels/1_1'\n    - kind: Grid\n      spec:\n        display:\n          title: Diagnostics\n \
+    \       items:\n          - x: 0\n            \"y\": 0\n            width: 24\n            height: 8\n            content:\n              $ref: '#/spec/panels/2_0'\n    - kind: Grid\n      spec:\n \
+    \       display:\n          title: Memory Overcommit Trend\n        items:\n          - x: 0\n            \"y\": 0\n            width: 24\n            height: 12\n            content:\n            \
+    \  $ref: '#/spec/panels/3_0'\n    - kind: Grid\n      spec:\n        display:\n          title: CPU Overcommit Trend\n        items:\n          - x: 0\n            \"y\": 0\n            width: 24\n\
+    \            height: 12\n            content:\n              $ref: '#/spec/panels/4_0'\n  duration: 5m\n"
 kind: ConfigMap
 metadata:
+  labels:
+    app.kubernetes.io/name: perses-ui
   name: perses-ui-dashboards

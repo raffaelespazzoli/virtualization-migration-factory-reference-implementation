@@ -64,7 +64,7 @@ import (
 
 dashboardBuilder & {
 	#name:    "vm-capacity"
-	#project: "openshift-operators"
+	#project: "perses"
 	#display: {
 		name:        "How many VMs fit"
 		description: "How many more virtual machines of a chosen shape fit in the remaining schedulable capacity."

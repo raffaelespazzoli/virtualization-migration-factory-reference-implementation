@@ -27,7 +27,7 @@ import (
 
 dashboardBuilder & {
 	#name:    "capacity-exhaustion"
-	#project: "openshift-operators"
+	#project: "perses"
 	#display: {
 		name:        "Time to Capacity Exhaustion"
 		description: "Days until the cluster runs out of schedulable capacity based on recent trends."

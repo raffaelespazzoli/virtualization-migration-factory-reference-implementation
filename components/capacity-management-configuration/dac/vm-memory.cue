@@ -111,7 +111,7 @@ _f: "name=~\"$vm\", namespace=~\"$namespace\""
 
 dashboardBuilder & {
 	#name:    "vm-memory"
-	#project: "openshift-operators"
+	#project: "perses"
 	#display: {
 		name:        "VM Memory"
 		description: "Guest memory decomposition (kernel, non-reclaimable, reclaimable, free) and launcher overhead: estimated vs actual."
