@@ -91,6 +91,290 @@ spec:
               or increase node capacity.
               Current pressure: {{ $value | humanizePercentage }}.
 
+    - name: capacity-management-cpu-pressure.alerts
+      rules:
+        # 3. High node CPU pressure (PSI).
+        #
+        # CPU PSI "some" tracks the fraction of wall-clock time that
+        # at least one runnable task was waiting for a CPU.  Non-zero
+        # values mean runnable threads are being delayed, increasing
+        # application latency.
+        #
+        # CPU is compressible, so contention causes slowdowns rather
+        # than kills.  Thresholds are therefore higher than memory
+        # PSI (15%/50% vs 5%/20%).
+        #
+        # Thresholds:
+        #   > 0.15 (15%) for 5 min → warning  (scheduling delays)
+        #   > 0.50 (50%) for 5 min → critical (severe CPU starvation)
+        - alert: NodeCPUPressureHigh
+          expr: |
+            cluster:node:cpu:pressure:ratio > 0.15
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: >-
+              Node {{ $labels.node }} CPU pressure at
+              {{ $value | humanizePercentage }}.
+            description: >-
+              More than 15% of wall-clock time on {{ $labels.node }}
+              has been spent with at least one runnable task waiting
+              for a CPU over the last 5 minutes.  Workloads are
+              experiencing scheduling delays.  Consider reducing CPU
+              overcommit or draining workloads.
+              Current pressure: {{ $value | humanizePercentage }}.
+
+        - alert: NodeCPUPressureCritical
+          expr: |
+            cluster:node:cpu:pressure:ratio > 0.50
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: >-
+              Node {{ $labels.node }} CPU pressure critical at
+              {{ $value | humanizePercentage }}.
+            description: >-
+              More than 50% of wall-clock time on {{ $labels.node }}
+              is spent with runnable tasks waiting for CPUs.  The
+              node is severely overloaded and workloads are
+              experiencing significant latency.  Immediate action
+              required: reduce CPU overcommit, drain non-critical
+              workloads, or add node capacity.
+              Current pressure: {{ $value | humanizePercentage }}.
+
+        # 3b. VM vCPU scheduling delay — the host-side face of CPU
+        # contention for VMs.
+        #
+        # kubevirt_vmi_vcpu_delay_seconds_total tracks the time
+        # vCPUs spend waiting in the host scheduler queue.  This
+        # complements KubeVirt's built-in guest-internal alerts
+        # (GuestVCPUQueueHighWarning/Critical) which measure guest
+        # OS load vs vCPU count.  This alert catches when the HOST
+        # is the bottleneck — the guest has work to do but the host
+        # isn't scheduling the vCPU onto a physical core.
+        #
+        # The threshold is in vCPU-seconds of delay per wall-clock
+        # second.  A value of 0.5 means half a vCPU's worth of
+        # time is spent waiting — significant for a single-vCPU VM,
+        # moderate for a 16-vCPU VM.
+        - alert: VMvCPUDelayHigh
+          expr: |
+            vmi:cpu:vcpu_delay:ratio > 0.5
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: >-
+              VM {{ $labels.name }} in {{ $labels.namespace }} vCPU
+              scheduling delay at {{ $value | humanize }}
+              vCPU-seconds/s.
+            description: >-
+              The vCPUs of VM {{ $labels.name }} in namespace
+              {{ $labels.namespace }} on node {{ $labels.node }}
+              have spent {{ $value | humanize }} vCPU-seconds per
+              second of wall-clock time waiting in the host CPU
+              scheduler queue for more than 5 minutes.  The VM is
+              experiencing host-level CPU contention.  Consider
+              migrating the VM to a less loaded node or reducing
+              the node's CPU overcommit.
+
+    - name: capacity-management-network.alerts
+      rules:
+        # 4. NIC approaching bandwidth saturation.
+        #
+        # Network bandwidth is a compressible resource, but unlike CPU,
+        # TCP congestion control causes throughput to degrade well
+        # before reaching 100% link speed.  Micro-bursts, switch
+        # buffer overflow, and TCP backoff mean that sustained 70%
+        # average utilization already implies periodic saturation.
+        #
+        # We alert on per-NIC utilization (not aggregate) to catch
+        # bond hash-imbalance: one member NIC saturated while others
+        # are idle.  The recording rule already filters on carrier=1
+        # and excludes virtual interfaces.
+        #
+        # Thresholds (industry practice):
+        #   > 0.70 (70%) for 5 min → warning  (plan capacity)
+        #   > 0.85 (85%) for 5 min → critical (immediate action)
+        - alert: NodeNICSaturationWarning
+          expr: |
+            (
+              cluster:node:nic:transmit_utilization:ratio > 0.70
+            or
+              cluster:node:nic:receive_utilization:ratio > 0.70
+            )
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: >-
+              NIC {{ $labels.device }} on {{ $labels.instance }}
+              utilization at {{ $value | humanizePercentage }}.
+            description: >-
+              Network interface {{ $labels.device }} on node
+              {{ $labels.instance }} has sustained more than 70%
+              bandwidth utilization for 5 minutes.  At this level
+              TCP congestion control is likely causing periodic
+              throughput degradation.  Review traffic patterns and
+              consider load-balancing or upgrading link capacity.
+              Current utilization: {{ $value | humanizePercentage }}.
+
+        - alert: NodeNICSaturationCritical
+          expr: |
+            (
+              cluster:node:nic:transmit_utilization:ratio > 0.85
+            or
+              cluster:node:nic:receive_utilization:ratio > 0.85
+            )
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: >-
+              NIC {{ $labels.device }} on {{ $labels.instance }}
+              utilization critical at {{ $value | humanizePercentage }}.
+            description: >-
+              Network interface {{ $labels.device }} on node
+              {{ $labels.instance }} has sustained more than 85%
+              bandwidth utilization for 5 minutes.  The link is
+              near saturation — packet drops, increased latency,
+              and TCP throughput collapse are likely.  Immediate
+              action required: redistribute traffic, check for
+              bond hash-imbalance, or upgrade link capacity.
+              Current utilization: {{ $value | humanizePercentage }}.
+
+    - name: capacity-management-io-pressure.alerts
+      rules:
+        # 4. High node I/O pressure (PSI).
+        #
+        # I/O PSI has two flavors unlike CPU (which only has "some"):
+        #   "some" (waiting) — at least one task stalled on I/O
+        #   "full" (stalled) — ALL tasks stalled (zero progress)
+        #
+        # We use a different PSI flavor for each severity tier:
+        #
+        #   warning  → "some" > 50%  (degradation — throughput lost)
+        #   critical → "full" > 15%  (crisis — nothing runs)
+        #
+        # "Some" has a non-trivial baseline (2–15%) on nodes with
+        # active remote storage (iSCSI/FC) due to inherent I/O
+        # latency and page cache misses.  The 50% threshold is well
+        # above any normal baseline and indicates serious degradation.
+        #
+        # "Full" should be near zero on healthy systems regardless
+        # of storage type.  Even 15% means the entire node was
+        # completely stuck for 9 seconds every minute — nothing
+        # was making progress.  This earns critical at a lower
+        # numeric threshold because the metric itself is more severe.
+        #
+        # The warning uses 10m instead of 5m because block I/O is
+        # inherently bursty (backups, compaction, ODF rebalance).
+        - alert: NodeIOPressureWarning
+          expr: |
+            cluster:node:io:pressure_waiting:ratio > 0.50
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: >-
+              Node {{ $labels.node }} I/O pressure (some) at
+              {{ $value | humanizePercentage }}.
+            description: >-
+              More than 50% of wall-clock time on {{ $labels.node }}
+              has been spent with at least one task waiting for
+              block I/O over the last 10 minutes.  The node is
+              experiencing sustained storage I/O degradation —
+              significant throughput is being lost to I/O stalls.
+              Investigate storage backend health, check for
+              I/O-heavy workloads, and review disk or network
+              (iSCSI) throughput.
+              Current pressure: {{ $value | humanizePercentage }}.
+
+        - alert: NodeIOPressureCritical
+          expr: |
+            cluster:node:io:pressure_stalled:ratio > 0.15
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: >-
+              Node {{ $labels.node }} I/O pressure critical
+              (all stalled) at {{ $value | humanizePercentage }}.
+            description: >-
+              More than 15% of wall-clock time on {{ $labels.node }}
+              is spent with ALL tasks stalled on block I/O — the
+              node made zero progress for {{ $value | humanize }}
+              seconds out of every second.  Immediate action
+              required: check storage array health, verify iSCSI/FC
+              fabric connectivity, drain I/O-intensive workloads,
+              or failover to healthy storage paths.
+              Current stall ratio: {{ $value | humanizePercentage }}.
+
+    - name: capacity-management-fc.alerts
+      rules:
+        # 5. FC HBA approaching bandwidth saturation.
+        #
+        # Fibre Channel HBA utilization vs link speed, analogous to
+        # the NIC saturation alerts.  FC uses credit-based flow
+        # control so congestion manifests as credit starvation
+        # (latency spikes) rather than packet loss.  The same
+        # 70%/85% thresholds apply — ISL congestion becomes a
+        # factor at 60–70% utilization.
+        #
+        # NOTE: These alerts only fire when the node_exporter
+        # fibrechannel collector is enabled and FC HBAs are present.
+        # On clusters without FC storage they are a safe no-op.
+        - alert: NodeFCHBASaturationWarning
+          expr: |
+            (
+              cluster:node:fc:transmit_utilization:ratio > 0.70
+            or
+              cluster:node:fc:receive_utilization:ratio > 0.70
+            )
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: >-
+              FC HBA {{ $labels.fc_host }} on {{ $labels.instance }}
+              utilization at {{ $value | humanizePercentage }}.
+            description: >-
+              Fibre Channel port {{ $labels.fc_host }} on node
+              {{ $labels.instance }} has sustained more than 70%
+              bandwidth utilization for 5 minutes.  At this level
+              FC credit starvation may be causing I/O latency
+              spikes.  Review storage traffic patterns, check for
+              zoning imbalance, and consider adding FC paths or
+              upgrading port speed.
+              Current utilization: {{ $value | humanizePercentage }}.
+
+        - alert: NodeFCHBASaturationCritical
+          expr: |
+            (
+              cluster:node:fc:transmit_utilization:ratio > 0.85
+            or
+              cluster:node:fc:receive_utilization:ratio > 0.85
+            )
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: >-
+              FC HBA {{ $labels.fc_host }} on {{ $labels.instance }}
+              utilization critical at {{ $value | humanizePercentage }}.
+            description: >-
+              Fibre Channel port {{ $labels.fc_host }} on node
+              {{ $labels.instance }} has sustained more than 85%
+              bandwidth utilization for 5 minutes.  The port is
+              near saturation — FC credit exhaustion will cause
+              severe I/O latency and throughput collapse.  Immediate
+              action required: redistribute storage workloads,
+              verify multipath balancing, check ISL capacity, or
+              upgrade port speed.
+              Current utilization: {{ $value | humanizePercentage }}.
+
     - name: capacity-management-oom-proximity.alerts
       rules:
         # 4. Container memory approaching its cgroup limit.

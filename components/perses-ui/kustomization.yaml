@@ -9,8 +9,22 @@ resources:
   - clusterrolebinding.yaml
   - config-configmap.yaml
   - ca-bundle-configmap.yaml
-  - dashboards-configmap.yaml
   - deployment.yaml
   - service.yaml
   - route.yaml
   - consolelink.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    app.kubernetes.io/name: perses-ui
+
+configMapGenerator:
+  - name: perses-ui-dashboards
+    files:
+      - capacity-exhaustion.yaml=../capacity-management-configuration/dac/built/capacity-exhaustion_output.yaml
+      - node-memory.yaml=../capacity-management-configuration/dac/built/node-memory_output.yaml
+      - pod-memory.yaml=../capacity-management-configuration/dac/built/pod-memory_output.yaml
+      - vm-capacity.yaml=../capacity-management-configuration/dac/built/vm-capacity_output.yaml
+      - vm-memory.yaml=../capacity-management-configuration/dac/built/vm-memory_output.yaml
+      - vm-overcommit.yaml=../capacity-management-configuration/dac/built/vm-overcommit_output.yaml
