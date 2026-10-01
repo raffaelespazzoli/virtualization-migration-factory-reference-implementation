@@ -13,8 +13,24 @@ resources:
   - service.yaml
   - route.yaml
   - consolelink.yaml
-  # Dashboards from upstream — defaults to PersesDashboard CRs.
-  # To switch to ConfigMap mode (for standalone Perses), change the
-  # last patch in the upstream kustomization from wrap-perses-dashboard.yaml
-  # to wrap-configmap.yaml.
-  - github.com/raffaelespazzoli/openshift-monitoring-addson//dashboards?ref=main
+
+# Dashboard files from upstream, assembled into a single ConfigMap
+# for Perses file-based provisioning.
+#
+# Source of truth: https://github.com/raffaelespazzoli/openshift-monitoring-addson
+# Pin to a tag or commit SHA for production stability:
+#   https://raw.githubusercontent.com/raffaelespazzoli/openshift-monitoring-addson/<ref>/dashboards/dac/built/<file>
+generatorOptions:
+  disableNameSuffixHash: true
+  labels:
+    app.kubernetes.io/name: perses-ui
+
+configMapGenerator:
+  - name: perses-ui-dashboards
+    files:
+      - capacity-exhaustion.yaml=https://raw.githubusercontent.com/raffaelespazzoli/openshift-monitoring-addson/main/dashboards/dac/built/capacity-exhaustion_output.yaml
+      - node-memory.yaml=https://raw.githubusercontent.com/raffaelespazzoli/openshift-monitoring-addson/main/dashboards/dac/built/node-memory_output.yaml
+      - pod-memory.yaml=https://raw.githubusercontent.com/raffaelespazzoli/openshift-monitoring-addson/main/dashboards/dac/built/pod-memory_output.yaml
+      - vm-capacity.yaml=https://raw.githubusercontent.com/raffaelespazzoli/openshift-monitoring-addson/main/dashboards/dac/built/vm-capacity_output.yaml
+      - vm-memory.yaml=https://raw.githubusercontent.com/raffaelespazzoli/openshift-monitoring-addson/main/dashboards/dac/built/vm-memory_output.yaml
+      - vm-overcommit.yaml=https://raw.githubusercontent.com/raffaelespazzoli/openshift-monitoring-addson/main/dashboards/dac/built/vm-overcommit_output.yaml
