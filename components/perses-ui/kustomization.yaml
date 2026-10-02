@@ -30,7 +30,7 @@ configMapGenerator:
     files:
       - capacity-exhaustion.yaml=https://raw.githubusercontent.com/raffaelespazzoli/openshift-monitoring-addson/main/dashboards/dac/built/capacity-exhaustion_output.yaml
       - node-resources.yaml=https://raw.githubusercontent.com/raffaelespazzoli/openshift-monitoring-addson/main/dashboards/dac/built/node-resources_output.yaml
-      - pod-memory.yaml=https://raw.githubusercontent.com/raffaelespazzoli/openshift-monitoring-addson/main/dashboards/dac/built/pod-memory_output.yaml
+      - pod-memory.yaml=https://raw.githubusercontent.com/raffaelespazzoli/openshift-monitoring-addson/main/dashboards/dac/built/pod-resources_output.yaml
       - vm-capacity.yaml=https://raw.githubusercontent.com/raffaelespazzoli/openshift-monitoring-addson/main/dashboards/dac/built/vm-capacity_output.yaml
-      - vm-memory.yaml=https://raw.githubusercontent.com/raffaelespazzoli/openshift-monitoring-addson/main/dashboards/dac/built/vm-memory_output.yaml
+      - vm-memory.yaml=https://raw.githubusercontent.com/raffaelespazzoli/openshift-monitoring-addson/main/dashboards/dac/built/vm-resources_output.yaml
       - vm-overcommit.yaml=https://raw.githubusercontent.com/raffaelespazzoli/openshift-monitoring-addson/main/dashboards/dac/built/vm-overcommit_output.yaml
