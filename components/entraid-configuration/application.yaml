@@ -1,0 +1,20 @@
+apiVersion: microsoft.graph.azure.com/v1beta1
+kind: Application
+metadata:
+  name: openshift-oauth-app
+  namespace: azureserviceoperator-system
+  annotations:
+    azure.com/reconcile-policy: detach-on-delete
+spec:
+  displayName: "OpenShift OAuth — Migration Factory"
+  # Set azureName to match an existing Entra app registration display name
+  # to adopt it rather than creating a new one.
+  # azureName: "OpenShift OAuth — Migration Factory"
+  web:
+    redirectUris:
+      # Hub cluster — uses envsubst variables
+      - "https://oauth-openshift.apps.${CLUSTER_NAME}.${CLUSTER_BASE_DOMAIN}/oauth2callback/EntraID"
+      # Example managed cluster entries — add one line per cluster
+      # - "https://oauth-openshift.apps.etl4.${PLATFORM_BASE_DOMAIN}/oauth2callback/EntraID"
+      # - "https://oauth-openshift.apps.etl7.${PLATFORM_BASE_DOMAIN}/oauth2callback/EntraID"
+      # - "https://oauth-openshift.apps.prod1.${PLATFORM_BASE_DOMAIN}/oauth2callback/EntraID"

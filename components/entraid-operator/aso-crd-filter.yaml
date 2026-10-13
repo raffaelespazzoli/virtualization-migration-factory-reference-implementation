@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aso-controller-settings
+  namespace: azureserviceoperator-system
+data:
+  # Restrict ASO to only install and reconcile Microsoft Graph / Entra CRDs.
+  # Without this filter ASO installs hundreds of Azure CRDs.
+  CRD_PATTERN: "microsoft.graph.azure.com/*"

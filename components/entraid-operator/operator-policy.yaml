@@ -1,0 +1,30 @@
+apiVersion: policy.open-cluster-management.io/v1beta1
+kind: OperatorPolicy
+metadata:
+  name: azure-service-operator
+  namespace: open-cluster-management-policies
+spec:
+  upgradeApproval: Automatic
+  complianceConfig:
+    catalogSourceUnhealthy: Compliant
+    deploymentsUnavailable: NonCompliant
+    upgradesAvailable: Compliant
+  complianceType: musthave
+  remediationAction: enforce
+  removalBehavior:
+    clusterServiceVersions: Delete
+    customResourceDefinitions: Keep
+    operatorGroups: DeleteIfUnused
+    subscriptions: Delete
+  severity: medium
+  subscription:
+    channel: alpha
+    name: azure-service-operator
+    namespace: azureserviceoperator-system
+    source: community-operators
+    sourceNamespace: openshift-marketplace
+    # Populate startingCSV and versions from OperatorHub after first install.
+    # Example: startingCSV: azure-service-operator.v2.21.0
+    startingCSV: azure-service-operator.v2.21.0
+  versions:
+    - azure-service-operator.v2.21.0
