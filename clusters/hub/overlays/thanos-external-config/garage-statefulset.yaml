@@ -28,7 +28,7 @@ spec:
           args: ["server", "--single-node", "--default-bucket"]
           env:
             - name: GARAGE_DEFAULT_ACCESS_KEY
-              value: thanos
+              value: thanosadmin
             - name: GARAGE_DEFAULT_SECRET_KEY
               value: thanosthanos
             - name: GARAGE_DEFAULT_BUCKET
