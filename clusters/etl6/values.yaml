@@ -276,10 +276,10 @@ applications:
       path: clusters/etl6/overlays/thanos-local-configuration
     extraFields: |
       ignoreDifferences:
-      - group: opentelemetry.io
-        kind: OpenTelemetryCollector
+      - group: apps
+        kind: StatefulSet
         jsonPointers:
-          - /spec/config
+          - /spec/volumeClaimTemplates
 
   thanos-server-deployment:
     annotations:
@@ -297,3 +297,7 @@ applications:
         name: thanos-compactor
         jsonPointers:
           - /spec/replicas
+      - group: apps
+        kind: StatefulSet
+        jsonPointers:
+          - /spec/volumeClaimTemplates

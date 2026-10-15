@@ -1,0 +1,13 @@
+# kube-rbac-proxy authorization config — requires cluster-reader
+# (ability to GET namespaces cluster-wide) for all protected endpoints.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: thanos-rbac-proxy-config
+data:
+  config.yaml: |
+    authorization:
+      resourceAttributes:
+        apiGroup: ""
+        resource: namespaces
+        verb: get
