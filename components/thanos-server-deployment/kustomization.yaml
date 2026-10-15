@@ -19,6 +19,7 @@ resources:
   - router-certs-rbac.yaml
   - consolelink-query-frontend.yaml
   - consolelink-bucket-web.yaml
+  - query-combined-ca.yaml
   - bucketweb-oauth-sa.yaml
   - bucketweb-oauth-cookie.yaml
   - bucketweb-oauth-ca-bundle.yaml

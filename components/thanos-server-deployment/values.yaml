@@ -97,9 +97,17 @@ query:
     - receive_replica
     - ruler_replica
 
-  # Store endpoints: local Store GW and Ruler are auto-discovered by the chart.
-  # Receive on both clusters is reached via Routes (reencrypt + h2) for uniform
-  # TLS handling. No internal-service shortcut — both go through the router.
+  # Disable SRV-based auto-discovery of Store GW/Ruler. SRV resolves to pod
+  # IPs which breaks TLS (service-serving certs have DNS SANs only, no IP SANs).
+  # Instead, use explicit ClusterIP DNS endpoints in endpoints.static below.
+  endpoints:
+    autogen:
+      enabled: false
+    static:
+      - thanos-storegateway.thanos-system.svc.cluster.local:10901
+      - thanos-ruler.thanos-system.svc.cluster.local:10901
+
+  # Receive on both clusters via Routes (reencrypt + h2).
   stores:
     - thanos-receive-grpc-thanos-local.apps.etl6.ocp.rht-labs.com:443
     - thanos-receive-grpc-thanos-local.apps.etl7.ocp.rht-labs.com:443
@@ -116,10 +124,28 @@ query:
     - --grpc-server-tls-cert=/etc/tls/grpc/tls.crt
     - --grpc-server-tls-key=/etc/tls/grpc/tls.key
     - --grpc-client-tls-secure
-    - --grpc-client-tls-ca=/etc/tls/service-ca/service-ca.crt
+    - --grpc-client-tls-ca=/etc/tls/combined-ca/ca.crt
 
   # Query is internal-only (no Route). QF and Ruler connect to it via
   # http://thanos-query:9090 inside the cluster — no auth sidecar needed.
+
+  # Init container merges the service CA and system CA bundle into one file.
+  # The combined CA lets gRPC verify both in-cluster certs (service CA) and
+  # route-presented certs (Let's Encrypt / public CA).
+  extraInitContainers:
+    - name: merge-ca
+      image: registry.access.redhat.com/ubi9/ubi-minimal:latest
+      command: ['sh', '-c', 'cat /etc/tls/service-ca/service-ca.crt /etc/tls/system-ca/ca-bundle.crt > /etc/tls/combined-ca/ca.crt']
+      volumeMounts:
+        - name: service-ca
+          mountPath: /etc/tls/service-ca
+          readOnly: true
+        - name: system-ca
+          mountPath: /etc/tls/system-ca
+          readOnly: true
+        - name: combined-ca
+          mountPath: /etc/tls/combined-ca
+
   extraVolumes:
     - name: grpc-tls
       secret:
@@ -127,13 +153,18 @@ query:
     - name: service-ca
       configMap:
         name: thanos-service-ca
+    - name: system-ca
+      configMap:
+        name: thanos-query-system-ca
+    - name: combined-ca
+      emptyDir: {}
 
   extraVolumeMounts:
     - name: grpc-tls
       mountPath: /etc/tls/grpc
       readOnly: true
-    - name: service-ca
-      mountPath: /etc/tls/service-ca
+    - name: combined-ca
+      mountPath: /etc/tls/combined-ca
       readOnly: true
 
   resources:
