@@ -1,0 +1,6 @@
+{{- if and .Values.receive.enabled (eq (include "thanos.receive.mode" .) "standalone") }}
+{{- $cfg := include "thanos.receive.cfg" . | fromYaml -}}
+{{- if $cfg.grpcRoute.enabled }}
+{{ include "thanos.grpcRoute" (list . "receive" $cfg.service.grpcPort $cfg.grpcRoute) }}
+{{- end }}
+{{- end }}

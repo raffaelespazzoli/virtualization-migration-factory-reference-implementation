@@ -1,0 +1,23 @@
+{{- if and .Values.ruler.enabled (or .Values.ruler.pdb.enabled .Values.global.pdb.enabled) }}
+{{- $minAvail := .Values.ruler.pdb.minAvailable | default .Values.global.pdb.minAvailable -}}
+{{- $maxUnavail := .Values.ruler.pdb.maxUnavailable | default .Values.global.pdb.maxUnavailable -}}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "thanos.compName" (list . "ruler") }}
+  namespace: {{ include "thanos.namespace" . }}
+  labels:
+    {{- include "thanos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ruler
+  annotations:
+    {{- include "thanos.annotations" (dict "Values" .Values "component" "ruler") | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "thanos.selectorLabels" (dict "root" $ "component" "ruler") | nindent 6 }}
+  {{- if $minAvail }}
+  minAvailable: {{ $minAvail }}
+  {{- else if $maxUnavail }}
+  maxUnavailable: {{ $maxUnavail }}
+  {{- end }}
+{{- end }}

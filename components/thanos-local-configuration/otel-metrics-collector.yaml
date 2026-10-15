@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: otel-metrics-collector
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: otel-metrics-collector
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "namespaces"]
+    verbs: ["get", "watch", "list"]
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
+    verbs: ["get", "watch", "list"]
+  - apiGroups: ["config.openshift.io"]
+    resources: ["infrastructures", "infrastructures/status"]
+    verbs: ["get", "watch", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: otel-metrics-collector
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: otel-metrics-collector
+subjects:
+  - kind: ServiceAccount
+    name: otel-metrics-collector
+    namespace: thanos-local
+---
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: metrics
+spec:
+  mode: deployment
+  replicas: 2
+  serviceAccount: otel-metrics-collector
+  volumeMounts:
+    - name: service-ca
+      mountPath: /etc/tls/service-ca
+      readOnly: true
+  volumes:
+    - name: service-ca
+      configMap:
+        name: thanos-local-service-ca
+  config:
+    receivers:
+      # Accepts Prometheus remote-write from the cluster Prometheus
+      prometheusremotewrite:
+        endpoint: 0.0.0.0:19291
+
+    processors:
+      batch:
+        send_batch_size: 10000
+        timeout: 10s
+      memory_limiter:
+        check_interval: 5s
+        limit_percentage: 80
+        spike_limit_percentage: 25
+      # Stamps every metric with a cluster label for Thanos query fan-out
+      # optimization. Uses the CLUSTER_NAME envsubst variable injected by
+      # the ArgoCD CMP sidecar. Thanos Receive advertises this label so
+      # Query can skip Receive endpoints that don't match a query's cluster selector.
+      attributes/cluster:
+        actions:
+          - key: cluster
+            value: "${CLUSTER_NAME}"
+            action: upsert
+      # Filter processor — add metric drop/keep rules here
+      # filter:
+      #   metrics:
+      #     exclude:
+      #       match_type: regexp
+      #       metric_names:
+      #         - ".*_bucket"   # Example: drop histogram buckets
+
+    exporters:
+      # Forwards to Thanos Receive's remote-write endpoint (same namespace)
+      prometheusremotewrite:
+        endpoint: https://thanos-receive.thanos-local.svc.cluster.local:10908/api/v1/receive
+        tls:
+          insecure: false
+          ca_file: /etc/tls/service-ca/service-ca.crt
+        resource_to_telemetry_conversion:
+          enabled: true
+
+    service:
+      pipelines:
+        metrics:
+          receivers: [prometheusremotewrite]
+          processors: [memory_limiter, attributes/cluster, batch]
+          exporters: [prometheusremotewrite]

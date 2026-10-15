@@ -1,0 +1,14 @@
+{{- if and .Values.queryFrontend.enabled .Values.queryFrontend.cacheConfig }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "thanos.compName" (list . "query-frontend") }}-cache
+  namespace: {{ include "thanos.namespace" . }}
+  labels:
+    {{- include "thanos.labels" . | nindent 4 }}
+  annotations:
+    {{- include "thanos.annotations" (dict "Values" .Values "component" "query-frontend") | nindent 4 }}
+data:
+  cache.yaml: |
+    {{- tpl .Values.queryFrontend.cacheConfig . | nindent 4 }}
+{{- end }}

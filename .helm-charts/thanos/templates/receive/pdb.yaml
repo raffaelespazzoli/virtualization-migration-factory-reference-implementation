@@ -1,0 +1,25 @@
+{{- $cfg := include "thanos.receive.cfg" . | fromYaml -}}
+{{- if and .Values.receive.enabled (or $cfg.pdb.enabled .Values.global.pdb.enabled) }}
+{{- $pdb := $cfg.pdb -}}
+{{- $minAvail := $pdb.minAvailable | default .Values.global.pdb.minAvailable -}}
+{{- $maxUnavail := $pdb.maxUnavailable | default .Values.global.pdb.maxUnavailable -}}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "thanos.receive.workloadName" . }}
+  namespace: {{ include "thanos.namespace" . }}
+  labels:
+    {{- include "thanos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: receive
+  annotations:
+    {{- include "thanos.annotations" (dict "Values" .Values "component" "receive") | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "thanos.selectorLabels" (dict "root" $ "component" "receive") | nindent 6 }}
+  {{- if $minAvail }}
+  minAvailable: {{ $minAvail }}
+  {{- else if $maxUnavail }}
+  maxUnavailable: {{ $maxUnavail }}
+  {{- end }}
+{{- end }}

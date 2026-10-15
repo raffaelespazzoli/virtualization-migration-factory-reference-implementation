@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: compactor-attestation
+data:
+  # To enable the Compactor on this cluster, set attestation to exactly:
+  #   "I confirm that there are no other compactors running in other thanos server deployments"
+  # The ValidatingAdmissionPolicy blocks scaling the Compactor to 1 without this attestation.
+  # Set to empty or any other value to keep the Compactor at 0 (standby).
+  attestation: ""
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: thanos-compactor-singleton
+spec:
+  failurePolicy: Fail
+  paramKind:
+    apiVersion: v1
+    kind: ConfigMap
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        resources: ["statefulsets"]
+        operations: ["CREATE", "UPDATE"]
+    objectSelector:
+      matchLabels:
+        app.kubernetes.io/component: compactor
+        app.kubernetes.io/part-of: thanos
+  validations:
+    # Rule 1: Never allow more than 1 replica — compactor is a singleton
+    - expression: |
+        object.spec.replicas <= 1
+      messageExpression: |
+        "Thanos Compactor is a singleton: replicas must be 0 or 1, got " + string(object.spec.replicas) + ". Running multiple compactors on the same bucket causes data corruption."
+      reason: Forbidden
+    # Rule 2: Scaling to 1 requires the attestation in the paramRef ConfigMap
+    - expression: |
+        object.spec.replicas == 0 || params.data.attestation == "I confirm that there are no other compactors running in other thanos server deployments"
+      messageExpression: |
+        "Scaling the Compactor to 1 requires the attestation ConfigMap 'compactor-attestation' to contain: attestation=\"I confirm that there are no other compactors running in other thanos server deployments\""
+      reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: thanos-compactor-singleton
+spec:
+  policyName: thanos-compactor-singleton
+  paramRef:
+    name: compactor-attestation
+    namespace: thanos-system
+    parameterNotFoundAction: Deny
+  validationActions:
+    - Deny
+  matchResources:
+    objectSelector:
+      matchLabels:
+        app.kubernetes.io/component: compactor
+        app.kubernetes.io/part-of: thanos

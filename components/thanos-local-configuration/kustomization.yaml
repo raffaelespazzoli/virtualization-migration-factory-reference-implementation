@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: thanos-local
+
+resources:
+  - namespace.yaml
+  - objstore-secret.yaml
+  - otel-metrics-collector.yaml
+  - receive-route.yaml
+  - service-ca-bundle.yaml
+
+helmGlobals:
+  chartHome: ../../.helm-charts
+
+helmCharts:
+  - name: thanos
+    releaseName: thanos
+    namespace: thanos-local
+    valuesFile: values-receive.yaml

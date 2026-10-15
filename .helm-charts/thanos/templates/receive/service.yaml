@@ -1,0 +1,73 @@
+{{- if .Values.receive.enabled }}
+{{- $cfg := include "thanos.receive.cfg" . | fromYaml -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "thanos.receive.workloadName" . }}
+  namespace: {{ include "thanos.namespace" . }}
+  labels:
+    app.kubernetes.io/component: receive
+    {{- include "thanos.labels" . | nindent 4 }}
+    {{- with $cfg.service.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- include "thanos.annotations" (dict "Values" .Values "component" "receive") | nindent 4 }}
+    {{- with $cfg.service.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  type: {{ $cfg.service.type }}
+  ports:
+    - name: http
+      port: {{ $cfg.service.httpPort }}
+      targetPort: http
+      {{- with $cfg.service.httpNodePort }}
+      nodePort: {{ . }}
+      {{- end }}
+    - name: remote-write
+      port: {{ $cfg.service.remoteWritePort }}
+      targetPort: remote-write
+      {{- with $cfg.service.remoteWriteNodePort }}
+      nodePort: {{ . }}
+      {{- end }}
+  selector:
+    {{- include "thanos.selectorLabels" (dict "root" $ "component" "receive") | nindent 4 }}
+---
+# Headless Service backing the StatefulSet: stable per-pod DNS for the hashring
+# endpoints. Like the per-shard Store Gateway Services, it intentionally omits
+# the `app.kubernetes.io/component: receive` metadata label so the shared
+# ServiceMonitor selects only the ClusterIP Service above and does not scrape
+# every pod twice.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "thanos.receiveHeadless" . }}
+  namespace: {{ include "thanos.namespace" . }}
+  labels:
+    {{- include "thanos.labels" . | nindent 4 }}
+    {{- with $cfg.service.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- include "thanos.annotations" (dict "Values" .Values "component" "receive") | nindent 4 }}
+    {{- with $cfg.service.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  clusterIP: None
+  type: ClusterIP
+  ports:
+    - name: grpc
+      port: {{ $cfg.service.grpcPort }}
+      targetPort: grpc
+    {{- if eq (include "thanos.receive.isCapnproto" .) "true" }}
+    # Peer-to-peer over the per-pod DNS names in the hashring, so this port
+    # stays off the ClusterIP Service, which would balance it to another pod.
+    - name: capnproto
+      port: {{ include "thanos.receive.capnprotoPort" . }}
+      targetPort: capnproto
+    {{- end }}
+  selector:
+    {{- include "thanos.selectorLabels" (dict "root" $ "component" "receive") | nindent 4 }}
+{{- end }}

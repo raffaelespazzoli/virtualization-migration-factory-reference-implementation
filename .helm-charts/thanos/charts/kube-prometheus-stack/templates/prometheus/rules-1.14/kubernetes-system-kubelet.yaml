@@ -1,0 +1,602 @@
+{{- /*
+Generated from 'kubernetes-system-kubelet' group from https://github.com/prometheus-operator/kube-prometheus.git
+Do not change in-place! In order to change this file first read following link:
+https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack/hack
+*/ -}}
+{{- $kubeTargetVersion := default .Capabilities.KubeVersion.GitVersion .Values.kubeTargetVersionOverride }}
+{{- if and (semverCompare ">=1.14.0-0" $kubeTargetVersion) (semverCompare "<9.9.9-9" $kubeTargetVersion) .Values.defaultRules.create .Values.defaultRules.rules.kubernetesSystem }}
+{{- $kubeStateMetricsJob := include "kube-prometheus-stack-kube-state-metrics.name" . }}
+{{- $kubeletJob := include "kube-prometheus-stack-kubelet.name" . }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ printf "%s-%s" (include "kube-prometheus-stack.fullname" .) "kubernetes-system-kubelet" | trunc 63 | trimSuffix "-" }}
+  namespace: {{ template "kube-prometheus-stack.namespace" . }}
+  labels:
+    app: {{ template "kube-prometheus-stack.name" . }}
+{{ include "kube-prometheus-stack.labels" . | indent 4 }}
+{{- if .Values.defaultRules.labels }}
+{{ toYaml .Values.defaultRules.labels | indent 4 }}
+{{- end }}
+{{- if .Values.defaultRules.annotations }}
+  annotations:
+{{ toYaml .Values.defaultRules.annotations | indent 4 }}
+{{- end }}
+spec:
+  groups:
+  - name: kubernetes-system-kubelet
+    rules:
+{{- if not (.Values.defaultRules.disabled.KubeNodeNotReady | default false) }}
+    - alert: KubeNodeNotReady
+      annotations:
+{{- $ruleAnnotations := dig "KubeNodeNotReady" (dict) .Values.defaultRules.additionalRuleAnnotations }}
+{{- $groupAnnotations := default (dict) .Values.defaultRules.additionalRuleGroupAnnotations.kubernetesSystem }}
+{{- $additionalAnnotations := mergeOverwrite (dict) $groupAnnotations $ruleAnnotations }}
+{{- if $additionalAnnotations }}
+{{ toYaml $additionalAnnotations | indent 8 }}
+{{- end }}
+        {{- if not (hasKey $additionalAnnotations "description") }}
+        description: '{{`{{`}} $labels.node {{`}}`}} has been unready for more than 15 minutes on cluster {{`{{`}} $labels.cluster {{`}}`}}.'
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "runbook_url") }}
+        runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubenodenotready
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "summary") }}
+        summary: Node is not ready.
+        {{- end }}
+      expr: |-
+        kube_node_status_condition{job="{{ $kubeStateMetricsJob }}",condition="Ready",status="true"} == 0
+        and on ({{ range $.Values.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster, node)
+        kube_node_spec_unschedulable{job="{{ $kubeStateMetricsJob }}"} == 0
+      for: {{ dig "KubeNodeNotReady" "for" "15m" .Values.customRules }}
+      {{- with .Values.defaultRules.keepFiringFor }}
+      keep_firing_for: "{{ . }}"
+      {{- end }}
+      labels:
+        severity: {{ dig "KubeNodeNotReady" "severity" "warning" .Values.customRules }}
+      {{- if or .Values.defaultRules.additionalRuleLabels .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+        {{- with .Values.defaultRules.additionalRuleLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.KubeNodePressure | default false) }}
+    - alert: KubeNodePressure
+      annotations:
+{{- $ruleAnnotations := dig "KubeNodePressure" (dict) .Values.defaultRules.additionalRuleAnnotations }}
+{{- $groupAnnotations := default (dict) .Values.defaultRules.additionalRuleGroupAnnotations.kubernetesSystem }}
+{{- $additionalAnnotations := mergeOverwrite (dict) $groupAnnotations $ruleAnnotations }}
+{{- if $additionalAnnotations }}
+{{ toYaml $additionalAnnotations | indent 8 }}
+{{- end }}
+        {{- if not (hasKey $additionalAnnotations "description") }}
+        description: '{{`{{`}} $labels.node {{`}}`}} on cluster {{`{{`}} $labels.cluster {{`}}`}} has active Condition {{`{{`}} $labels.condition {{`}}`}}. This is caused by resource usage exceeding eviction thresholds.'
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "runbook_url") }}
+        runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubenodepressure
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "summary") }}
+        summary: Node has as active Condition.
+        {{- end }}
+      expr: |-
+        kube_node_status_condition{job="{{ $kubeStateMetricsJob }}",condition=~"(MemoryPressure|DiskPressure|PIDPressure)",status="true"} == 1
+        and on ({{ range $.Values.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster, node)
+        kube_node_spec_unschedulable{job="{{ $kubeStateMetricsJob }}"} == 0
+      for: {{ dig "KubeNodePressure" "for" "10m" .Values.customRules }}
+      {{- with .Values.defaultRules.keepFiringFor }}
+      keep_firing_for: "{{ . }}"
+      {{- end }}
+      labels:
+        severity: {{ dig "KubeNodePressure" "severity" "info" .Values.customRules }}
+      {{- if or .Values.defaultRules.additionalRuleLabels .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+        {{- with .Values.defaultRules.additionalRuleLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.KubeNodeUnreachable | default false) }}
+    - alert: KubeNodeUnreachable
+      annotations:
+{{- $ruleAnnotations := dig "KubeNodeUnreachable" (dict) .Values.defaultRules.additionalRuleAnnotations }}
+{{- $groupAnnotations := default (dict) .Values.defaultRules.additionalRuleGroupAnnotations.kubernetesSystem }}
+{{- $additionalAnnotations := mergeOverwrite (dict) $groupAnnotations $ruleAnnotations }}
+{{- if $additionalAnnotations }}
+{{ toYaml $additionalAnnotations | indent 8 }}
+{{- end }}
+        {{- if not (hasKey $additionalAnnotations "description") }}
+        description: '{{`{{`}} $labels.node {{`}}`}} is unreachable and some workloads may be rescheduled on cluster {{`{{`}} $labels.cluster {{`}}`}}.'
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "runbook_url") }}
+        runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubenodeunreachable
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "summary") }}
+        summary: Node is unreachable.
+        {{- end }}
+      expr: (kube_node_spec_taint{job="{{ $kubeStateMetricsJob }}",key="node.kubernetes.io/unreachable",effect="NoSchedule"} unless ignoring(key,value) kube_node_spec_taint{job="{{ $kubeStateMetricsJob }}",key=~"ToBeDeletedByClusterAutoscaler|cloud.google.com/impending-node-termination|aws-node-termination-handler/spot-itn"}) == 1
+      for: {{ dig "KubeNodeUnreachable" "for" "15m" .Values.customRules }}
+      {{- with .Values.defaultRules.keepFiringFor }}
+      keep_firing_for: "{{ . }}"
+      {{- end }}
+      labels:
+        severity: {{ dig "KubeNodeUnreachable" "severity" "warning" .Values.customRules }}
+      {{- if or .Values.defaultRules.additionalRuleLabels .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+        {{- with .Values.defaultRules.additionalRuleLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.KubeletTooManyPods | default false) }}
+    - alert: KubeletTooManyPods
+      annotations:
+{{- $ruleAnnotations := dig "KubeletTooManyPods" (dict) .Values.defaultRules.additionalRuleAnnotations }}
+{{- $groupAnnotations := default (dict) .Values.defaultRules.additionalRuleGroupAnnotations.kubernetesSystem }}
+{{- $additionalAnnotations := mergeOverwrite (dict) $groupAnnotations $ruleAnnotations }}
+{{- if $additionalAnnotations }}
+{{ toYaml $additionalAnnotations | indent 8 }}
+{{- end }}
+        {{- if not (hasKey $additionalAnnotations "description") }}
+        description: Kubelet '{{`{{`}} $labels.node {{`}}`}}' is running at {{`{{`}} $value | humanizePercentage {{`}}`}} of its Pod capacity on cluster {{`{{`}} $labels.cluster {{`}}`}}.
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "runbook_url") }}
+        runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubelettoomanypods
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "summary") }}
+        summary: Kubelet is running at capacity.
+        {{- end }}
+      expr: |-
+        (
+          max by ({{ range $.Values.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster, instance) (
+            kubelet_running_pods{job="{{ $kubeletJob }}", metrics_path="/metrics"} > 1
+          )
+          * on ({{ range $.Values.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster, instance) group_left(node)
+          max by ({{ range $.Values.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster, instance, node) (
+            kubelet_node_name{job="{{ $kubeletJob }}", metrics_path="/metrics"}
+          )
+        )
+        / on ({{ range $.Values.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster, node) group_left()
+        max by ({{ range $.Values.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster, node) (
+          kube_node_status_capacity{job="{{ $kubeStateMetricsJob }}", resource="pods"} != 1
+        ) > 0.95
+      for: {{ dig "KubeletTooManyPods" "for" "15m" .Values.customRules }}
+      {{- with .Values.defaultRules.keepFiringFor }}
+      keep_firing_for: "{{ . }}"
+      {{- end }}
+      labels:
+        severity: {{ dig "KubeletTooManyPods" "severity" "info" .Values.customRules }}
+      {{- if or .Values.defaultRules.additionalRuleLabels .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+        {{- with .Values.defaultRules.additionalRuleLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.KubeNodeReadinessFlapping | default false) }}
+    - alert: KubeNodeReadinessFlapping
+      annotations:
+{{- $ruleAnnotations := dig "KubeNodeReadinessFlapping" (dict) .Values.defaultRules.additionalRuleAnnotations }}
+{{- $groupAnnotations := default (dict) .Values.defaultRules.additionalRuleGroupAnnotations.kubernetesSystem }}
+{{- $additionalAnnotations := mergeOverwrite (dict) $groupAnnotations $ruleAnnotations }}
+{{- if $additionalAnnotations }}
+{{ toYaml $additionalAnnotations | indent 8 }}
+{{- end }}
+        {{- if not (hasKey $additionalAnnotations "description") }}
+        description: The readiness status of node {{`{{`}} $labels.node {{`}}`}} has changed {{`{{`}} $value {{`}}`}} times in the last 15 minutes on cluster {{`{{`}} $labels.cluster {{`}}`}}.
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "runbook_url") }}
+        runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubenodereadinessflapping
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "summary") }}
+        summary: Node readiness status is flapping.
+        {{- end }}
+      expr: |-
+        sum(changes(kube_node_status_condition{job="{{ $kubeStateMetricsJob }}",status="true",condition="Ready"}[15m])) by ({{ range $.Values.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster, node) > 2
+        and on ({{ range $.Values.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster, node)
+        kube_node_spec_unschedulable{job="{{ $kubeStateMetricsJob }}"} == 0
+      for: {{ dig "KubeNodeReadinessFlapping" "for" "15m" .Values.customRules }}
+      {{- with .Values.defaultRules.keepFiringFor }}
+      keep_firing_for: "{{ . }}"
+      {{- end }}
+      labels:
+        severity: {{ dig "KubeNodeReadinessFlapping" "severity" "warning" .Values.customRules }}
+      {{- if or .Values.defaultRules.additionalRuleLabels .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+        {{- with .Values.defaultRules.additionalRuleLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.KubeNodeEviction | default false) }}
+    - alert: KubeNodeEviction
+      annotations:
+{{- $ruleAnnotations := dig "KubeNodeEviction" (dict) .Values.defaultRules.additionalRuleAnnotations }}
+{{- $groupAnnotations := default (dict) .Values.defaultRules.additionalRuleGroupAnnotations.kubernetesSystem }}
+{{- $additionalAnnotations := mergeOverwrite (dict) $groupAnnotations $ruleAnnotations }}
+{{- if $additionalAnnotations }}
+{{ toYaml $additionalAnnotations | indent 8 }}
+{{- end }}
+        {{- if not (hasKey $additionalAnnotations "description") }}
+        description: Node {{`{{`}} $labels.node {{`}}`}} on {{`{{`}} $labels.cluster {{`}}`}} is evicting Pods due to {{`{{`}} $labels.eviction_signal {{`}}`}}.  Eviction occurs when eviction thresholds are crossed, typically caused by Pods exceeding RAM/ephemeral-storage limits.
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "runbook_url") }}
+        runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubenodeeviction
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "summary") }}
+        summary: Node is evicting pods.
+        {{- end }}
+      expr: |-
+        sum(rate(kubelet_evictions{job="{{ $kubeletJob }}", metrics_path="/metrics"}[15m])) by ({{ range $.Values.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster, eviction_signal, instance)
+        * on ({{ range $.Values.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster, instance) group_left(node)
+        max by ({{ range $.Values.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster, instance, node) (
+          kubelet_node_name{job="{{ $kubeletJob }}", metrics_path="/metrics"}
+        )
+        > 0
+      for: {{ dig "KubeNodeEviction" "for" "0s" .Values.customRules }}
+      {{- with .Values.defaultRules.keepFiringFor }}
+      keep_firing_for: "{{ . }}"
+      {{- end }}
+      labels:
+        severity: {{ dig "KubeNodeEviction" "severity" "info" .Values.customRules }}
+      {{- if or .Values.defaultRules.additionalRuleLabels .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+        {{- with .Values.defaultRules.additionalRuleLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.KubeletPlegDurationHigh | default false) }}
+    - alert: KubeletPlegDurationHigh
+      annotations:
+{{- $ruleAnnotations := dig "KubeletPlegDurationHigh" (dict) .Values.defaultRules.additionalRuleAnnotations }}
+{{- $groupAnnotations := default (dict) .Values.defaultRules.additionalRuleGroupAnnotations.kubernetesSystem }}
+{{- $additionalAnnotations := mergeOverwrite (dict) $groupAnnotations $ruleAnnotations }}
+{{- if $additionalAnnotations }}
+{{ toYaml $additionalAnnotations | indent 8 }}
+{{- end }}
+        {{- if not (hasKey $additionalAnnotations "description") }}
+        description: The Kubelet Pod Lifecycle Event Generator has a 99th percentile duration of {{`{{`}} $value {{`}}`}} seconds on node {{`{{`}} $labels.node {{`}}`}} on cluster {{`{{`}} $labels.cluster {{`}}`}}.
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "runbook_url") }}
+        runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubeletplegdurationhigh
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "summary") }}
+        summary: Kubelet Pod Lifecycle Event Generator is taking too long to relist.
+        {{- end }}
+      expr: node_quantile:kubelet_pleg_relist_duration_seconds:histogram_quantile{quantile="0.99"} >= 10
+      for: {{ dig "KubeletPlegDurationHigh" "for" "5m" .Values.customRules }}
+      {{- with .Values.defaultRules.keepFiringFor }}
+      keep_firing_for: "{{ . }}"
+      {{- end }}
+      labels:
+        severity: {{ dig "KubeletPlegDurationHigh" "severity" "warning" .Values.customRules }}
+      {{- if or .Values.defaultRules.additionalRuleLabels .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+        {{- with .Values.defaultRules.additionalRuleLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.KubeletPodStartUpLatencyHigh | default false) }}
+    - alert: KubeletPodStartUpLatencyHigh
+      annotations:
+{{- $ruleAnnotations := dig "KubeletPodStartUpLatencyHigh" (dict) .Values.defaultRules.additionalRuleAnnotations }}
+{{- $groupAnnotations := default (dict) .Values.defaultRules.additionalRuleGroupAnnotations.kubernetesSystem }}
+{{- $additionalAnnotations := mergeOverwrite (dict) $groupAnnotations $ruleAnnotations }}
+{{- if $additionalAnnotations }}
+{{ toYaml $additionalAnnotations | indent 8 }}
+{{- end }}
+        {{- if not (hasKey $additionalAnnotations "description") }}
+        description: Kubelet Pod startup 99th percentile latency is {{`{{`}} $value {{`}}`}} seconds on node {{`{{`}} $labels.node {{`}}`}} on cluster {{`{{`}} $labels.cluster {{`}}`}}.
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "runbook_url") }}
+        runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubeletpodstartuplatencyhigh
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "summary") }}
+        summary: Kubelet Pod startup latency is too high.
+        {{- end }}
+      expr: |-
+        histogram_quantile(0.99,
+          sum by ({{ range $.Values.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster, instance, le) (
+            topk by ({{ range $.Values.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster, instance, le, operation_type) (1,
+              rate(kubelet_pod_worker_duration_seconds_bucket{job="{{ $kubeletJob }}", metrics_path="/metrics"}[5m])
+            )
+          )
+        )
+        * on ({{ range $.Values.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster, instance) group_left(node)
+        topk by ({{ range $.Values.defaultRules.additionalAggregationLabels }}{{ . }},{{ end }}cluster, instance, node) (1,
+          kubelet_node_name{job="{{ $kubeletJob }}", metrics_path="/metrics"}
+        )
+        > 60
+      for: {{ dig "KubeletPodStartUpLatencyHigh" "for" "15m" .Values.customRules }}
+      {{- with .Values.defaultRules.keepFiringFor }}
+      keep_firing_for: "{{ . }}"
+      {{- end }}
+      labels:
+        severity: {{ dig "KubeletPodStartUpLatencyHigh" "severity" "warning" .Values.customRules }}
+      {{- if or .Values.defaultRules.additionalRuleLabels .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+        {{- with .Values.defaultRules.additionalRuleLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.KubeletClientCertificateExpiration | default false) }}
+    - alert: KubeletClientCertificateExpiration
+      annotations:
+{{- $ruleAnnotations := dig "KubeletClientCertificateExpiration" (dict) .Values.defaultRules.additionalRuleAnnotations }}
+{{- $groupAnnotations := default (dict) .Values.defaultRules.additionalRuleGroupAnnotations.kubernetesSystem }}
+{{- $additionalAnnotations := mergeOverwrite (dict) $groupAnnotations $ruleAnnotations }}
+{{- if $additionalAnnotations }}
+{{ toYaml $additionalAnnotations | indent 8 }}
+{{- end }}
+        {{- if not (hasKey $additionalAnnotations "description") }}
+        description: Client certificate for Kubelet on node {{`{{`}} $labels.node {{`}}`}} expires in {{`{{`}} $value | humanizeDuration {{`}}`}} on cluster {{`{{`}} $labels.cluster {{`}}`}}.
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "runbook_url") }}
+        runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubeletclientcertificateexpiration
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "summary") }}
+        summary: Kubelet client certificate is about to expire.
+        {{- end }}
+      expr: kubelet_certificate_manager_client_ttl_seconds < {{ .Values.defaultRules.kubeletClientCertificateExpiration.warning }}
+      labels:
+        severity: {{ dig "KubeletClientCertificateExpiration" "severity" "warning" .Values.customRules }}
+      {{- if or .Values.defaultRules.additionalRuleLabels .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+        {{- with .Values.defaultRules.additionalRuleLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.KubeletClientCertificateExpiration | default false) }}
+    - alert: KubeletClientCertificateExpiration
+      annotations:
+{{- $ruleAnnotations := dig "KubeletClientCertificateExpiration" (dict) .Values.defaultRules.additionalRuleAnnotations }}
+{{- $groupAnnotations := default (dict) .Values.defaultRules.additionalRuleGroupAnnotations.kubernetesSystem }}
+{{- $additionalAnnotations := mergeOverwrite (dict) $groupAnnotations $ruleAnnotations }}
+{{- if $additionalAnnotations }}
+{{ toYaml $additionalAnnotations | indent 8 }}
+{{- end }}
+        {{- if not (hasKey $additionalAnnotations "description") }}
+        description: Client certificate for Kubelet on node {{`{{`}} $labels.node {{`}}`}} expires in {{`{{`}} $value | humanizeDuration {{`}}`}} on cluster {{`{{`}} $labels.cluster {{`}}`}}.
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "runbook_url") }}
+        runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubeletclientcertificateexpiration
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "summary") }}
+        summary: Kubelet client certificate is about to expire.
+        {{- end }}
+      expr: kubelet_certificate_manager_client_ttl_seconds < {{ .Values.defaultRules.kubeletClientCertificateExpiration.critical }}
+      labels:
+        severity: {{ dig "KubeletClientCertificateExpiration" "severity" "critical" .Values.customRules }}
+      {{- if or .Values.defaultRules.additionalRuleLabels .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+        {{- with .Values.defaultRules.additionalRuleLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.KubeletServerCertificateExpiration | default false) }}
+    - alert: KubeletServerCertificateExpiration
+      annotations:
+{{- $ruleAnnotations := dig "KubeletServerCertificateExpiration" (dict) .Values.defaultRules.additionalRuleAnnotations }}
+{{- $groupAnnotations := default (dict) .Values.defaultRules.additionalRuleGroupAnnotations.kubernetesSystem }}
+{{- $additionalAnnotations := mergeOverwrite (dict) $groupAnnotations $ruleAnnotations }}
+{{- if $additionalAnnotations }}
+{{ toYaml $additionalAnnotations | indent 8 }}
+{{- end }}
+        {{- if not (hasKey $additionalAnnotations "description") }}
+        description: Server certificate for Kubelet on node {{`{{`}} $labels.node {{`}}`}} expires in {{`{{`}} $value | humanizeDuration {{`}}`}} on cluster {{`{{`}} $labels.cluster {{`}}`}}.
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "runbook_url") }}
+        runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubeletservercertificateexpiration
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "summary") }}
+        summary: Kubelet server certificate is about to expire.
+        {{- end }}
+      expr: kubelet_certificate_manager_server_ttl_seconds < {{ .Values.defaultRules.kubeletServerCertificateExpiration.warning }}
+      labels:
+        severity: {{ dig "KubeletServerCertificateExpiration" "severity" "warning" .Values.customRules }}
+      {{- if or .Values.defaultRules.additionalRuleLabels .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+        {{- with .Values.defaultRules.additionalRuleLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.KubeletServerCertificateExpiration | default false) }}
+    - alert: KubeletServerCertificateExpiration
+      annotations:
+{{- $ruleAnnotations := dig "KubeletServerCertificateExpiration" (dict) .Values.defaultRules.additionalRuleAnnotations }}
+{{- $groupAnnotations := default (dict) .Values.defaultRules.additionalRuleGroupAnnotations.kubernetesSystem }}
+{{- $additionalAnnotations := mergeOverwrite (dict) $groupAnnotations $ruleAnnotations }}
+{{- if $additionalAnnotations }}
+{{ toYaml $additionalAnnotations | indent 8 }}
+{{- end }}
+        {{- if not (hasKey $additionalAnnotations "description") }}
+        description: Server certificate for Kubelet on node {{`{{`}} $labels.node {{`}}`}} expires in {{`{{`}} $value | humanizeDuration {{`}}`}} on cluster {{`{{`}} $labels.cluster {{`}}`}}.
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "runbook_url") }}
+        runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubeletservercertificateexpiration
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "summary") }}
+        summary: Kubelet server certificate is about to expire.
+        {{- end }}
+      expr: kubelet_certificate_manager_server_ttl_seconds < {{ .Values.defaultRules.kubeletServerCertificateExpiration.critical }}
+      labels:
+        severity: {{ dig "KubeletServerCertificateExpiration" "severity" "critical" .Values.customRules }}
+      {{- if or .Values.defaultRules.additionalRuleLabels .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+        {{- with .Values.defaultRules.additionalRuleLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.KubeletClientCertificateRenewalErrors | default false) }}
+    - alert: KubeletClientCertificateRenewalErrors
+      annotations:
+{{- $ruleAnnotations := dig "KubeletClientCertificateRenewalErrors" (dict) .Values.defaultRules.additionalRuleAnnotations }}
+{{- $groupAnnotations := default (dict) .Values.defaultRules.additionalRuleGroupAnnotations.kubernetesSystem }}
+{{- $additionalAnnotations := mergeOverwrite (dict) $groupAnnotations $ruleAnnotations }}
+{{- if $additionalAnnotations }}
+{{ toYaml $additionalAnnotations | indent 8 }}
+{{- end }}
+        {{- if not (hasKey $additionalAnnotations "description") }}
+        description: Kubelet on node {{`{{`}} $labels.node {{`}}`}} has failed to renew its client certificate ({{`{{`}} $value | humanize {{`}}`}} errors in the last 5 minutes) on cluster {{`{{`}} $labels.cluster {{`}}`}}.
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "runbook_url") }}
+        runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubeletclientcertificaterenewalerrors
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "summary") }}
+        summary: Kubelet has failed to renew its client certificate.
+        {{- end }}
+      expr: increase(kubelet_certificate_manager_client_expiration_renew_errors[5m]) > 0
+      for: {{ dig "KubeletClientCertificateRenewalErrors" "for" "15m" .Values.customRules }}
+      {{- with .Values.defaultRules.keepFiringFor }}
+      keep_firing_for: "{{ . }}"
+      {{- end }}
+      labels:
+        severity: {{ dig "KubeletClientCertificateRenewalErrors" "severity" "warning" .Values.customRules }}
+      {{- if or .Values.defaultRules.additionalRuleLabels .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+        {{- with .Values.defaultRules.additionalRuleLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.KubeletServerCertificateRenewalErrors | default false) }}
+    - alert: KubeletServerCertificateRenewalErrors
+      annotations:
+{{- $ruleAnnotations := dig "KubeletServerCertificateRenewalErrors" (dict) .Values.defaultRules.additionalRuleAnnotations }}
+{{- $groupAnnotations := default (dict) .Values.defaultRules.additionalRuleGroupAnnotations.kubernetesSystem }}
+{{- $additionalAnnotations := mergeOverwrite (dict) $groupAnnotations $ruleAnnotations }}
+{{- if $additionalAnnotations }}
+{{ toYaml $additionalAnnotations | indent 8 }}
+{{- end }}
+        {{- if not (hasKey $additionalAnnotations "description") }}
+        description: Kubelet on node {{`{{`}} $labels.node {{`}}`}} has failed to renew its server certificate ({{`{{`}} $value | humanize {{`}}`}} errors in the last 5 minutes) on cluster {{`{{`}} $labels.cluster {{`}}`}}.
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "runbook_url") }}
+        runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubeletservercertificaterenewalerrors
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "summary") }}
+        summary: Kubelet has failed to renew its server certificate.
+        {{- end }}
+      expr: increase(kubelet_server_expiration_renew_errors[5m]) > 0
+      for: {{ dig "KubeletServerCertificateRenewalErrors" "for" "15m" .Values.customRules }}
+      {{- with .Values.defaultRules.keepFiringFor }}
+      keep_firing_for: "{{ . }}"
+      {{- end }}
+      labels:
+        severity: {{ dig "KubeletServerCertificateRenewalErrors" "severity" "warning" .Values.customRules }}
+      {{- if or .Values.defaultRules.additionalRuleLabels .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+        {{- with .Values.defaultRules.additionalRuleLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- if not (.Values.defaultRules.disabled.KubeletInstanceUnreachable | default false) }}
+    - alert: KubeletInstanceUnreachable
+      annotations:
+{{- $ruleAnnotations := dig "KubeletInstanceUnreachable" (dict) .Values.defaultRules.additionalRuleAnnotations }}
+{{- $groupAnnotations := default (dict) .Values.defaultRules.additionalRuleGroupAnnotations.kubernetesSystem }}
+{{- $additionalAnnotations := mergeOverwrite (dict) $groupAnnotations $ruleAnnotations }}
+{{- if $additionalAnnotations }}
+{{ toYaml $additionalAnnotations | indent 8 }}
+{{- end }}
+        {{- if not (hasKey $additionalAnnotations "description") }}
+        description: A Kubelet instance has been unreachable for more than 15 minutes.
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "runbook_url") }}
+        runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubeletinstanceunreachable
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "summary") }}
+        summary: Kubelet instance is unreachable.
+        {{- end }}
+      expr: up{job="{{ $kubeletJob }}", metrics_path="/metrics"} == 0
+      for: {{ dig "KubeletInstanceUnreachable" "for" "15m" .Values.customRules }}
+      {{- with .Values.defaultRules.keepFiringFor }}
+      keep_firing_for: "{{ . }}"
+      {{- end }}
+      labels:
+        severity: {{ dig "KubeletInstanceUnreachable" "severity" "warning" .Values.customRules }}
+      {{- if or .Values.defaultRules.additionalRuleLabels .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+        {{- with .Values.defaultRules.additionalRuleLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- if .Values.prometheusOperator.kubeletService.enabled }}
+{{- if not (.Values.defaultRules.disabled.KubeletDown | default false) }}
+    - alert: KubeletDown
+      annotations:
+{{- $ruleAnnotations := dig "KubeletDown" (dict) .Values.defaultRules.additionalRuleAnnotations }}
+{{- $groupAnnotations := default (dict) .Values.defaultRules.additionalRuleGroupAnnotations.kubernetesSystem }}
+{{- $additionalAnnotations := mergeOverwrite (dict) $groupAnnotations $ruleAnnotations }}
+{{- if $additionalAnnotations }}
+{{ toYaml $additionalAnnotations | indent 8 }}
+{{- end }}
+        {{- if not (hasKey $additionalAnnotations "description") }}
+        description: Kubelet has disappeared from Prometheus target discovery on cluster {{`{{`}} $labels.cluster {{`}}`}}.
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "runbook_url") }}
+        runbook_url: {{ .Values.defaultRules.runbookUrl }}/kubernetes/kubeletdown
+        {{- end }}
+        {{- if not (hasKey $additionalAnnotations "summary") }}
+        summary: Target disappeared from Prometheus target discovery.
+        {{- end }}
+      expr: |-
+        count by (cluster) (kube_node_info{job="{{ $kubeStateMetricsJob }}"})
+        unless on (cluster)
+        count by (cluster) (up{job="{{ $kubeletJob }}", metrics_path="/metrics"} == 1)
+      for: {{ dig "KubeletDown" "for" "15m" .Values.customRules }}
+      {{- with .Values.defaultRules.keepFiringFor }}
+      keep_firing_for: "{{ . }}"
+      {{- end }}
+      labels:
+        severity: {{ dig "KubeletDown" "severity" "critical" .Values.customRules }}
+      {{- if or .Values.defaultRules.additionalRuleLabels .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+        {{- with .Values.defaultRules.additionalRuleLabels }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.defaultRules.additionalRuleGroupLabels.kubernetesSystem }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,105 @@
+{{- if .Values.query.enabled }}
+{{- $sd := dig "endpoints" "sdConfig" dict .Values.query -}}
+{{- $sdKey := dig "key" "endpoints.yml" $sd -}}
+{{- $sdEnabled := or (dig "existingConfigMap" "" $sd) (dig "config" "" $sd) -}}
+{{- $sdConfigMap := dig "existingConfigMap" "" $sd | default (printf "%s-endpoints" (include "thanos.compName" (list . "query"))) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "thanos.compName" (list . "query") }}
+  namespace: {{ include "thanos.namespace" . }}
+  labels:
+    {{- include "thanos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: query
+    {{- with .Values.query.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- include "thanos.annotations" (dict "Values" .Values "component" "query") | nindent 4 }}
+    {{- with .Values.query.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if not .Values.query.autoscaling.enabled }}
+  replicas: {{ .Values.query.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "thanos.selectorLabels" (dict "root" $ "component" "query") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "thanos.labels" . | nindent 8 }}
+        app.kubernetes.io/component: query
+        {{- include "thanos.podLabels" (dict "root" . "key" "query") | nindent 8 }}
+      annotations:
+        {{- with .Values.global.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "thanos.serviceAccountName" (dict "root" . "component" "query") }}
+      {{- include "thanos.affinity" (dict "Values" .Values "component" "query") | nindent 6 }}
+      {{- include "thanos.imagePullSecrets" . | nindent 6 }}
+      {{- include "thanos.podSC" (dict "root" . "key" "query") | nindent 6 }}
+      containers:
+        - name: query
+          image: {{ include "thanos.image" (dict "root" . "image" .Values.global.image) | quote }}
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          args:
+            - query
+            - --http-address=0.0.0.0:{{ .Values.query.service.httpPort }}
+            - --grpc-address=0.0.0.0:{{ .Values.query.service.grpcPort }}
+        {{- if .Values.query.endpoints.autogen.enabled }}
+          {{- if .Values.storegateway.enabled }}
+            # - --endpoint={{ include "thanos.compName" (list . "storegateway") }}:{{ .Values.storegateway.service.grpcPort }}
+            - --endpoint=dnssrv+_grpc._tcp.{{ include "thanos.compName" (list . "storegateway") }}.{{ include "thanos.namespace" . }}.svc.{{ .Values.global.clusterDomain }}
+          {{- end }}
+          {{- if .Values.receive.enabled }}
+            - --endpoint=dnssrv+_grpc._tcp.{{ include "thanos.receiveHeadless" . }}.{{ include "thanos.namespace" . }}.svc.{{ .Values.global.clusterDomain }}
+          {{- end }}
+          {{- if .Values.ruler.enabled }}
+            - --endpoint=dnssrv+_grpc._tcp.{{ include "thanos.compName" (list . "ruler") }}-headless.{{ include "thanos.namespace" . }}.svc.{{ .Values.global.clusterDomain }}
+          {{- end }}
+        {{- end }}
+          {{- range .Values.query.endpoints.static }}
+            - --endpoint={{ . }}
+          {{- end }}
+          {{- range .Values.query.stores }}
+            - --endpoint={{ . }}
+          {{- end }}
+          {{- if $sdEnabled }}
+            - --endpoint.sd-config-file=/etc/thanos/endpoints/{{ $sdKey }}
+            {{- with dig "reloadInterval" "" $sd }}
+            - --endpoint.sd-config-reload-interval={{ . }}
+            {{- end }}
+          {{- end }}
+          {{- range .Values.query.replicaLabels }}
+            - --query.replica-label={{ . }}
+          {{- end }}
+          {{- range .Values.query.extraArgs }}
+            - {{ . | quote }}
+          {{- end }}
+          {{- include "thanos.extraEnvBlock" (dict "Values" .Values "component" "query") | nindent 10 }}
+          {{- include "thanos.extraEnvFromBlock" (dict "Values" .Values "component" "query") | nindent 10 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.query.service.httpPort }}
+            - name: grpc
+              containerPort: {{ .Values.query.service.grpcPort }}
+          {{- $ownMounts := ternary "- name: endpoint-sd\n  mountPath: /etc/thanos/endpoints\n  readOnly: true" "" (not (empty $sdEnabled)) -}}
+          {{- include "thanos.extraMountsBlock" (dict "root" . "key" "query" "items" $ownMounts) | nindent 10 }}
+          {{- include "thanos.containerSC" (dict "root" . "key" "query") | nindent 10 }}
+          resources:
+            {{- toYaml .Values.query.resources | nindent 12 }}
+          {{- include "thanos.httpProbes" (dict "root" . "key" "query") | nindent 10 }}
+        {{- include "thanos.extraContainers" (dict "Values" .Values "component" "query" "root" .) | nindent 8 }}
+      {{- include "thanos.dnsConfig" (dict "Values" .Values "component" "query") | nindent 6 }}
+      {{- include "thanos.initContainers" (dict "Values" .Values "component" "query" "root" .) | nindent 6 }}
+      {{- include "thanos.nodeSelector" (dict "Values" .Values "component" "query") | nindent 6 }}
+      {{- include "thanos.priorityClassName" (dict "Values" .Values "component" "query") | nindent 6 }}
+      {{- include "thanos.tolerations" (dict "Values" .Values "component" "query") | nindent 6 }}
+      {{- include "thanos.topologySpreadConstraints" (dict "Values" .Values "component" "query") | nindent 6 }}
+      {{- $sdVolume := printf "- name: endpoint-sd\n  configMap:\n    name: %s" $sdConfigMap -}}
+      {{- $ownVolumes := ternary $sdVolume "" (not (empty $sdEnabled)) -}}
+      {{- include "thanos.extraVolumesBlock" (dict "root" . "key" "query" "items" $ownVolumes) | nindent 6 }}
+{{- end }}

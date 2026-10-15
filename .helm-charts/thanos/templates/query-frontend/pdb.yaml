@@ -1,0 +1,23 @@
+{{- if and .Values.queryFrontend.enabled (or .Values.queryFrontend.pdb.enabled .Values.global.pdb.enabled) }}
+{{- $minAvail := .Values.queryFrontend.pdb.minAvailable | default .Values.global.pdb.minAvailable -}}
+{{- $maxUnavail := .Values.queryFrontend.pdb.maxUnavailable | default .Values.global.pdb.maxUnavailable -}}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "thanos.compName" (list . "query-frontend") }}
+  namespace: {{ include "thanos.namespace" . }}
+  labels:
+    {{- include "thanos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: query-frontend
+  annotations:
+    {{- include "thanos.annotations" (dict "Values" .Values "component" "query-frontend") | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "thanos.selectorLabels" (dict "root" $ "component" "query-frontend") | nindent 6 }}
+  {{- if $minAvail }}
+  minAvailable: {{ $minAvail }}
+  {{- else if $maxUnavail }}
+  maxUnavailable: {{ $maxUnavail }}
+  {{- end }}
+{{- end }}

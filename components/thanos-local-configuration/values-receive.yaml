@@ -1,0 +1,78 @@
+# Thanos Receive — deployed on every cluster that produces metrics.
+# All other Thanos components are disabled; they live in thanos-server-deployment.
+
+global:
+  objstore:
+    createSecret: false
+    secretName: thanos-objstore
+    secretKey: objstore.yml
+  storageClass: ontap-nas
+
+# ---------- Receive ----------
+receive:
+  enabled: true
+  mode: standalone
+  replicaCount: 3
+
+  tsdb:
+    retention: 24h
+    walCompression: true
+
+  replication:
+    protocol: protobuf
+
+  service:
+    type: ClusterIP
+    grpcPort: 10901
+    httpPort: 10902
+    remoteWritePort: 10908
+    annotations:
+      service.beta.openshift.io/serving-cert-secret-name: thanos-receive-tls
+
+  persistence:
+    enabled: true
+    size: 50Gi
+    storageClass: ontap-nas
+
+  extraArgs:
+    - --log.level=info
+    - --grpc-server-tls-cert=/etc/tls/grpc/tls.crt
+    - --grpc-server-tls-key=/etc/tls/grpc/tls.key
+    # Write-path durability: every write is replicated to 2 of the 3 Receive
+    # instances. A single Receive pod failure cannot lose data that was acked.
+    - --receive.replication-factor=2
+    # Advertise the cluster label so Thanos Query can skip this Receive
+    # when a query's label matchers don't match. The value is interpolated
+    # by the ArgoCD envsubst CMP sidecar at render time.
+    - --label=cluster="${CLUSTER_NAME}"
+
+  extraVolumes:
+    - name: grpc-tls
+      secret:
+        secretName: thanos-receive-tls
+
+  extraVolumeMounts:
+    - name: grpc-tls
+      mountPath: /etc/tls/grpc
+      readOnly: true
+
+  resources:
+    requests:
+      cpu: "1"
+      memory: 4Gi
+    limits:
+      memory: 8Gi
+
+# ---------- Disable everything else ----------
+query:
+  enabled: false
+queryFrontend:
+  enabled: false
+storegateway:
+  enabled: false
+compactor:
+  enabled: false
+ruler:
+  enabled: false
+bucket:
+  enabled: false

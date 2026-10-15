@@ -1,0 +1,84 @@
+{{- if .Values.storegateway.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "thanos.compName" (list . "storegateway") }}
+  namespace: {{ include "thanos.namespace" . }}
+  labels:
+    app.kubernetes.io/component: storegateway
+    {{- include "thanos.labels" . | nindent 4 }}
+    {{- with .Values.storegateway.service.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- include "thanos.annotations" (dict "Values" .Values "component" "storegateway") | nindent 4 }}
+    {{- with .Values.storegateway.service.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  type: {{ .Values.storegateway.service.type }}
+  {{- if eq (include "thanos.storegateway.sharded" .) "true" }}
+  # Headless so that the Query DNS-SRV discovery (dnssrv+_grpc._tcp) resolves
+  # every shard pod individually and fans out across all shards.
+  clusterIP: None
+  {{- end }}
+  ports:
+    # nodePorts are only valid on the aggregate Service while it has a cluster
+    # IP: sharding turns it headless, and the per-shard Services below cannot
+    # share one fixed node port.
+    - name: http
+      port: {{ .Values.storegateway.service.httpPort }}
+      targetPort: http
+      {{- if ne (include "thanos.storegateway.sharded" .) "true" }}
+      {{- with .Values.storegateway.service.httpNodePort }}
+      nodePort: {{ . }}
+      {{- end }}
+      {{- end }}
+    - name: grpc
+      port: {{ .Values.storegateway.service.grpcPort }}
+      targetPort: grpc
+      {{- if ne (include "thanos.storegateway.sharded" .) "true" }}
+      {{- with .Values.storegateway.service.grpcNodePort }}
+      nodePort: {{ . }}
+      {{- end }}
+      {{- end }}
+  selector:
+    {{- include "thanos.selectorLabels" (dict "root" $ "component" "storegateway") | nindent 4 }}
+{{- if eq (include "thanos.storegateway.sharded" .) "true" }}
+{{- $shards := (include "thanos.storegateway.shards" . | fromYaml).shards }}
+{{- range $shard := $shards }}
+---
+# Per-shard HTTP Service for addressing an individual shard (UI, /metrics,
+# debug endpoints). gRPC fan-out for Query is handled by the aggregate headless
+# Service above. This Service intentionally omits the
+# `app.kubernetes.io/component: storegateway` metadata label so the shared
+# ServiceMonitor selects only the aggregate Service and does not scrape every
+# pod twice.
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $shard.name }}
+  namespace: {{ include "thanos.namespace" $ }}
+  labels:
+    {{- include "thanos.labels" $ | nindent 4 }}
+    thanos.io/storegateway-shard: {{ $shard.index | quote }}
+    {{- with $.Values.storegateway.service.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- include "thanos.annotations" (dict "Values" $.Values "component" "storegateway") | nindent 4 }}
+    {{- with $.Values.storegateway.service.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  type: {{ $.Values.storegateway.service.type }}
+  ports:
+    - name: http
+      port: {{ $.Values.storegateway.service.httpPort }}
+      targetPort: http
+  selector:
+    {{- include "thanos.selectorLabels" (dict "root" $ "component" "storegateway") | nindent 4 }}
+    thanos.io/storegateway-shard: {{ $shard.index | quote }}
+{{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,772 @@
+# Thanos Helm Chart
+
+{{ template "chart.deprecationWarning" . }}
+
+{{ template "chart.badgesSection" . }}
+
+<p align="center"><img src="../../docs/imgs/thanos_logo_full.svg" alt="Thanos Logo" width="300"/></p>
+
+{{ template "chart.description" . }}
+
+## TL;DR
+
+```bash
+helm install thanos oci://ghcr.io/thanos-community/helm-charts/thanos \
+  --namespace monitoring \
+  --create-namespace
+```
+
+## Architecture
+
+![Thanos High Level Architecture](../../docs/imgs/thanos_hld_arch.png)
+
+Thanos extends Prometheus with global query view, long-term storage, and high availability. It is composed of several independently deployable components that each serve a specific role.
+
+Refer to the [Thanos component docs](https://thanos.io/tip/thanos/quick-tutorial.md/#components) for an in-depth explanation.
+
+{{ template "chart.maintainersSection" . }}
+
+{{ template "chart.sourcesSection" . }}
+
+## Prerequisites
+
+- Kubernetes `{{ template "chart.kubeVersion" . }}`
+- Helm >= 3.8 (OCI registry support)
+- An object store bucket — GCS, S3, Azure Blob, or any S3-compatible store
+
+{{ template "chart.requirementsSection" . }}
+
+## Component Overview
+
+The chart deploys each Thanos component as an independent workload. Enable only what you need.
+
+| Component | Enabled by Default | Workload | Purpose |
+|-----------|--------------------|----------|---------|
+| **query** | Yes | Deployment | Fan-out query engine. Queries multiple Store API endpoints and deduplicates results. This is the Prometheus-compatible query entrypoint. |
+| **receive** | Yes | StatefulSet | Remote-write endpoint. Accepts Prometheus `remote_write` traffic, stores samples locally, and ships blocks to the object store. |
+| **storegateway** | Yes | StatefulSet | Serves historical blocks from the object store over the Store API. Required for querying data older than what Prometheus/Receive holds locally. |
+| **compactor** | Yes | StatefulSet | Compacts and downsamples blocks in the object store. Runs as a singleton — do not scale above 1 replica. |
+| **query-frontend** | No | Deployment | Optional caching and query-splitting layer in front of Query. Reduces load for repeated or heavy queries. |
+| **ruler** | No | StatefulSet | Evaluates alerting and recording rules by querying the Query component. Sends alerts to Alertmanager. |
+| **bucket (bucketweb)** | No | Deployment | Read-only web UI for inspecting blocks in the object store. Useful for debugging, not needed in production. |
+
+## Installation
+
+### 1. Add the Helm repository (optional, for non-OCI installs)
+
+```bash
+helm repo add thanos-community https://thanos-community.github.io/helm-charts
+helm repo update
+```
+
+### 2. Configure object store credentials
+
+All stateful Thanos components (Receive, Store Gateway, Compactor, Ruler) need access to an object store.
+
+Create a `values.yaml` file with your object store configuration:
+
+```yaml
+global:
+  objstore:
+    # Set createSecret: true to let the chart create the Secret from the inline config below.
+    # Set createSecret: false (default) if you manage the Secret externally.
+    createSecret: true
+    secretName: thanos-objstore
+    secretKey: objstore.yml
+    config: |
+      type: S3
+      config:
+        bucket: my-thanos-bucket
+        endpoint: s3.eu-west-1.amazonaws.com
+        region: eu-west-1
+        access_key: <ACCESS_KEY>
+        secret_key: <SECRET_KEY>
+```
+
+### 3. Install the chart
+
+```bash
+helm install thanos oci://ghcr.io/thanos-community/helm-charts/thanos \
+  --namespace monitoring \
+  --create-namespace \
+  -f values.yaml
+```
+
+### 4. Verify the installation
+
+```bash
+kubectl get pods -n monitoring -l app.kubernetes.io/instance=thanos
+```
+
+## Object Store Configuration
+
+The object store config is shared by all components that write to or read from the object store. It follows the [Thanos object store YAML format](https://thanos.io/tip/thanos/storage.md/).
+
+### Providing credentials
+
+**Option A — let the chart create the Secret** (suitable for development):
+
+```yaml
+global:
+  objstore:
+    createSecret: true
+    config: |
+      type: GCS
+      config:
+        bucket: my-bucket
+```
+
+**Option B — bring your own Secret** (recommended for production):
+
+Create the Secret externally (e.g. via Vault, External Secrets Operator, or `kubectl`):
+
+```bash
+kubectl create secret generic thanos-objstore \
+  --from-file=objstore.yml=./objstore.yml \
+  -n monitoring
+```
+
+Then reference it in values:
+
+```yaml
+global:
+  objstore:
+    createSecret: false
+    secretName: thanos-objstore
+    secretKey: objstore.yml
+```
+
+### Provider examples
+
+<details>
+<summary>Google Cloud Storage (GCS)</summary>
+
+```yaml
+type: GCS
+config:
+  bucket: my-thanos-bucket
+  service_account: |-
+    {
+      "type": "service_account",
+      ...
+    }
+```
+
+</details>
+
+<details>
+<summary>Amazon S3 / S3-compatible</summary>
+
+```yaml
+type: S3
+config:
+  bucket: my-thanos-bucket
+  endpoint: s3.eu-west-1.amazonaws.com
+  region: eu-west-1
+  access_key: AKIAIOSFODNN7EXAMPLE
+  secret_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+```
+
+</details>
+
+<details>
+<summary>Azure Blob Storage</summary>
+
+```yaml
+type: AZURE
+config:
+  storage_account: mystorageaccount
+  storage_account_key: <BASE64_ENCODED_KEY>
+  container: thanos
+  endpoint_suffix: core.windows.net
+```
+
+</details>
+
+## Key Configuration Sections
+
+### Global defaults
+
+Settings under `global` apply to **all components** unless overridden at the component level. This avoids repeating common values (image, security context, node selectors, etc.).
+
+```yaml
+global:
+  image:
+    registry: quay.io
+    repository: thanos/thanos
+    tag: v0.39.2
+    pullPolicy: IfNotPresent
+
+  # Applied to every pod
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: [ALL]
+    runAsNonRoot: true
+
+  # Shared resource defaults (override per component as needed)
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+
+  # Fallback StorageClass for every PVC the chart creates. A component's own
+  # persistence.storageClass wins; empty on both means the cluster default.
+  storageClass: ""
+```
+
+### Query
+
+The Query component is the main entrypoint for PromQL queries. It fans out to all registered Store API endpoints and deduplicates results using replica labels.
+
+```yaml
+query:
+  enabled: true
+  replicaCount: 2
+
+  # Labels that identify replica identity — used for deduplication
+  replicaLabels:
+    - prometheus_replica
+    - receive_replica
+    - ruler_replica
+
+  # gRPC --endpoint arguments. The in-chart components (Receive, Store Gateway, Ruler) are auto-wired
+  # when autogen.enabled is true. Endpoints defined in static[] are always appended; set
+  # autogen.enabled to false to take full control of what endpoint arguments are passed.
+  endpoints:
+    autogen:
+      enabled: true
+    static: []
+    # Example:
+    # static:
+    #   - thanos-storegateway.cluster1.internal:443
+    #   - thanos-receive.cluster1.internal:443
+
+  # Deprecated. Use query.endpoints.static[] instead.
+  stores: []
+
+  ingress:
+    http:
+      enabled: false
+      className: nginx
+      hosts:
+        - host: thanos-query.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+```
+
+#### File-based endpoint discovery
+
+`autogen` and `static` bake their endpoints into the pod spec, so every change to the store topology is a `helm upgrade` and a restart. `query.endpoints.sdConfig` instead passes `--endpoint.sd-config-file`, which Thanos re-reads at runtime — the right fit when the set of Store API servers changes without the chart knowing, for example sidecars appearing next to new Prometheus instances.
+
+Point it at a ConfigMap somebody else maintains:
+
+```yaml
+query:
+  endpoints:
+    sdConfig:
+      existingConfigMap: thanos-endpoints
+      key: endpoints.yml
+      reloadInterval: 30s
+```
+
+Or let the chart render one from an inline config. The file is Thanos' own `EndpointConfig`, documented under [Per-Endpoint TLS Configuration](https://thanos.io/v0.42/components/query.md/#per-endpoint-tls-configuration) — not the Prometheus target-group format, which belongs to the deprecated `--store.sd-files` flag:
+
+```yaml
+query:
+  endpoints:
+    sdConfig:
+      config: |
+        endpoints:
+          - address: thanos-sidecar-0.prometheus:10901
+          - address: thanos-sidecar-1.prometheus:10901
+```
+
+Three things to keep in mind:
+
+- The ConfigMap is mounted as a directory rather than with `subPath`, because the kubelet only keeps the projected file current without one. With `subPath` the file would freeze at its first version and re-reading it would find nothing new.
+- File SD is additive: `autogen` and `static` endpoints are still passed as `--endpoint` arguments alongside it, and Thanos merges them into the file's list on every reload.
+- gRPC client TLS belongs in this file too, as `default_client_config` or per endpoint as `client_config`. The `--grpc-client-tls-*` flags are deprecated after v0.43.0, and Query already logs a warning pointing here.
+
+### Receive
+
+The Receive component accepts Prometheus `remote_write` traffic and stores samples locally in a TSDB WAL before shipping blocks to the object store.
+
+```yaml
+receive:
+  enabled: true
+  replicaCount: 3           # Minimum 3 for a replication factor of 2
+
+  tsdb:
+    retention: 24h          # How long to keep data locally before it is uploaded
+    walCompression: true    # Reduces IO and disk usage
+
+  persistence:
+    enabled: true
+    size: 10Gi
+
+  # Hashring topology — defaults to auto-generating a single ring
+  hashrings:
+    autogen:
+      enabled: true
+      name: default
+    # static: []            # Set to override autogen with a custom hashring config
+```
+
+Configure Prometheus to remote-write to the Receive service:
+
+```yaml
+# In your Prometheus / kube-prometheus-stack values
+prometheus:
+  prometheusSpec:
+    remoteWrite:
+      - url: http://thanos-receive.monitoring.svc.cluster.local:10908/api/v1/receive
+```
+
+#### Split mode (separate Router and Ingester)
+
+For high-availability and horizontal scalability, Receive can be deployed as
+two separate workloads following the [receive split proposal](https://thanos.io/tip/proposals-accepted/202012-receive-split.md):
+
+- **Router** — stateless `Deployment` that terminates client `remote_write`
+  traffic and forwards each request to the correct Ingester(s) according to the
+  hashring config (with optional replication).
+- **Ingester** — stateful `StatefulSet` that stores samples in a local TSDB WAL
+  and ships blocks to the object store, just like standalone Receive.
+
+Set `receive.mode: split` to opt in. In `split` mode the top-level `receive.*`
+fields are **ignored**: configure the Ingester StatefulSet (renamed to
+`<release>-thanos-receive-ingester`) via `receive.ingester.*`, and the Router
+Deployment (`<release>-thanos-receive-router`) via `receive.router.*`. The
+schema enforces that both `ingester` and `router` are populated when
+`mode: split`.
+
+```yaml
+receive:
+  enabled: true
+  mode: split             # standalone (default) | split
+
+  ingester:
+    replicaCount: 3       # Minimum 3 for replication factor 2
+    tsdb:
+      retention: 24h
+      walCompression: true
+    service:
+      grpcPort: 10901
+      httpPort: 10902
+      remoteWritePort: 10908
+    persistence:
+      enabled: true
+      size: 10Gi
+    hashrings:
+      autogen:
+        enabled: true
+
+  router:
+    replicaCount: 2
+    replicationFactor: 2  # Each write fans out to N ingesters
+```
+
+In standalone mode (default), leave `receive.ingester` and `receive.router`
+empty — all configuration lives directly under `receive.*`.
+
+In split mode clients should remote-write to the Router service:
+
+```
+http://<release>-thanos-receive-router.<namespace>.svc.cluster.local:10908/api/v1/receive
+```
+
+#### Externally managed hashrings
+
+`receive.hashrings.external` points the chart at a hashring ConfigMap owned by something else — typically [thanos-receive-controller](https://github.com/observatorium/thanos-receive-controller), which watches the Receive pods and rewrites the ring as they come and go, so that scaling needs no redeploy:
+
+```yaml
+receive:
+  hashrings:
+    refreshInterval: 30s      # re-read the file the controller rewrites
+    external:
+      enabled: true
+      configMapName: thanos-receive-controller-generated
+      key: hashrings.json     # this is the default
+```
+
+In split mode the whole `hashrings` block moves to `receive.ingester.hashrings`, because both workloads resolve the ring from the Ingester config — the Router reads it to route, the Ingester to know its own place in it. A hashring under `receive.router` is rejected at render time rather than silently ignored.
+
+Three things to keep in mind:
+
+- The chart renders no hashring ConfigMap of its own while this is enabled, and `autogen` and `static` are ignored. Without that, Helm and the controller would fight over the same object.
+- The ring is entirely the owner's responsibility, including any per-endpoint fields beyond the address that the [hashring format](https://thanos.io/tip/components/receive.md/) supports. The chart contributes nothing to a ring it does not render.
+- The `checksum/hashrings` pod annotation is dropped, since the ring content is unknown at render time. Receive watches the hashring file with fsnotify and re-reads it on change; `--receive.hashrings-file-refresh-interval` (Thanos default `5m`) re-reads it regardless, which covers the case where the watch cannot be re-established after the file is replaced — what a ConfigMap update does. `refreshInterval` tightens that bound.
+
+`hashrings.algorithm` is independent of all this and applies to standalone and split mode alike: `ketama` (the default, consistent hashing) or the legacy `hashmod`.
+
+#### Cap'n Proto replication
+
+`receive.replication.protocol` selects the wire protocol used to replicate writes between Receive endpoints. It is read in both modes, like `mode`: in split mode the Router dials over it and the Ingester listens on it, in standalone mode the same workload does both.
+
+```yaml
+receive:
+  replication:
+    protocol: capnproto     # protobuf (default) | capnproto
+  service:
+    capnprotoPort: 19391    # this is the default
+```
+
+Two things to keep in mind:
+
+- The port is rendered on the container, on the headless Service and — with `global.networkPolicies` enabled — in the NetworkPolicy. It is deliberately left off the ClusterIP Service, since replication addresses one specific peer through its per-pod DNS name and a load-balanced port would reach a different one.
+- Auto-generated hashrings switch from plain string endpoints to objects carrying an explicit `capnproto_address`, which [the Thanos docs](https://thanos.io/tip/components/receive.md/) recommend over letting Thanos infer it from the gRPC address. Rings the chart does not render are untouched — `hashrings.static`, and an externally managed ring under `hashrings.external` — so their owner has to add `capnproto_address` to the endpoints.
+
+### Store Gateway
+
+The Store Gateway exposes historical blocks from the object store over the Store API. Query routes requests for older data to this component.
+
+```yaml
+storegateway:
+  enabled: true
+  replicaCount: 2
+
+  persistence:
+    enabled: true
+    size: 10Gi              # Used for index cache and chunk downloads
+
+  # Optional: add a caching bucket layer (memcached/redis) to reduce object store calls
+  cachingBucketConfig: ""
+```
+
+### Compactor
+
+The Compactor runs as a **singleton** (one instance). It compacts blocks uploaded by Receive into larger blocks and downsamples them for faster long-range queries.
+
+```yaml
+compactor:
+  enabled: true
+  replicaCount: 1           # Do NOT increase — compactor must run as a singleton
+
+  # Retention is exposed as typed values. Set any of these to "" to disable.
+  retention:
+    resolutionRaw: 30d      # Keep raw samples for 30 days
+    resolution5m: 90d       # Keep 5m-downsampled data for 90 days
+    resolution1h: 365d      # Keep 1h-downsampled data for 1 year
+
+  # --wait is always passed by the chart so the compactor keeps running as a
+  # long-lived StatefulSet pod. Use extraArgs for everything else.
+  extraArgs:
+    - --consistency-delay=30m
+
+  persistence:
+    enabled: true
+    size: 10Gi              # Used as a working directory during compaction
+```
+
+### Query Frontend (optional)
+
+Sits in front of the Query component. Splits large time-range queries, caches results, and reduces load for repeated queries.
+
+```yaml
+queryFrontend:
+  enabled: false            # Enable when query load is significant
+
+  # Downstream URL of the Query component (auto-resolved when both are in the same chart)
+  downstreamUrl: ""
+
+  # Optional: inline caching config (Memcached, Redis, in-memory)
+  cacheConfig: ""
+```
+
+### Ruler (optional)
+
+Evaluates alerting and recording rules on a schedule by querying the Query component, mirroring how Prometheus rules work.
+
+```yaml
+ruler:
+  enabled: false
+
+  query:
+    urls:
+      - http://thanos-query.monitoring.svc.cluster.local:9090
+
+  alertmanagers:
+    config: |
+      static_configs:
+        - targets: ["alertmanager.monitoring.svc.cluster.local:9093"]
+
+  # Inline rule files (key = filename, value = YAML content)
+  rules:
+    my-alerts.yaml: |
+      groups:
+        - name: example
+          rules:
+            - alert: MyAlert
+              expr: up == 0
+              for: 5m
+
+  # Auto-import PrometheusRule CRDs from the cluster (requires kube-prometheus-stack)
+  autoImportPrometheusRules:
+    enabled: true
+    labelSelector: {}
+```
+
+#### Stateless mode
+
+`ruler.remoteWrite.enabled` runs the Ruler [statelessly](https://thanos.io/tip/components/rule.md/): evaluation results are written to a remote-write endpoint — usually Receive — instead of being uploaded to the object store, and the Ruler keeps a WAL rather than a full TSDB. The chart then passes `--remote-write.config-file` in place of `--objstore.config-file` and mounts the remote-write Secret instead of the object store one.
+
+The configuration can carry credentials for the write endpoint, so it follows the same contract as `global.objstore`: the Secret is managed outside the chart by default, and then it has to be named. A wrong or missing name would otherwise only surface as a pod waiting forever on a volume, so an unnamed Secret fails the render instead.
+
+```yaml
+ruler:
+  enabled: true
+  remoteWrite:
+    enabled: true
+    secretName: my-ruler-remote-write   # created by you, e.g. from Vault or ESO
+    secretKey: remote-write.yml
+    # createSecret: true                # opt in to let the chart render the Secret
+    # config: |                         # from `config`, naming it <fullname>-ruler-remote-write
+    #   remote_write:
+    #     - url: http://<release>-thanos-receive:10908/api/v1/receive
+```
+
+Two things to keep in mind:
+
+- The Ruler stays a Query endpoint. It advertises no Store API without a local TSDB, so Query never asks it for series — those come from the receiver the results are written to — but it still serves the Rules API, which is what keeps its rules and alerts visible in Query's `/rules` and `/alerts`.
+- `--data-dir` and the PersistentVolumeClaim stay, since the WAL still needs somewhere to live.
+
+### Persistence
+
+Compactor, Receive (the Ingester in split mode), Ruler and Store Gateway are StatefulSets and provision their own PersistentVolumeClaims from a `volumeClaimTemplate`:
+
+```yaml
+compactor:
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""            # falls back to global.storageClass, then the cluster default
+    accessModes:
+      - ReadWriteOnce
+```
+
+Set `persistence.enabled: false` on a component to run it on an `emptyDir` instead. Everything is then lost on restart, which is fine for a scratch Compactor but not for Receive.
+
+#### Choosing a StorageClass
+
+`persistence.storageClass` is resolved per component, with `global.storageClass` as the chart-wide fallback:
+
+```yaml
+global:
+  storageClass: fast-ssd       # used by every PVC the chart creates
+
+storegateway:
+  persistence:
+    storageClass: bulk-hdd     # except this one, which wins locally
+```
+
+When both are empty no `storageClassName` is rendered at all and the cluster default StorageClass applies, which is the behaviour of an install that sets neither. `storageClass` is ignored entirely when `existingClaim` is set — the pre-provisioned claim already has one.
+
+#### Using a pre-provisioned claim
+
+`persistence.existingClaim` mounts a PVC you created yourself and skips the `volumeClaimTemplate` entirely, which is what you want when the volume is managed outside the chart — restored from a snapshot, provisioned by Terraform, or shared with another tool:
+
+```yaml
+ruler:
+  persistence:
+    enabled: true
+    existingClaim: thanos-ruler-data   # size, storageClass and accessModes are ignored
+```
+
+Three things to keep in mind:
+
+- The claim is mounted by **every replica** of the StatefulSet, unlike a `volumeClaimTemplate`, which gives each pod its own claim. Only use `existingClaim` on a single-replica component, or with an access mode that genuinely supports concurrent writers — Thanos does not expect two processes writing the same TSDB or index cache directory.
+- `persistence.enabled: false` wins. With persistence off the component gets an `emptyDir` and `existingClaim` is ignored.
+- A **sharded** Store Gateway falls back to `volumeClaimTemplates` and ignores `existingClaim`, because each shard needs its own volume and a single claim cannot be split across them.
+
+### ServiceAccounts
+
+By default every component runs as a single chart-wide ServiceAccount named `<release>-thanos-thanos`, created when `global.serviceAccount.create` is true:
+
+```yaml
+global:
+  serviceAccount:
+    create: true            # toggle the chart-wide ServiceAccount
+    name: ""                # empty derives <release>-thanos-thanos
+    annotations: {}         # applied to every ServiceAccount, shared and per-component
+    automountServiceAccountToken: true
+```
+
+Cloud identity (AWS IRSA, GKE Workload Identity, Azure Workload Identity) is granted per ServiceAccount, so a single shared account forces every component to share one set of object store permissions. Give a component its own ServiceAccount — rendered from `templates/<component>/serviceaccount.yaml` and named `<release>-thanos-<component>` — to scope those permissions:
+
+```yaml
+compactor:
+  serviceAccount:
+    create: true
+    annotations:
+      eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/thanos-compactor
+
+storegateway:
+  serviceAccount:
+    create: true
+    annotations:
+      eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/thanos-store
+```
+
+Component settings always take precedence over `global.serviceAccount`. To split every component out at once, and drop the then-unused shared account:
+
+```yaml
+global:
+  serviceAccount:
+    create: false           # nothing left to share
+    perComponent: true      # <release>-thanos-<component> for every component
+```
+
+`<component>.serviceAccount` is available on `bucket.bucketweb`, `compactor`, `query`, `queryFrontend`, `storegateway`, `ruler` and `receive` — in split mode on `receive.ingester` and `receive.router` instead of `receive`. All Store Gateway shards share the component ServiceAccount.
+
+To run a component as a ServiceAccount managed outside the chart, set its `name` without `create`:
+
+```yaml
+ruler:
+  serviceAccount:
+    name: my-externally-managed-sa
+```
+
+### Monitoring (ServiceMonitor)
+
+Enable Prometheus scraping for each component by enabling its `serviceMonitor`:
+
+```yaml
+global:
+  serviceMonitor:
+    enabled: true           # Enables ServiceMonitor for all components at once
+    namespace: monitoring   # Namespace where ServiceMonitors are created
+```
+
+Or enable per component:
+
+```yaml
+query:
+  serviceMonitor:
+    enabled: true
+
+receive:
+  serviceMonitor:
+    enabled: true
+```
+
+### Built-in alerting rules
+
+The chart ships with a set of PrometheusRules for Thanos components. They are enabled by default:
+
+```yaml
+global:
+  thanosRules:
+    enabled: true
+    severity:
+      critical: critical
+      warning: warning
+    forDefaults:
+      default: 2m
+      short: 1m
+      componentDown: 5m
+```
+
+## Upgrading
+
+Before upgrading, review the [chart changelog](https://github.com/thanos-community/helm-charts/releases) and the [Thanos release notes](https://github.com/thanos-io/thanos/releases).
+
+```bash
+helm upgrade thanos oci://ghcr.io/thanos-community/helm-charts/thanos \
+  --namespace monitoring \
+  -f values.yaml
+```
+
+> [!WARNING]
+> Registry now lives in `global.image.registry`, repository must be the path without the registry host, and tag defaults to the chart `appVersion`.
+
+### Upgrading to 0.47.2: Ruler rolls on config changes
+
+The Ruler StatefulSet now carries `checksum/rules`, `checksum/query-configuration` and `checksum/alertmanagers-configuration` pod annotations, so a change to `ruler.rules`, `ruler.query.urls` or `ruler.alertmanagers.config` restarts the Ruler instead of leaving it on the old config until something else restarts it.
+
+Because the annotations are new, the first upgrade rolls the Ruler once even if none of those values changed. In stateless mode (`ruler.remoteWrite.enabled: true`) the Ruler keeps no local TSDB, so pending alerts lose their `for` progress on that restart and fire late by up to their `for` duration.
+
+### Upgrading to 0.46.1 — `replicas` under autoscaling
+
+Query, Query Frontend, Store Gateway and Bucketweb no longer render `spec.replicas` when their `autoscaling.enabled` is true. Previously the chart rendered `replicaCount` next to the HorizontalPodAutoscaler, so every `helm upgrade` could reset the count the HPA had chosen, and a GitOps controller that corrects drift — Flux with `driftDetection` enabled, Argo CD with self-heal — reset it on every reconcile, fighting the HPA indefinitely. Components without autoscaling are unaffected.
+
+The first upgrade can briefly scale an autoscaled workload down to one pod. Helm removes a field it set before, and Kubernetes defaults a missing `spec.replicas` to 1 until the HPA restores its count on the next sync, 15 seconds by default. For a Store Gateway that means every pod but `-0` terminates and reloads its index headers when it comes back. Server-side apply, which Helm 4 and the Flux helm-controller use, leaves the field alone if the HPA has changed the count since the last upgrade, because the HPA then owns it. See [Migrating Deployments and StatefulSets to horizontal autoscaling](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#migrating-deployments-and-statefulsets-to-horizontal-autoscaling).
+
+If you worked around the old behaviour with a drift-detection exclusion for `/spec/replicas`, it can be removed after upgrading.
+
+### Upgrading to 0.38.0 — `global.storageClass`
+
+`global.storageClass` is new in 0.38.0 and is used as the fallback `storageClassName` for every PersistentVolumeClaim the chart creates — Compactor, Receive, Ruler and Store Gateway. A component's own `persistence.storageClass` still wins, and when both are empty nothing is rendered, so an install that never set either keeps using the cluster default StorageClass and is unaffected.
+
+The one case that needs attention is an umbrella chart. `global` values propagate into subcharts, so if the parent chart already sets `global.storageClass` for another dependency, Thanos now picks it up and renders a `storageClassName` on StatefulSets that previously had none. `volumeClaimTemplates` are immutable, so the API server rejects the upgrade with `field is immutable`.
+
+Check before upgrading:
+
+```bash
+helm get values thanos --namespace monitoring --all | grep -A1 '^global:'
+kubectl get statefulset --namespace monitoring \
+  --selector app.kubernetes.io/part-of=thanos \
+  -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.volumeClaimTemplates[*].spec.storageClassName}{"\n"}{end}'
+```
+
+If a `global.storageClass` is in play and the existing claims render a different class (or none), either pin the previous behaviour per component:
+
+```yaml
+compactor:
+  persistence:
+    storageClass: ""   # and the same for receive, ruler, storegateway
+```
+
+or recreate the StatefulSets once, which leaves the pods and PVCs running:
+
+```bash
+kubectl delete statefulset --namespace monitoring \
+  --selector app.kubernetes.io/part-of=thanos,app.kubernetes.io/instance=thanos \
+  --cascade=orphan
+
+helm upgrade thanos oci://ghcr.io/thanos-community/helm-charts/thanos \
+  --namespace monitoring \
+  -f values.yaml
+```
+
+Recreating the StatefulSet only changes the template. Existing PVCs are never touched by a StatefulSet, so the new class applies to claims created from then on; move existing data with a restore or a volume clone if you actually want it on the new class.
+
+### Upgrading to 0.36.0 — selector labels
+
+`app.kubernetes.io/name` is now part of every `spec.selector` / `spec.podSelector` the chart renders ([#197](https://github.com/thanos-community/helm-charts/issues/197)). Without it, `component: compactor` + `instance: <release>` was the whole discriminator, so a Thanos component installed by an umbrella chart could select the pods of another application sharing the release name and namespace — a Loki compactor, for instance.
+
+Pod templates have always carried this label, so the tightened selectors match exactly the same pods as before. Services, PodDisruptionBudgets and NetworkPolicies update in place.
+
+`spec.selector` on a Deployment or StatefulSet is immutable, however, so those workloads must be recreated once. Orphan them first, which leaves the pods and PVCs running:
+
+```bash
+kubectl delete statefulset,deployment --namespace monitoring \
+  --selector app.kubernetes.io/part-of=thanos,app.kubernetes.io/instance=thanos \
+  --cascade=orphan
+
+helm upgrade thanos oci://ghcr.io/thanos-community/helm-charts/thanos \
+  --namespace monitoring \
+  -f values.yaml
+```
+
+The recreated StatefulSets adopt the orphaned pods, and the Deployments adopt their existing ReplicaSets — the pod template is unchanged, so its hash is unchanged and no pod restarts. Skipping the step makes `helm upgrade` fail with `field is immutable`.
+
+The same release also adds the chart labels to `volumeClaimTemplates`, which is likewise immutable and covered by the recreation above. Claims that already exist are not relabelled, because a StatefulSet never touches existing PVCs; relabel them by name if you select PVCs by label for backups or cost reporting:
+
+```bash
+kubectl label pvc --namespace monitoring data-thanos-compactor-0 \
+  app.kubernetes.io/name=thanos \
+  app.kubernetes.io/instance=thanos \
+  app.kubernetes.io/part-of=thanos \
+  app.kubernetes.io/component=compactor
+```
+
+## Values Reference
+
+The table below documents all available values. Top-level keys group settings by component. Component-level keys always take precedence over `global` defaults.
+
+{{ template "chart.valuesSection" . }}
+
+---
+{{ template "helm-docs.versionFooter" . }}

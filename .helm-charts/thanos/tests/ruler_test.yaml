@@ -1,0 +1,1642 @@
+suite: ruler component
+
+tests:
+  # -- StatefulSet basics ---------------------------------------------
+
+  - it: renders statefulset when ruler is enabled
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+    asserts:
+      - isKind:
+          of: StatefulSet
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-ruler
+
+  - it: does not render when ruler is disabled
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: sets the correct replica count
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.replicaCount: 3
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 3
+
+  - it: renders minReadySeconds when set
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.minReadySeconds: 30
+    asserts:
+      - equal:
+          path: spec.minReadySeconds
+          value: 30
+
+  - it: omits minReadySeconds when zero
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.minReadySeconds: 0
+    asserts:
+      - notExists:
+          path: spec.minReadySeconds
+
+  - it: uses the global image repository and app version
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      global.image.registry: quay.io
+      global.image.repository: thanos/thanos
+    chart:
+      appVersion: "x.y.z"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: quay.io/thanos/thanos:x.y.z
+
+  - it: uses the global image repository and tag
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      global.image.registry: quay.io
+      global.image.repository: thanos/thanos
+      global.image.tag: v0.40.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: quay.io/thanos/thanos:v0.40.0
+
+  - it: passes extra CLI args
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.extraArgs:
+        - --log.level=debug
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--log.level=debug"
+
+  - it: sets the ruler replica label
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --label=ruler_replica="$(POD_NAME)"
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --alert.label-drop=ruler_replica
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+
+  - it: sets alert query URL when configured
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.alertQueryUrl: http://query.example.com
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --alert.query-url=http://query.example.com
+
+  - it: creates persistence volume claim template
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.persistence.enabled: true
+      ruler.persistence.size: 10Gi
+    asserts:
+      - isNotEmpty:
+          path: spec.volumeClaimTemplates
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.resources.requests.storage
+          value: 10Gi
+
+  - it: falls back to global.storageClass when ruler sets none
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.persistence.enabled: true
+      global.storageClass: global-sc
+    asserts:
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.storageClassName
+          value: global-sc
+
+  - it: lets ruler.persistence.storageClass win over global.storageClass
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.persistence.enabled: true
+      global.storageClass: global-sc
+      ruler.persistence.storageClass: ruler-sc
+    asserts:
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.storageClassName
+          value: ruler-sc
+
+  - it: uses emptyDir when persistence is disabled
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.persistence.enabled: false
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: data
+            emptyDir: {}
+
+  - it: mounts existing PVC when existingClaim is set
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.persistence.enabled: true
+      ruler.persistence.existingClaim: ruler-existing-pvc
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: data
+            persistentVolumeClaim:
+              claimName: ruler-existing-pvc
+      - notExists:
+          path: spec.volumeClaimTemplates
+
+  - it: creates volumeClaimTemplates when existingClaim is empty
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.persistence.enabled: true
+      ruler.persistence.existingClaim: ""
+      ruler.persistence.size: 25Gi
+    asserts:
+      - isNotEmpty:
+          path: spec.volumeClaimTemplates
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.resources.requests.storage
+          value: 25Gi
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: data
+            persistentVolumeClaim:
+              claimName: ""
+          any: true
+
+  - it: configures object storage from global objstore secret
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      global.objstore.secretName: thanos-ruler-objstore
+      global.objstore.secretKey: objstore.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --objstore.config-file=/etc/thanos/objstore.yml
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: objstore
+            mountPath: /etc/thanos/objstore.yml
+            subPath: objstore.yml
+            readOnly: true
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: objstore
+            secret:
+              secretName: thanos-ruler-objstore
+              items:
+                - key: objstore.yaml
+                  path: objstore.yml
+
+  - it: mounts the objstore secret using the global defaults
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: objstore
+            secret:
+              secretName: thanos-objstore
+              items:
+                - key: objstore.yml
+                  path: objstore.yml
+
+  - it: mounts the objstore secret via subPath so it does not overlay /etc/thanos
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+    asserts:
+      # objstore, rules, alertmanagers and query-urls must all coexist under
+      # /etc/thanos, so objstore is a file-level (subPath) mount, never a
+      # read-only overlay of the whole directory (see issue #152).
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: objstore
+            mountPath: /etc/thanos/objstore.yml
+            subPath: objstore.yml
+            readOnly: true
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: rules
+            mountPath: /etc/thanos/rules
+
+  - it: restarts pods on objstore config change via checksum annotation
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+    asserts:
+      - exists:
+          path: spec.template.metadata.annotations["checksum/objstore-configuration"]
+
+  - it: hashes the rendered rules, query and alertmanagers config
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["checksum/rules"]
+          value: 6bd776e7544e0b01e2787cf4c29a2eaf38b5537ef7fa6980c306201918fe0c59
+      - equal:
+          path: spec.template.metadata.annotations["checksum/query-configuration"]
+          value: 7ade04fe6371c0b7abb814f4509abd0d62738e962488f7ab0e7db1caafa4e421
+      - equal:
+          path: spec.template.metadata.annotations["checksum/alertmanagers-configuration"]
+          value: 5c51a5de39caf01745906341e7ef3ffa8238ace279fbc316d8b0e95bef8fa984
+
+  - it: changes only checksum/rules when the rules change
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.rules:
+        other.yaml: |
+          groups: []
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["checksum/rules"]
+          value: f73868463e9851abb5ab168849bbcb4ad10158c2297b78824a2febe34a932ce5
+      - equal:
+          path: spec.template.metadata.annotations["checksum/query-configuration"]
+          value: 7ade04fe6371c0b7abb814f4509abd0d62738e962488f7ab0e7db1caafa4e421
+      - equal:
+          path: spec.template.metadata.annotations["checksum/alertmanagers-configuration"]
+          value: 5c51a5de39caf01745906341e7ef3ffa8238ace279fbc316d8b0e95bef8fa984
+
+  - it: changes only checksum/query-configuration when the query URLs change
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.query.urls:
+        - http://other-query:9090
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["checksum/rules"]
+          value: 6bd776e7544e0b01e2787cf4c29a2eaf38b5537ef7fa6980c306201918fe0c59
+      - equal:
+          path: spec.template.metadata.annotations["checksum/query-configuration"]
+          value: 2721a66de0d68354250964145b0862bc4da0fbc428af9106e37dd675c51db4f9
+      - equal:
+          path: spec.template.metadata.annotations["checksum/alertmanagers-configuration"]
+          value: 5c51a5de39caf01745906341e7ef3ffa8238ace279fbc316d8b0e95bef8fa984
+
+  - it: changes only checksum/alertmanagers-configuration when the alertmanagers config changes
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.alertmanagers.config: |
+        alertmanagers:
+          - static_configs:
+              - other-am:9093
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["checksum/rules"]
+          value: 6bd776e7544e0b01e2787cf4c29a2eaf38b5537ef7fa6980c306201918fe0c59
+      - equal:
+          path: spec.template.metadata.annotations["checksum/query-configuration"]
+          value: 7ade04fe6371c0b7abb814f4509abd0d62738e962488f7ab0e7db1caafa4e421
+      - equal:
+          path: spec.template.metadata.annotations["checksum/alertmanagers-configuration"]
+          value: 83694247b8ad3c3eaa495ad4b4db661576cdeba822b0d0730279f82fb9b624ca
+
+  # -- Annotations and labels -----------------------------------------
+
+  - it: applies component annotations
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.annotations:
+        custom-annotation: my-value
+    asserts:
+      - equal:
+          path: metadata.annotations.custom-annotation
+          value: my-value
+
+  - it: applies component labels
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.labels:
+        team: alerting
+    asserts:
+      - equal:
+          path: metadata.labels.team
+          value: alerting
+
+  - it: applies pod labels to the pod template only
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.podLabels:
+        azure.workload.identity/use: "true"
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels["azure.workload.identity/use"]
+          value: "true"
+      - notExists:
+          path: metadata.labels["azure.workload.identity/use"]
+
+  # -- Extra env vars -------------------------------------------------
+
+  - it: injects component extraEnv
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.extraEnv:
+        - name: LOG_FORMAT
+          value: json
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: LOG_FORMAT
+            value: json
+
+  - it: merges global and component extraEnv with component winning
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      global.extraEnv:
+        - name: LOG_FORMAT
+          value: json
+        - name: SHARED_VAR
+          value: global-value
+      ruler.extraEnv:
+        - name: SHARED_VAR
+          value: component-value
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: LOG_FORMAT
+            value: json
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SHARED_VAR
+            value: component-value
+
+  # -- Extra envFrom vars -----------------------------------------------
+
+  - it: merges global and component extraEnvFrom with component winning
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      global.extraEnvFrom:
+        - name: GLOBAL_FROM
+          value: global-value
+        - name: SHARED_FROM
+          value: global-value
+      ruler.extraEnvFrom:
+        - name: SHARED_FROM
+          value: component-value
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].envFrom
+          content:
+            name: GLOBAL_FROM
+            value: global-value
+      - contains:
+          path: spec.template.spec.containers[0].envFrom
+          content:
+            name: SHARED_FROM
+            value: component-value
+
+  - it: renders pod env injection with extraEnv and extraEnvFrom
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.extraEnv:
+        - name: LOG_FORMAT
+          value: json
+      ruler.extraEnvFrom:
+        - name: RULER_FROM
+          value: ruler-value
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: LOG_FORMAT
+            value: json
+      - contains:
+          path: spec.template.spec.containers[0].envFrom
+          content:
+            name: RULER_FROM
+            value: ruler-value
+
+  # -- Security contexts ----------------------------------------------
+
+  - it: applies global container security context
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      global.containerSecurityContext:
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+          value: true
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsNonRoot
+          value: true
+
+  - it: applies global container security context to prometheus-rule-importer sidecar
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.autoImportPrometheusRules.enabled: true
+      global.containerSecurityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[1].name
+          value: prometheus-rule-importer
+      - equal:
+          path: spec.template.spec.containers[1].securityContext.allowPrivilegeEscalation
+          value: false
+      - equal:
+          path: spec.template.spec.containers[1].securityContext.capabilities.drop[0]
+          value: ALL
+      - equal:
+          path: spec.template.spec.containers[1].securityContext.readOnlyRootFilesystem
+          value: true
+      - equal:
+          path: spec.template.spec.containers[1].securityContext.runAsNonRoot
+          value: true
+      - equal:
+          path: spec.template.spec.containers[1].securityContext.runAsUser
+          value: 65534
+
+  - it: applies component container security context overriding global
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      global.containerSecurityContext:
+        runAsNonRoot: true
+      ruler.containerSecurityContext:
+        runAsNonRoot: false
+        runAsUser: 1001
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsNonRoot
+          value: false
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsUser
+          value: 1001
+
+  - it: applies component container security context to prometheus-rule-importer sidecar overriding global
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.autoImportPrometheusRules.enabled: true
+      global.containerSecurityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      ruler.containerSecurityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[1].name
+          value: prometheus-rule-importer
+      - equal:
+          path: spec.template.spec.containers[1].securityContext.runAsNonRoot
+          value: true
+      - equal:
+          path: spec.template.spec.containers[1].securityContext.runAsUser
+          value: 1001
+
+  - it: applies pod security context
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.podSecurityContext:
+        fsGroup: 1001
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.fsGroup
+          value: 1001
+
+  # -- DNS configuration -----------------------------------------------
+
+  - it: applies global dnsConfig as fallback
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      global.dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0].name
+          value: ndots
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0].value
+          value: "1"
+
+  - it: applies component dnsConfig overriding global
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      global.dnsConfig:
+        options:
+          - name: ndots
+            value: "5"
+      ruler.dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0].name
+          value: ndots
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0].value
+          value: "1"
+
+  - it: does not render dnsConfig when not set
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+    asserts:
+      - notExists:
+          path: spec.template.spec.dnsConfig
+
+  # -- Scheduling and placement ---------------------------------------
+
+  - it: applies component affinity overriding global
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      global.affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: topology.kubernetes.io/zone
+                    operator: In
+                    values:
+                      - ap-southeast-2a
+      ruler.affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/instance: thanos
+                topologyKey: kubernetes.io/hostname
+    asserts:
+      - isNotEmpty:
+          path: spec.template.spec.affinity.podAntiAffinity
+      - notExists:
+          path: spec.template.spec.affinity.nodeAffinity
+
+  - it: applies global affinity as fallback
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      global.affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: topology.kubernetes.io/zone
+                    operator: In
+                    values:
+                      - ap-southeast-2a
+    asserts:
+      - isNotEmpty:
+          path: spec.template.spec.affinity.nodeAffinity
+
+  - it: applies component nodeSelector overriding global
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      global.nodeSelector:
+        node-role: node
+      ruler.nodeSelector:
+        node-role: thanos
+    asserts:
+      - equal:
+          path: spec.template.spec.nodeSelector.node-role
+          value: thanos
+
+  - it: applies global nodeSelector as fallback
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      global.nodeSelector:
+        node-role: thanos
+    asserts:
+      - equal:
+          path: spec.template.spec.nodeSelector.node-role
+          value: thanos
+
+  - it: applies component tolerations
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.tolerations:
+        - key: dedicated
+          operator: Equal
+          value: thanos
+          effect: NoSchedule
+    asserts:
+      - contains:
+          path: spec.template.spec.tolerations
+          content:
+            key: dedicated
+            operator: Equal
+            value: thanos
+            effect: NoSchedule
+
+  - it: applies global tolerations as fallback
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      global.tolerations:
+        - key: dedicated
+          operator: Equal
+          value: thanos
+          effect: NoSchedule
+    asserts:
+      - contains:
+          path: spec.template.spec.tolerations
+          content:
+            key: dedicated
+            operator: Equal
+            value: thanos
+            effect: NoSchedule
+
+  - it: applies component topologySpreadConstraints overriding global
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      global.topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: thanos
+      ruler.topologySpreadConstraints:
+        - maxSkew: 2
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: thanos
+    asserts:
+      - contains:
+          path: spec.template.spec.topologySpreadConstraints
+          content:
+            maxSkew: 2
+            topologyKey: topology.kubernetes.io/zone
+            whenUnsatisfiable: ScheduleAnyway
+            labelSelector:
+              matchLabels:
+                app: thanos
+
+  - it: applies global topologySpreadConstraints as fallback
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      global.topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: thanos
+    asserts:
+      - contains:
+          path: spec.template.spec.topologySpreadConstraints
+          content:
+            maxSkew: 1
+            topologyKey: topology.kubernetes.io/zone
+            whenUnsatisfiable: DoNotSchedule
+            labelSelector:
+              matchLabels:
+                app: thanos
+
+  - it: applies component priorityClassName overriding global
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      global.priorityClassName: high-priority
+      ruler.priorityClassName: critical
+    asserts:
+      - equal:
+          path: spec.template.spec.priorityClassName
+          value: critical
+
+  - it: applies global priorityClassName as fallback
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      global.priorityClassName: high-priority
+    asserts:
+      - equal:
+          path: spec.template.spec.priorityClassName
+          value: high-priority
+
+  # -- Extra init and sidecar containers ------------------------------
+
+  - it: merges global and component extraInitContainers
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      global.extraInitContainers:
+        - name: global-init
+          image: busybox:latest
+          command: ["echo", "global"]
+      ruler.extraInitContainers:
+        - name: component-init
+          image: busybox:latest
+          command: ["echo", "component"]
+    asserts:
+      - contains:
+          path: spec.template.spec.initContainers
+          content:
+            name: global-init
+            image: busybox:latest
+            command: ["echo", "global"]
+      - contains:
+          path: spec.template.spec.initContainers
+          content:
+            name: component-init
+            image: busybox:latest
+            command: ["echo", "component"]
+
+  - it: merges global and component extraContainers
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      global.extraContainers:
+        - name: global-init
+          image: busybox:latest
+          command: ["echo", "global"]
+      ruler.extraContainers:
+        - name: component-init
+          image: busybox:latest
+          command: ["echo", "component"]
+    asserts:
+      - contains:
+          path: spec.template.spec.containers
+          content:
+            name: global-init
+            image: busybox:latest
+            command: ["echo", "global"]
+      - contains:
+          path: spec.template.spec.containers
+          content:
+            name: component-init
+            image: busybox:latest
+            command: ["echo", "component"]
+
+  # -- gRPC Store API --------------------------------------------------
+
+  - it: adds --grpc-address arg to Ruler
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --grpc-address=0.0.0.0:10901
+
+  - it: honors a custom ruler.service.grpcPort
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.service.grpcPort: 19091
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --grpc-address=0.0.0.0:19091
+
+  - it: exposes grpc container port on Ruler
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].ports
+          content:
+            name: grpc
+            containerPort: 10901
+
+  # -- Service --------------------------------------------------------
+
+  - it: renders both a regular and a headless service for ruler
+    template: ruler/service.yaml
+    set:
+      ruler.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 2
+
+  - it: regular ruler service exposes only http
+    template: ruler/service.yaml
+    documentIndex: 0
+    set:
+      ruler.enabled: true
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-ruler
+      - equal:
+          path: spec.ports[0].name
+          value: http
+      - lengthEqual:
+          path: spec.ports
+          count: 1
+
+  - it: headless ruler service has clusterIP None
+    template: ruler/service.yaml
+    documentIndex: 1
+    set:
+      ruler.enabled: true
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-ruler-headless
+      - equal:
+          path: spec.clusterIP
+          value: None
+      - equal:
+          path: spec.type
+          value: ClusterIP
+
+  - it: headless ruler service exposes only grpc
+    template: ruler/service.yaml
+    documentIndex: 1
+    set:
+      ruler.enabled: true
+      ruler.service.grpcPort: 10901
+    asserts:
+      - lengthEqual:
+          path: spec.ports
+          count: 1
+      - equal:
+          path: spec.ports[0].name
+          value: grpc
+      - equal:
+          path: spec.ports[0].port
+          value: 10901
+      - equal:
+          path: spec.ports[0].targetPort
+          value: grpc
+
+  - it: applies service annotations to ruler service
+    template: ruler/service.yaml
+    documentIndex: 0
+    set:
+      ruler.enabled: true
+      ruler.service.annotations:
+        custom-annotation: my-value
+    asserts:
+      - equal:
+          path: metadata.annotations.custom-annotation
+          value: my-value
+
+  - it: applies service annotations to ruler headless service
+    template: ruler/service.yaml
+    documentIndex: 1
+    set:
+      ruler.enabled: true
+      ruler.service.annotations:
+        custom-annotation: my-value
+    asserts:
+      - equal:
+          path: metadata.annotations.custom-annotation
+          value: my-value
+
+  - it: applies service labels to ruler service
+    template: ruler/service.yaml
+    documentIndex: 0
+    set:
+      ruler.enabled: true
+      ruler.service.labels:
+        monitoring: "true"
+    asserts:
+      - equal:
+          path: metadata.labels.monitoring
+          value: "true"
+
+  - it: applies service labels to ruler headless service
+    template: ruler/service.yaml
+    documentIndex: 1
+    set:
+      ruler.enabled: true
+      ruler.service.labels:
+        monitoring: "true"
+    asserts:
+      - equal:
+          path: metadata.labels.monitoring
+          value: "true"
+
+  # -- PodDisruptionBudget --------------------------------------------
+
+  - it: renders PDB when component pdb is enabled
+    template: ruler/pdb.yaml
+    set:
+      ruler.enabled: true
+      ruler.pdb.enabled: true
+      ruler.pdb.maxUnavailable: "1"
+    asserts:
+      - isKind:
+          of: PodDisruptionBudget
+      - equal:
+          path: spec.maxUnavailable
+          value: 1
+
+  - it: renders PDB via global pdb.enabled fallback
+    template: ruler/pdb.yaml
+    set:
+      ruler.enabled: true
+      global.pdb.enabled: true
+      global.pdb.minAvailable: "1"
+    asserts:
+      - isKind:
+          of: PodDisruptionBudget
+      - equal:
+          path: spec.minAvailable
+          value: 1
+
+  - it: component PDB values override global
+    template: ruler/pdb.yaml
+    set:
+      ruler.enabled: true
+      global.pdb.enabled: true
+      global.pdb.minAvailable: "1"
+      ruler.pdb.minAvailable: "3"
+    asserts:
+      - equal:
+          path: spec.minAvailable
+          value: 3
+
+  - it: does not render PDB when both component and global pdb are disabled
+    template: ruler/pdb.yaml
+    set:
+      ruler.enabled: true
+      ruler.pdb.enabled: false
+      global.pdb.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # -- Ingress -----------------------------------------------------------
+
+  - it: renders ingress when enabled
+    template: ruler/ingress.yaml
+    set:
+      ruler.enabled: true
+      ruler.ingress.enabled: true
+      ruler.ingress.hosts:
+        - host: thanos.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - isKind:
+          of: Ingress
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-ruler
+
+  - it: applies global.podAnnotations to ruler ingress metadata
+    template: ruler/ingress.yaml
+    set:
+      ruler.enabled: true
+      ruler.ingress.enabled: true
+      ruler.ingress.hosts:
+        - host: thanos.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+      global.podAnnotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+    asserts:
+      - equal:
+          path: metadata.annotations["cluster-autoscaler.kubernetes.io/safe-to-evict"]
+          value: "false"
+
+  - it: applies global.podAnnotations to ruler pod template
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      global.podAnnotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["cluster-autoscaler.kubernetes.io/safe-to-evict"]
+          value: "false"
+
+  - it: does not render ingress when disabled
+    template: ruler/ingress.yaml
+    set:
+      ruler.enabled: true
+      ruler.ingress.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: sets ingress class name
+    template: ruler/ingress.yaml
+    set:
+      ruler.enabled: true
+      ruler.ingress.enabled: true
+      ruler.ingress.className: nginx
+      ruler.ingress.hosts:
+        - host: thanos.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: nginx
+
+  - it: sets ingress host and path
+    template: query/ingress.yaml
+    set:
+      query.enabled: true
+      query.ingress.enabled: true
+      query.ingress.hosts:
+        - host: thanos.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.rules[0].host
+          value: thanos.example.com
+      - equal:
+          path: spec.rules[0].http.paths[0].path
+          value: /
+
+  # -- ServiceMonitor ----------------------------------------------------
+
+  - it: renders servicemonitor when component enabled
+    template: ruler/servicemonitor.yaml
+    set:
+      ruler.enabled: true
+      ruler.serviceMonitor.enabled: true
+    asserts:
+      - isKind:
+          of: ServiceMonitor
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-ruler
+
+  - it: renders servicemonitor via global fallback
+    template: ruler/servicemonitor.yaml
+    set:
+      ruler.enabled: true
+      global.serviceMonitor.enabled: true
+    asserts:
+      - isKind:
+          of: ServiceMonitor
+
+  - it: does not render servicemonitor when disabled
+    template: ruler/servicemonitor.yaml
+    set:
+      ruler.enabled: true
+      ruler.serviceMonitor.enabled: false
+      global.serviceMonitor.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # -- ConfigMap rules ---------------------------------------------------
+
+  - it: renders rules configmap when ruler is enabled
+    template: ruler/configmaprules.yaml
+    set:
+      ruler.enabled: true
+    asserts:
+      - isKind:
+          of: ConfigMap
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-ruler-rules
+
+  - it: does not render rules configmap when ruler is disabled
+    template: ruler/configmaprules.yaml
+    set:
+      ruler.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders rules configmap data as valid Thanos rules.configGroups with default values
+    template: ruler/configmaprules.yaml
+    set:
+      ruler.enabled: true
+    asserts:
+      - equal:
+          path: data["example-alerts.yaml"]
+          value: |
+            groups:
+              - name: thanos-example
+                rules:
+                  - alert: ExampleAlwaysFiring
+                    expr: vector(1)
+                    for: 1m
+                    labels:
+                      severity: warning
+                    annotations:
+                      summary: Example alert firing
+
+  - it: renders multiple rule files with user-provided content
+    template: ruler/configmaprules.yaml
+    set:
+      ruler.enabled: true
+      ruler.rules:
+        alerts.yaml: |
+          groups:
+            - name: custom
+              rules:
+                - alert: MyAlert
+                  expr: up == 0
+        recording.yaml: |
+          groups:
+            - name: recording
+              rules:
+                - record: job:up
+                  expr: up
+    asserts:
+      - equal:
+          path: data["alerts.yaml"]
+          value: |
+            groups:
+              - name: custom
+                rules:
+                  - alert: MyAlert
+                    expr: up == 0
+      - equal:
+          path: data["recording.yaml"]
+          value: |
+            groups:
+              - name: recording
+                rules:
+                  - record: job:up
+                    expr: up
+
+  - it: renders rules with templated values via tpl
+    template: ruler/configmaprules.yaml
+    set:
+      ruler.enabled: true
+      ruler.rules:
+        alerts.yaml: |
+          groups:
+            - name: {{ .Release.Name }}-alerts
+              rules:
+                - alert: Dummy
+                  expr: vector(1)
+    asserts:
+      - equal:
+          path: data["alerts.yaml"]
+          value: |
+            groups:
+              - name: RELEASE-NAME-alerts
+                rules:
+                  - alert: Dummy
+                    expr: vector(1)
+
+  # -- ConfigMap alertmanagers -------------------------------------------
+
+  - it: renders alertmanagers configmap when ruler is enabled
+    template: ruler/configmap-alertmanagers.yaml
+    set:
+      ruler.enabled: true
+    asserts:
+      - isKind:
+          of: ConfigMap
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-ruler-am
+
+  - it: does not render alertmanagers configmap when ruler is disabled
+    template: ruler/configmap-alertmanagers.yaml
+    set:
+      ruler.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders alertmanagers configmap data as a valid alert.AlertingConfig with default values
+    template: ruler/configmap-alertmanagers.yaml
+    set:
+      ruler.enabled: true
+    asserts:
+      - equal:
+          path: data["alertmanagers.yaml"]
+          value: |
+            alertmanagers:
+              - static_configs:
+                  - alertmanager.monitoring.svc.cluster.local:9093
+                scheme: http
+                api_version: v2
+
+  - it: renders alertmanagers configmap with user-provided config
+    template: ruler/configmap-alertmanagers.yaml
+    set:
+      ruler.enabled: true
+      ruler.alertmanagers.config: |
+        alertmanagers:
+          - static_configs:
+              - custom-alertmanager.example.com:9093
+            scheme: https
+            api_version: v2
+    asserts:
+      - equal:
+          path: data["alertmanagers.yaml"]
+          value: |
+            alertmanagers:
+              - static_configs:
+                  - custom-alertmanager.example.com:9093
+                scheme: https
+                api_version: v2
+
+  - it: renders alertmanagers configmap with templated values via tpl
+    template: ruler/configmap-alertmanagers.yaml
+    set:
+      ruler.enabled: true
+      ruler.alertmanagers.config: |
+        alertmanagers:
+          - static_configs:
+              - {{ .Release.Name }}-am:9093
+            scheme: http
+            api_version: v2
+    asserts:
+      - equal:
+          path: data["alertmanagers.yaml"]
+          value: |
+            alertmanagers:
+              - static_configs:
+                  - RELEASE-NAME-am:9093
+                scheme: http
+                api_version: v2
+
+  # -- ConfigMap query ---------------------------------------------------
+
+  - it: renders query configmap when ruler is enabled
+    template: ruler/configmap-query.yaml
+    set:
+      ruler.enabled: true
+    asserts:
+      - isKind:
+          of: ConfigMap
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-ruler-query
+
+  - it: does not render query configmap when ruler is disabled
+    template: ruler/configmap-query.yaml
+    set:
+      ruler.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders query configmap data as a clientconfig list with default URL
+    template: ruler/configmap-query.yaml
+    set:
+      ruler.enabled: true
+    asserts:
+      - equal:
+          path: data["query-urls.yaml"]
+          value: |
+            - static_configs:
+                - RELEASE-NAME-thanos-query:9090
+              scheme: http
+
+  - it: renders query configmap data as a clientconfig list from a provided URL
+    template: ruler/configmap-query.yaml
+    set:
+      ruler.enabled: true
+      ruler.query.urls:
+        - http://thanos-prod-query-frontend:9090
+    asserts:
+      - equal:
+          path: data["query-urls.yaml"]
+          value: |
+            - static_configs:
+                - thanos-prod-query-frontend:9090
+              scheme: http
+
+  - it: emits https scheme and path_prefix when URL has a path
+    template: ruler/configmap-query.yaml
+    set:
+      ruler.enabled: true
+      ruler.query.urls:
+        - https://secure-query.example.com:8443/api
+    asserts:
+      - equal:
+          path: data["query-urls.yaml"]
+          value: |
+            - static_configs:
+                - secure-query.example.com:8443
+              scheme: https
+              path_prefix: /api
+
+  - it: renders multiple URLs as separate clientconfig entries
+    template: ruler/configmap-query.yaml
+    set:
+      ruler.enabled: true
+      ruler.query.urls:
+        - http://query-a:9090
+        - https://query-b:9090/api
+    asserts:
+      - equal:
+          path: data["query-urls.yaml"]
+          value: |
+            - static_configs:
+                - query-a:9090
+              scheme: http
+            - static_configs:
+                - query-b:9090
+              scheme: https
+              path_prefix: /api
+
+  - it: omits path_prefix when URL path is just /
+    template: ruler/configmap-query.yaml
+    set:
+      ruler.enabled: true
+      ruler.query.urls:
+        - http://query-a:9090/
+    asserts:
+      - equal:
+          path: data["query-urls.yaml"]
+          value: |
+            - static_configs:
+                - query-a:9090
+              scheme: http
+
+  # -- ConfigMap auto-import prometheus rules -----------------------------
+
+  - it: renders rule-importer configmap when autoImport is enabled
+    template: ruler/configmap-auto-import-prometheus-rules.yaml
+    set:
+      ruler.enabled: true
+      ruler.autoImportPrometheusRules.enabled: true
+    asserts:
+      - isKind:
+          of: ConfigMap
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-ruler-rule-importer
+
+  - it: does not render rule-importer configmap when autoImport is disabled
+    template: ruler/configmap-auto-import-prometheus-rules.yaml
+    set:
+      ruler.enabled: true
+      ruler.autoImportPrometheusRules.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders empty SELECTOR when labelSelector is empty (imports ALL PrometheusRules)
+    template: ruler/configmap-auto-import-prometheus-rules.yaml
+    set:
+      ruler.enabled: true
+      ruler.autoImportPrometheusRules.enabled: true
+      ruler.autoImportPrometheusRules.labelSelector: {}
+    asserts:
+      - matchRegex:
+          path: data["import.sh"]
+          pattern: 'SELECTOR=""'
+
+  - it: renders SELECTOR as comma-separated key=value list when labelSelector is set
+    template: ruler/configmap-auto-import-prometheus-rules.yaml
+    set:
+      ruler.enabled: true
+      ruler.autoImportPrometheusRules.enabled: true
+      ruler.autoImportPrometheusRules.labelSelector:
+        role: alert-rules
+    asserts:
+      - matchRegex:
+          path: data["import.sh"]
+          pattern: 'SELECTOR="role=alert-rules"'
+
+  - it: joins multiple labelSelector entries with commas
+    template: ruler/configmap-auto-import-prometheus-rules.yaml
+    set:
+      ruler.enabled: true
+      ruler.autoImportPrometheusRules.enabled: true
+      ruler.autoImportPrometheusRules.labelSelector:
+        role: alert-rules
+        team: observability
+    asserts:
+      - matchRegex:
+          path: data["import.sh"]
+          pattern: 'SELECTOR="role=alert-rules,team=observability"'
+
+  # -- RBAC for auto-import PrometheusRules --------------------------------
+
+  - it: renders ClusterRole and ClusterRoleBinding when autoImport and rbac are enabled
+    template: ruler/rbac.yaml
+    set:
+      ruler.enabled: true
+      ruler.autoImportPrometheusRules.enabled: true
+      global.rbac.create: true
+    asserts:
+      - hasDocuments:
+          count: 2
+      - isKind:
+          of: ClusterRole
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-ruler-rule-importer
+        documentIndex: 0
+      - contains:
+          path: rules
+          content:
+            apiGroups:
+              - monitoring.coreos.com
+            resources:
+              - prometheusrules
+            verbs:
+              - get
+              - list
+              - watch
+        documentIndex: 0
+      - isKind:
+          of: ClusterRoleBinding
+        documentIndex: 1
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-ruler-rule-importer
+        documentIndex: 1
+      - equal:
+          path: roleRef.kind
+          value: ClusterRole
+        documentIndex: 1
+      - equal:
+          path: roleRef.name
+          value: RELEASE-NAME-thanos-ruler-rule-importer
+        documentIndex: 1
+      - equal:
+          path: subjects[0].kind
+          value: ServiceAccount
+        documentIndex: 1
+      - equal:
+          path: subjects[0].name
+          value: RELEASE-NAME-thanos-thanos
+        documentIndex: 1
+
+  - it: does not render rbac when ruler is disabled
+    template: ruler/rbac.yaml
+    set:
+      ruler.enabled: false
+      ruler.autoImportPrometheusRules.enabled: true
+      global.rbac.create: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: does not render rbac when autoImport is disabled
+    template: ruler/rbac.yaml
+    set:
+      ruler.enabled: true
+      ruler.autoImportPrometheusRules.enabled: false
+      global.rbac.create: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: does not render rbac when global.rbac.create is false
+    template: ruler/rbac.yaml
+    set:
+      ruler.enabled: true
+      ruler.autoImportPrometheusRules.enabled: true
+      global.rbac.create: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # -- side-car for auto-import PrometheusRules --------------------------------
+
+  - it: renders sidecar when autoImport is enabled
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.autoImportPrometheusRules.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[1].image
+          value: docker.io/alpine/kubectl:latest
+
+  - it: renders sidecar when autoImport is enabled with custom registry
+    template: ruler/statefulset.yaml
+    set:
+      ruler.enabled: true
+      ruler.autoImportPrometheusRules.enabled: true
+      ruler.autoImportPrometheusRules.sidecar.image.registry: my-registry
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[1].image
+          value: my-registry/alpine/kubectl:latest
+
+  # -- NetworkPolicy -------------------------------------------------------
+
+  - it: does not render networkpolicy when networkPolicies is disabled
+    template: ruler/networkpolicy.yaml
+    set:
+      ruler.enabled: true
+      global.networkPolicies: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: does not render networkpolicy when ruler is disabled
+    template: ruler/networkpolicy.yaml
+    set:
+      ruler.enabled: false
+      global.networkPolicies: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders networkpolicy when ruler and networkPolicies are enabled
+    template: ruler/networkpolicy.yaml
+    set:
+      ruler.enabled: true
+      global.networkPolicies: true
+    asserts:
+      - isKind:
+          of: NetworkPolicy
+      - equal:
+          path: apiVersion
+          value: networking.k8s.io/v1
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-ruler
+      - contains:
+          path: spec.ingress[0].ports
+          content:
+            port: grpc
+      - contains:
+          path: spec.ingress[0].ports
+          content:
+            port: http

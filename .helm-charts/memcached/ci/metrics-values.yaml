@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: Apache-2.0
+# CI scenario: metrics exporter runtime without Prometheus Operator CRDs.
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+  prometheusRule:
+    enabled: false

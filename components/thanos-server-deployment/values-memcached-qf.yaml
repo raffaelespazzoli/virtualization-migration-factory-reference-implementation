@@ -1,0 +1,63 @@
+# Memcached for Thanos Query Frontend — caches query-range and label results.
+# Deployed via HelmForge memcached chart v1.0.8 (official docker.io/library/memcached image).
+# Matches ACM observability settings: 1 GiB memory, 1 MiB max item size, 1024 connections.
+#
+# TLS note: This chart natively supports TLS via tls.existingSecret with exporter
+# TLS passthrough (metrics.memcachedTLS). TLS is NOT enabled in this initial config
+# to match ACM's memcached pattern. To enable later, set tls.enabled, configure
+# headlessService.annotations with service-serving cert, and update Thanos cacheConfig
+# with tls_enabled + server_name.
+
+fullnameOverride: thanos-memcached-qf
+
+architecture: distributed
+replicaCount: 3
+
+image:
+  repository: docker.io/library/memcached
+  tag: 1.6.45
+
+memcached:
+  memoryLimitMB: 1024
+  maxConnections: 1024
+  threads: 4
+  maxItemSize: 1m
+  verbosity: -v
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 1536Mi
+  limits:
+    memory: 2Gi
+
+# Headless service annotations (DNS SRV discovery endpoint).
+headlessService:
+  annotations: {}
+
+# Client service annotations.
+service:
+  type: ClusterIP
+  port: 11211
+
+# ---------- Prometheus exporter sidecar ----------
+metrics:
+  enabled: true
+  image:
+    repository: quay.io/prometheus/memcached-exporter
+    tag: v0.15.3
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+
+# Disable network policy — OpenShift uses its own SDN policy model.
+networkPolicy:
+  enabled: false
+
+# PDB for disruption safety during upgrades.
+pdb:
+  enabled: true
+  minAvailable: 1

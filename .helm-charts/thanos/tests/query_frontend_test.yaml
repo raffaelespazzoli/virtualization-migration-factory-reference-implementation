@@ -1,0 +1,935 @@
+suite: query-frontend component
+
+tests:
+  # -- Deployment basics ----------------------------------------------
+
+  - it: renders deployment when query-frontend is enabled
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-query-frontend
+
+  - it: does not render when query-frontend is disabled
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: sets the correct replica count
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.replicaCount: 3
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 3
+
+  - it: leaves replicas to the HPA when autoscaling is enabled
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.replicaCount: 3
+      queryFrontend.autoscaling.enabled: true
+    asserts:
+      - notExists:
+          path: spec.replicas
+
+  - it: uses the global image repository and app version
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      global.image.registry: quay.io
+      global.image.repository: thanos/thanos
+    chart:
+      appVersion: "x.y.z"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: quay.io/thanos/thanos:x.y.z
+
+  - it: uses the global image repository and tag
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      global.image.registry: quay.io
+      global.image.repository: thanos/thanos
+      global.image.tag: v0.40.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: quay.io/thanos/thanos:v0.40.0
+
+  - it: constructs default downstream URL from query service
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      query.service.httpPort: 9090
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --query-frontend.downstream-url=http://RELEASE-NAME-thanos-query:9090
+
+  - it: uses custom downstream URL when set
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.downstreamUrl: http://custom-query:9090
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --query-frontend.downstream-url=http://custom-query:9090
+
+  - it: passes extra CLI args
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.extraArgs:
+        - --log.level=debug
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--log.level=debug"
+
+  # -- Annotations and labels -----------------------------------------
+
+  - it: applies component annotations
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.annotations:
+        custom-annotation: my-value
+    asserts:
+      - equal:
+          path: metadata.annotations.custom-annotation
+          value: my-value
+
+  - it: applies component labels
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.labels:
+        custom-label: my-value
+    asserts:
+      - equal:
+          path: metadata.labels.custom-label
+          value: my-value
+
+  - it: applies pod labels to the pod template only
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.podLabels:
+        azure.workload.identity/use: "true"
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels["azure.workload.identity/use"]
+          value: "true"
+      - notExists:
+          path: metadata.labels["azure.workload.identity/use"]
+
+  # -- Extra env vars -------------------------------------------------
+
+  - it: injects component extraEnv
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.extraEnv:
+        - name: LOG_FORMAT
+          value: json
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: LOG_FORMAT
+            value: json
+
+  - it: merges global and component extraEnv with component winning
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      global.extraEnv:
+        - name: LOG_FORMAT
+          value: json
+        - name: SHARED_VAR
+          value: global-value
+      queryFrontend.extraEnv:
+        - name: SHARED_VAR
+          value: component-value
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: LOG_FORMAT
+            value: json
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SHARED_VAR
+            value: component-value
+
+  # -- Extra envFrom vars -----------------------------------------------
+
+  - it: merges global and component extraEnvFrom with component winning
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      global.extraEnvFrom:
+        - name: GLOBAL_FROM
+          value: global-value
+        - name: SHARED_FROM
+          value: global-value
+      queryFrontend.extraEnvFrom:
+        - name: SHARED_FROM
+          value: component-value
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].envFrom
+          content:
+            name: GLOBAL_FROM
+            value: global-value
+      - contains:
+          path: spec.template.spec.containers[0].envFrom
+          content:
+            name: SHARED_FROM
+            value: component-value
+
+  # -- Security contexts ----------------------------------------------
+
+  - it: applies global container security context
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      global.containerSecurityContext:
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+          value: true
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsNonRoot
+          value: true
+
+  - it: applies component container security context overriding global
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      global.containerSecurityContext:
+        runAsNonRoot: true
+      queryFrontend.containerSecurityContext:
+        runAsNonRoot: false
+        runAsUser: 1001
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsNonRoot
+          value: false
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsUser
+          value: 1001
+
+  - it: applies pod security context
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.podSecurityContext:
+        fsGroup: 1001
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.fsGroup
+          value: 1001
+
+  # -- DNS configuration -----------------------------------------------
+
+  - it: applies global dnsConfig as fallback
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      global.dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0].name
+          value: ndots
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0].value
+          value: "1"
+
+  - it: applies component dnsConfig overriding global
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      global.dnsConfig:
+        options:
+          - name: ndots
+            value: "5"
+      queryFrontend.dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0].name
+          value: ndots
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0].value
+          value: "1"
+
+  - it: does not render dnsConfig when not set
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+    asserts:
+      - notExists:
+          path: spec.template.spec.dnsConfig
+
+  # -- Scheduling and placement ---------------------------------------
+
+  - it: applies component affinity overriding global
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      global.affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: topology.kubernetes.io/zone
+                    operator: In
+                    values:
+                      - ap-southeast-2a
+      queryFrontend.affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/instance: thanos
+                topologyKey: kubernetes.io/hostname
+    asserts:
+      - isNotEmpty:
+          path: spec.template.spec.affinity.podAntiAffinity
+      - notExists:
+          path: spec.template.spec.affinity.nodeAffinity
+
+  - it: applies global affinity as fallback
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      global.affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: topology.kubernetes.io/zone
+                    operator: In
+                    values:
+                      - ap-southeast-2a
+    asserts:
+      - isNotEmpty:
+          path: spec.template.spec.affinity.nodeAffinity
+
+  - it: applies component nodeSelector overriding global
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      global.nodeSelector:
+        node-role: node
+      queryFrontend.nodeSelector:
+        node-role: thanos
+    asserts:
+      - equal:
+          path: spec.template.spec.nodeSelector.node-role
+          value: thanos
+
+  - it: applies global nodeSelector as fallback
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      global.nodeSelector:
+        node-role: thanos
+    asserts:
+      - equal:
+          path: spec.template.spec.nodeSelector.node-role
+          value: thanos
+
+  - it: applies component tolerations
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.tolerations:
+        - key: dedicated
+          operator: Equal
+          value: thanos
+          effect: NoSchedule
+    asserts:
+      - contains:
+          path: spec.template.spec.tolerations
+          content:
+            key: dedicated
+            operator: Equal
+            value: thanos
+            effect: NoSchedule
+
+  - it: applies global tolerations as fallback
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      global.tolerations:
+        - key: dedicated
+          operator: Equal
+          value: thanos
+          effect: NoSchedule
+    asserts:
+      - contains:
+          path: spec.template.spec.tolerations
+          content:
+            key: dedicated
+            operator: Equal
+            value: thanos
+            effect: NoSchedule
+
+  - it: applies component topologySpreadConstraints overriding global
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      global.topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: thanos
+      queryFrontend.topologySpreadConstraints:
+        - maxSkew: 2
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: thanos
+    asserts:
+      - contains:
+          path: spec.template.spec.topologySpreadConstraints
+          content:
+            maxSkew: 2
+            topologyKey: topology.kubernetes.io/zone
+            whenUnsatisfiable: ScheduleAnyway
+            labelSelector:
+              matchLabels:
+                app: thanos
+
+  - it: applies global topologySpreadConstraints as fallback
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      global.topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: thanos
+    asserts:
+      - contains:
+          path: spec.template.spec.topologySpreadConstraints
+          content:
+            maxSkew: 1
+            topologyKey: topology.kubernetes.io/zone
+            whenUnsatisfiable: DoNotSchedule
+            labelSelector:
+              matchLabels:
+                app: thanos
+
+  - it: applies component priorityClassName overriding global
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      global.priorityClassName: high-priority
+      queryFrontend.priorityClassName: critical
+    asserts:
+      - equal:
+          path: spec.template.spec.priorityClassName
+          value: critical
+
+  - it: applies global priorityClassName as fallback
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      global.priorityClassName: high-priority
+    asserts:
+      - equal:
+          path: spec.template.spec.priorityClassName
+          value: high-priority
+
+  # -- Extra init and sidecar containers ------------------------------
+
+  - it: merges global and component extraInitContainers
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      global.extraInitContainers:
+        - name: global-init
+          image: busybox:latest
+          command: ["echo", "global"]
+      queryFrontend.extraInitContainers:
+        - name: component-init
+          image: busybox:latest
+          command: ["echo", "component"]
+    asserts:
+      - contains:
+          path: spec.template.spec.initContainers
+          content:
+            name: global-init
+            image: busybox:latest
+            command: ["echo", "global"]
+      - contains:
+          path: spec.template.spec.initContainers
+          content:
+            name: component-init
+            image: busybox:latest
+            command: ["echo", "component"]
+
+  - it: merges global and component extraContainers
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      global.extraContainers:
+        - name: global-init
+          image: busybox:latest
+          command: ["echo", "global"]
+      queryFrontend.extraContainers:
+        - name: component-init
+          image: busybox:latest
+          command: ["echo", "component"]
+    asserts:
+      - contains:
+          path: spec.template.spec.containers
+          content:
+            name: global-init
+            image: busybox:latest
+            command: ["echo", "global"]
+      - contains:
+          path: spec.template.spec.containers
+          content:
+            name: component-init
+            image: busybox:latest
+            command: ["echo", "component"]
+
+  # -- Service --------------------------------------------------------
+
+  - it: applies service annotations
+    template: query-frontend/service.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.service.annotations:
+        custom-annotation: my-value
+    asserts:
+      - equal:
+          path: metadata.annotations.custom-annotation
+          value: my-value
+
+  - it: applies service labels
+    template: query-frontend/service.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.service.labels:
+        monitoring: "true"
+    asserts:
+      - equal:
+          path: metadata.labels.monitoring
+          value: "true"
+
+  # -- PodDisruptionBudget --------------------------------------------
+
+  - it: renders PDB when component pdb is enabled
+    template: query-frontend/pdb.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.pdb.enabled: true
+      queryFrontend.pdb.maxUnavailable: "1"
+    asserts:
+      - isKind:
+          of: PodDisruptionBudget
+      - equal:
+          path: spec.maxUnavailable
+          value: 1
+
+  - it: renders PDB via global pdb.enabled fallback
+    template: query-frontend/pdb.yaml
+    set:
+      queryFrontend.enabled: true
+      global.pdb.enabled: true
+      global.pdb.minAvailable: "1"
+    asserts:
+      - isKind:
+          of: PodDisruptionBudget
+      - equal:
+          path: spec.minAvailable
+          value: 1
+
+  - it: component PDB values override global
+    template: query-frontend/pdb.yaml
+    set:
+      queryFrontend.enabled: true
+      global.pdb.enabled: true
+      global.pdb.minAvailable: "1"
+      queryFrontend.pdb.minAvailable: "3"
+    asserts:
+      - equal:
+          path: spec.minAvailable
+          value: 3
+
+  - it: does not render PDB when both component and global pdb are disabled
+    template: query-frontend/pdb.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.pdb.enabled: false
+      global.pdb.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # -- Ingress -----------------------------------------------------------
+
+  - it: renders ingress when enabled
+    template: query-frontend/ingress.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.ingress.enabled: true
+      queryFrontend.ingress.hosts:
+        - host: thanos.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - isKind:
+          of: Ingress
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-query-frontend
+
+  - it: applies global.podAnnotations to query-frontend ingress metadata
+    template: query-frontend/ingress.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.ingress.enabled: true
+      queryFrontend.ingress.hosts:
+        - host: thanos.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+      global.podAnnotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+    asserts:
+      - equal:
+          path: metadata.annotations["cluster-autoscaler.kubernetes.io/safe-to-evict"]
+          value: "false"
+
+  - it: applies global.podAnnotations to query-frontend pod template
+    template: query-frontend/deployment.yaml
+    set:
+      queryFrontend.enabled: true
+      global.podAnnotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["cluster-autoscaler.kubernetes.io/safe-to-evict"]
+          value: "false"
+
+  - it: does not render ingress when disabled
+    template: query-frontend/ingress.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.ingress.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: sets ingress class name
+    template: query-frontend/ingress.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.ingress.enabled: true
+      queryFrontend.ingress.className: nginx
+      queryFrontend.ingress.hosts:
+        - host: thanos.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: nginx
+
+  - it: sets ingress host and path
+    template: query-frontend/ingress.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.ingress.enabled: true
+      queryFrontend.ingress.hosts:
+        - host: thanos.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.rules[0].host
+          value: thanos.example.com
+      - equal:
+          path: spec.rules[0].http.paths[0].path
+          value: /
+
+  # -- ServiceMonitor ----------------------------------------------------
+
+  - it: renders servicemonitor when component enabled
+    template: query-frontend/servicemonitor.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.serviceMonitor.enabled: true
+    asserts:
+      - isKind:
+          of: ServiceMonitor
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-query-frontend
+
+  - it: renders servicemonitor via global fallback
+    template: query-frontend/servicemonitor.yaml
+    set:
+      queryFrontend.enabled: true
+      global.serviceMonitor.enabled: true
+    asserts:
+      - isKind:
+          of: ServiceMonitor
+
+  - it: does not render servicemonitor when disabled
+    template: query-frontend/servicemonitor.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.serviceMonitor.enabled: false
+      global.serviceMonitor.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # -- HorizontalPodAutoscaler ------------------------------------------
+
+  - it: renders HPA when autoscaling is enabled
+    template: query-frontend/hpa.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.autoscaling.enabled: true
+      queryFrontend.autoscaling.minReplicas: 2
+      queryFrontend.autoscaling.maxReplicas: 5
+      queryFrontend.autoscaling.targetCPUUtilizationPercentage: 80
+    asserts:
+      - isKind:
+          of: HorizontalPodAutoscaler
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-query-frontend
+      - equal:
+          path: spec.minReplicas
+          value: 2
+      - equal:
+          path: spec.maxReplicas
+          value: 5
+
+  - it: does not render HPA when autoscaling is disabled
+    template: query-frontend/hpa.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.autoscaling.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: does not render HPA when queryFrontend component is disabled
+    template: query-frontend/hpa.yaml
+    set:
+      queryFrontend.enabled: false
+      queryFrontend.autoscaling.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: HPA scaleTargetRef targets query-frontend Deployment by default
+    template: query-frontend/hpa.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.autoscaling.enabled: true
+    asserts:
+      - equal:
+          path: spec.scaleTargetRef.kind
+          value: Deployment
+      - equal:
+          path: spec.scaleTargetRef.name
+          value: RELEASE-NAME-thanos-query-frontend
+
+  - it: HPA scaleTargetRef uses custom targetKind
+    template: query-frontend/hpa.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.autoscaling.enabled: true
+      queryFrontend.autoscaling.targetKind: StatefulSet
+    asserts:
+      - equal:
+          path: spec.scaleTargetRef.kind
+          value: StatefulSet
+
+  - it: HPA renders CPU metric with correct averageUtilization
+    template: query-frontend/hpa.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.autoscaling.enabled: true
+      queryFrontend.autoscaling.targetCPUUtilizationPercentage: 60
+    asserts:
+      - contains:
+          path: spec.metrics
+          content:
+            type: Resource
+            resource:
+              name: cpu
+              target:
+                type: Utilization
+                averageUtilization: 60
+
+  - it: HPA renders memory metric when targetMemoryUtilizationPercentage is set
+    template: query-frontend/hpa.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.autoscaling.enabled: true
+      queryFrontend.autoscaling.targetCPUUtilizationPercentage: 80
+      queryFrontend.autoscaling.targetMemoryUtilizationPercentage: 75
+    asserts:
+      - contains:
+          path: spec.metrics
+          content:
+            type: Resource
+            resource:
+              name: memory
+              target:
+                type: Utilization
+                averageUtilization: 75
+
+  - it: HPA renders both CPU and memory metrics when both are set
+    template: query-frontend/hpa.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.autoscaling.enabled: true
+      queryFrontend.autoscaling.targetCPUUtilizationPercentage: 80
+      queryFrontend.autoscaling.targetMemoryUtilizationPercentage: 75
+    asserts:
+      - lengthEqual:
+          path: spec.metrics
+          count: 2
+      - contains:
+          path: spec.metrics
+          content:
+            type: Resource
+            resource:
+              name: cpu
+              target:
+                type: Utilization
+                averageUtilization: 80
+      - contains:
+          path: spec.metrics
+          content:
+            type: Resource
+            resource:
+              name: memory
+              target:
+                type: Utilization
+                averageUtilization: 75
+
+  - it: HPA renders memory-only metric when CPU is not set
+    template: query-frontend/hpa.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.autoscaling.enabled: true
+      queryFrontend.autoscaling.targetCPUUtilizationPercentage: null
+      queryFrontend.autoscaling.targetMemoryUtilizationPercentage: 75
+    asserts:
+      - lengthEqual:
+          path: spec.metrics
+          count: 1
+      - contains:
+          path: spec.metrics
+          content:
+            type: Resource
+            resource:
+              name: memory
+              target:
+                type: Utilization
+                averageUtilization: 75
+
+  # -- ConfigMap cache ---------------------------------------------------
+
+  - it: renders cache configmap when cacheConfig is set
+    template: query-frontend/configmap-cache.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.cacheConfig: |
+        type: MEMCACHED
+        config:
+          addresses:
+            - memcached:11211
+    asserts:
+      - isKind:
+          of: ConfigMap
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-query-frontend-cache
+
+  - it: does not render cache configmap when cacheConfig is empty
+    template: query-frontend/configmap-cache.yaml
+    set:
+      queryFrontend.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # -- NetworkPolicy -------------------------------------------------------
+
+  - it: does not render networkpolicy when networkPolicies is disabled
+    template: query-frontend/networkpolicy.yaml
+    set:
+      queryFrontend.enabled: true
+      global.networkPolicies: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: does not render networkpolicy when queryFrontend is disabled
+    template: query-frontend/networkpolicy.yaml
+    set:
+      queryFrontend.enabled: false
+      global.networkPolicies: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders networkpolicy when queryFrontend and networkPolicies are enabled
+    template: query-frontend/networkpolicy.yaml
+    set:
+      queryFrontend.enabled: true
+      global.networkPolicies: true
+    asserts:
+      - isKind:
+          of: NetworkPolicy
+      - equal:
+          path: apiVersion
+          value: networking.k8s.io/v1
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-query-frontend

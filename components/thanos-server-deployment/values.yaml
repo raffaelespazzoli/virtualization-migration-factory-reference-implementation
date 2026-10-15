@@ -1,0 +1,342 @@
+# Thanos server-side components — deployed only on the HA query clusters (etl6, etl7).
+# Thanos Receive is NOT deployed here; it lives in thanos-local-configuration.
+
+global:
+  objstore:
+    createSecret: false
+    secretName: thanos-objstore
+    secretKey: objstore.yml
+  storageClass: ontap-nas
+
+# ---------- Store Gateway ----------
+# Reads TSDB blocks from S3 and serves them via the StoreAPI gRPC interface.
+# Both etl6 and etl7 run a Store Gateway reading the same bucket — full data
+# is available locally to each Query without cross-cluster Store GW traffic.
+storegateway:
+  enabled: true
+  replicaCount: 2
+
+  service:
+    type: ClusterIP
+    grpcPort: 10901
+    httpPort: 10902
+    annotations:
+      service.beta.openshift.io/serving-cert-secret-name: thanos-storegateway-tls
+
+  persistence:
+    enabled: true
+    size: 20Gi
+    storageClass: ontap-nas
+
+  extraArgs:
+    - --log.level=info
+    - --sync-block-duration=5m
+    - --grpc-server-tls-cert=/etc/tls/grpc/tls.crt
+    - --grpc-server-tls-key=/etc/tls/grpc/tls.key
+    # Index cache — memcached-backed, separate from the caching bucket below.
+    - --index-cache.config-file=/etc/thanos/index-cache.yaml
+
+  # Caching-bucket wraps S3 API calls through memcached to reduce object store
+  # load. Settings match ACM observability (high concurrency, 24h TTLs).
+  cachingBucketConfig: |
+    type: MEMCACHED
+    config:
+      addresses:
+        - dnssrv+_memcache._tcp.thanos-memcached-store-headless.thanos-system.svc
+      timeout: 2s
+      max_idle_connections: 1000
+      max_async_concurrency: 100
+      max_async_buffer_size: 100000
+      max_get_multi_concurrency: 900
+      max_get_multi_batch_size: 1000
+      max_item_size: 1MiB
+      dns_provider_update_interval: 10s
+    chunk_subrange_size: 16000
+    chunk_subrange_ttl: 24h
+    chunk_object_attrs_ttl: 24h
+    blocks_iter_ttl: 5m
+    metafile_exists_ttl: 2h
+    metafile_doesnt_exist_ttl: 15m
+    metafile_content_ttl: 24h
+    metafile_max_size: 1MiB
+    max_chunks_get_range_requests: 3
+
+  extraVolumes:
+    - name: grpc-tls
+      secret:
+        secretName: thanos-storegateway-tls
+    - name: index-cache
+      configMap:
+        name: thanos-storegateway-index-cache
+
+  extraVolumeMounts:
+    - name: grpc-tls
+      mountPath: /etc/tls/grpc
+      readOnly: true
+    - name: index-cache
+      mountPath: /etc/thanos/index-cache.yaml
+      subPath: index-cache.yaml
+      readOnly: true
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      memory: 4Gi
+
+# ---------- Query ----------
+# Fan-out PromQL engine connecting to local Store Gateway and local + remote Receive.
+# The kube-rbac-proxy sidecar secures the HTTP endpoint (cluster-reader required).
+query:
+  enabled: true
+  replicaCount: 2
+
+  replicaLabels:
+    - prometheus_replica
+    - receive_replica
+    - ruler_replica
+
+  # Store endpoints: local Store GW and Ruler are auto-discovered by the chart.
+  # Receive on both clusters is reached via Routes (reencrypt + h2) for uniform
+  # TLS handling. No internal-service shortcut — both go through the router.
+  stores:
+    - thanos-receive-grpc-thanos-local.apps.etl6.ocp.rht-labs.com:443
+    - thanos-receive-grpc-thanos-local.apps.etl7.ocp.rht-labs.com:443
+
+  service:
+    type: ClusterIP
+    httpPort: 9090
+    grpcPort: 10901
+    annotations:
+      service.beta.openshift.io/serving-cert-secret-name: thanos-query-tls
+
+  extraArgs:
+    - --log.level=info
+    - --grpc-server-tls-cert=/etc/tls/grpc/tls.crt
+    - --grpc-server-tls-key=/etc/tls/grpc/tls.key
+    - --grpc-client-tls-secure
+    - --grpc-client-tls-ca=/etc/tls/service-ca/service-ca.crt
+
+  extraVolumes:
+    - name: grpc-tls
+      secret:
+        secretName: thanos-query-tls
+    - name: service-ca
+      configMap:
+        name: thanos-service-ca
+    - name: proxy-tls
+      secret:
+        secretName: thanos-query-tls
+
+  extraVolumeMounts:
+    - name: grpc-tls
+      mountPath: /etc/tls/grpc
+      readOnly: true
+    - name: service-ca
+      mountPath: /etc/tls/service-ca
+      readOnly: true
+
+  # kube-rbac-proxy sidecar — secures the Query HTTP endpoint.
+  # Only users with cluster-reader role can access.
+  extraContainers:
+    - name: kube-rbac-proxy
+      image: registry.redhat.io/openshift4/ose-kube-rbac-proxy-rhel9:latest
+      args:
+        - --secure-listen-address=0.0.0.0:9091
+        - --upstream=http://127.0.0.1:9090/
+        - --tls-cert-file=/etc/tls/proxy/tls.crt
+        - --tls-private-key-file=/etc/tls/proxy/tls.key
+        - --upstream-force-h2c=false
+        - --logtostderr=true
+        - --v=2
+        # Require cluster-reader: ability to GET namespaces cluster-wide
+        - --authorization-resourceattributes-resource=namespaces
+        - --authorization-resourceattributes-verb=get
+        - --authorization-resourceattributes-apigroup=
+      ports:
+        - containerPort: 9091
+          name: https
+      volumeMounts:
+        - name: proxy-tls
+          mountPath: /etc/tls/proxy
+          readOnly: true
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      memory: 4Gi
+
+# ---------- Query Frontend ----------
+# Caching and query-splitting layer in front of Query.
+# Response cache is backed by memcached (thanos-memcached-qf).
+queryFrontend:
+  enabled: true
+  replicaCount: 2
+
+  service:
+    type: ClusterIP
+    httpPort: 9090
+    annotations:
+      service.beta.openshift.io/serving-cert-secret-name: thanos-query-frontend-tls
+
+  # Response cache — shared by query-range and label endpoints.
+  # Uses DNS SRV discovery against the memcached headless service.
+  cacheConfig: |
+    type: MEMCACHED
+    config:
+      addresses:
+        - dnssrv+_memcache._tcp.thanos-memcached-qf-headless.thanos-system.svc
+      timeout: 500ms
+      max_idle_connections: 100
+      max_async_concurrency: 20
+      max_async_buffer_size: 10000
+      max_get_multi_concurrency: 100
+      max_get_multi_batch_size: 0
+      max_item_size: 1MiB
+      dns_provider_update_interval: 10s
+
+  extraArgs:
+    - --log.level=info
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      memory: 2Gi
+
+# ---------- Compactor ----------
+# Compacts, downsamples, and enforces retention on blocks in S3.
+# SINGLETON — only one instance may run against the same bucket.
+# etl6 runs active (replicaCount=1), etl7 overrides to standby (replicaCount=0).
+compactor:
+  enabled: true
+  replicaCount: 1
+
+  retention:
+    resolutionRaw: 30d
+    resolution5m: 180d
+    resolution1h: 365d
+
+  service:
+    type: ClusterIP
+    annotations:
+      service.beta.openshift.io/serving-cert-secret-name: thanos-compactor-tls
+
+  persistence:
+    enabled: true
+    size: 50Gi
+    storageClass: ontap-nas
+
+  extraArgs:
+    - --log.level=info
+    - --compact.concurrency=4
+    - --downsample.concurrency=4
+    - --wait
+    - --delete-delay=48h
+    - --consistency-delay=30m
+    - --deduplication.replica-label=prometheus_replica
+    - --deduplication.replica-label=receive_replica
+
+  resources:
+    requests:
+      cpu: 500m
+      memory: 2Gi
+    limits:
+      memory: 8Gi
+
+# ---------- Bucket Web ----------
+# Read-only web UI for inspecting blocks in the object store.
+bucket:
+  enabled: true
+  bucketweb:
+    enabled: true
+    replicaCount: 1
+
+    service:
+      type: ClusterIP
+      annotations:
+        service.beta.openshift.io/serving-cert-secret-name: thanos-bucketweb-tls
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        memory: 512Mi
+
+# ---------- Ruler ----------
+# Evaluates recording and alerting rules against the full Thanos dataset
+# (up to 1 year of historical data). Results are written back to S3 as new
+# blocks and alerts are sent to the cluster Alertmanager.
+ruler:
+  enabled: true
+  replicaCount: 2
+
+  # Query endpoints used by Ruler to evaluate PromQL rules
+  query:
+    urls:
+      - http://thanos-query.thanos-system.svc.cluster.local:9090
+
+  # Alertmanager routing — uncomment when an Alertmanager is available.
+  # Without this, the Ruler is still useful for recording rules — it evaluates
+  # them against the full Thanos dataset and writes results back to S3.
+  # Alerting rules will evaluate but alerts have nowhere to fire to.
+  alertmanagers:
+    config: |
+      alertmanagers: []
+      # - static_configs:
+      #     - alertmanager-main.openshift-monitoring.svc.cluster.local:9093
+      #   scheme: http
+      #   api_version: v2
+
+  alertQueryUrl: ""
+
+  # Disable the example alert; real rules come via autoImportPrometheusRules
+  rules: {}
+
+  autoImportPrometheusRules:
+    enabled: true
+    labelSelector:
+      thanos-ruler: "true"
+
+  service:
+    type: ClusterIP
+    grpcPort: 10901
+    httpPort: 10902
+    annotations:
+      service.beta.openshift.io/serving-cert-secret-name: thanos-ruler-tls
+
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ontap-nas
+
+  extraArgs:
+    - --log.level=info
+    - --grpc-server-tls-cert=/etc/tls/grpc/tls.crt
+    - --grpc-server-tls-key=/etc/tls/grpc/tls.key
+
+  extraVolumes:
+    - name: grpc-tls
+      secret:
+        secretName: thanos-ruler-tls
+
+  extraVolumeMounts:
+    - name: grpc-tls
+      mountPath: /etc/tls/grpc
+      readOnly: true
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      memory: 2Gi
+
+# ---------- Disabled ----------
+receive:
+  enabled: false

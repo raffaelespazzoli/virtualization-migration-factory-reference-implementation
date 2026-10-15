@@ -261,4 +261,39 @@ applications:
     destination:
       namespace: multinetworkpolicy-udn-localnet-test
     source:
-      path: clusters/etl6/overlays/multinetworkpolicy-udn-localnet-test                         
+      path: clusters/etl6/overlays/multinetworkpolicy-udn-localnet-test
+
+# Thanos long-term metrics storage
+
+  thanos-local-configuration:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '15'
+      argocd.argoproj.io/manifest-generate-paths: ".;/components/thanos-local-configuration"
+    destination:
+      namespace: thanos-local
+    source:
+      path: clusters/etl6/overlays/thanos-local-configuration
+    extraFields: |
+      ignoreDifferences:
+      - group: opentelemetry.io
+        kind: OpenTelemetryCollector
+        jsonPointers:
+          - /spec/config
+
+  thanos-server-deployment:
+    annotations:
+      argocd.argoproj.io/compare-options: IgnoreExtraneous
+      argocd.argoproj.io/sync-wave: '25'
+      argocd.argoproj.io/manifest-generate-paths: ".;/components/thanos-server-deployment"
+    destination:
+      namespace: thanos-system
+    source:
+      path: clusters/etl6/overlays/thanos-server-deployment
+    extraFields: |
+      ignoreDifferences:
+      - group: apps
+        kind: StatefulSet
+        name: thanos-compactor
+        jsonPointers:
+          - /spec/replicas

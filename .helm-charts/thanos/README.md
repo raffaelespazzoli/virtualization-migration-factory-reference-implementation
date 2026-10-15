@@ -1,0 +1,1736 @@
+# Thanos Helm Chart
+
+![Version: 0.47.2](https://img.shields.io/badge/Version-0.47.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.42.4](https://img.shields.io/badge/AppVersion-v0.42.4-informational?style=flat-square)
+
+<p align="center"><img src="../../docs/imgs/thanos_logo_full.svg" alt="Thanos Logo" width="300"/></p>
+
+A helm chart to setup Thanos on Kubernetes, a highly available Prometheus setup with long term storage capabilities.
+
+## TL;DR
+
+```bash
+helm install thanos oci://ghcr.io/thanos-community/helm-charts/thanos \
+  --namespace monitoring \
+  --create-namespace
+```
+
+## Architecture
+
+![Thanos High Level Architecture](../../docs/imgs/thanos_hld_arch.png)
+
+Thanos extends Prometheus with global query view, long-term storage, and high availability. It is composed of several independently deployable components that each serve a specific role.
+
+Refer to the [Thanos component docs](https://thanos.io/tip/thanos/quick-tutorial.md/#components) for an in-depth explanation.
+
+## Maintainers
+
+| Name | Email | Url |
+| ---- | ------ | --- |
+| hamdikh | <hamdi.khelil@kapheira.cloud> |  |
+
+## Source Code
+
+* <https://github.com/thanos-community/helm-charts>
+* <https://github.com/thanos-io/thanos>
+
+## Prerequisites
+
+- Kubernetes `>= 1.30.0-0`
+- Helm >= 3.8 (OCI registry support)
+- An object store bucket — GCS, S3, Azure Blob, or any S3-compatible store
+
+## Requirements
+
+Kubernetes: `>= 1.30.0-0`
+
+| Repository | Name | Version |
+|------------|------|---------|
+| https://charts.rustfs.com/ | rustfs | 0.12.0 |
+| https://prometheus-community.github.io/helm-charts | kube-prometheus-stack(kube-prometheus-stack) | 88.6.0 |
+
+## Component Overview
+
+The chart deploys each Thanos component as an independent workload. Enable only what you need.
+
+| Component | Enabled by Default | Workload | Purpose |
+|-----------|--------------------|----------|---------|
+| **query** | Yes | Deployment | Fan-out query engine. Queries multiple Store API endpoints and deduplicates results. This is the Prometheus-compatible query entrypoint. |
+| **receive** | Yes | StatefulSet | Remote-write endpoint. Accepts Prometheus `remote_write` traffic, stores samples locally, and ships blocks to the object store. |
+| **storegateway** | Yes | StatefulSet | Serves historical blocks from the object store over the Store API. Required for querying data older than what Prometheus/Receive holds locally. |
+| **compactor** | Yes | StatefulSet | Compacts and downsamples blocks in the object store. Runs as a singleton — do not scale above 1 replica. |
+| **query-frontend** | No | Deployment | Optional caching and query-splitting layer in front of Query. Reduces load for repeated or heavy queries. |
+| **ruler** | No | StatefulSet | Evaluates alerting and recording rules by querying the Query component. Sends alerts to Alertmanager. |
+| **bucket (bucketweb)** | No | Deployment | Read-only web UI for inspecting blocks in the object store. Useful for debugging, not needed in production. |
+
+## Installation
+
+### 1. Add the Helm repository (optional, for non-OCI installs)
+
+```bash
+helm repo add thanos-community https://thanos-community.github.io/helm-charts
+helm repo update
+```
+
+### 2. Configure object store credentials
+
+All stateful Thanos components (Receive, Store Gateway, Compactor, Ruler) need access to an object store.
+
+Create a `values.yaml` file with your object store configuration:
+
+```yaml
+global:
+  objstore:
+    # Set createSecret: true to let the chart create the Secret from the inline config below.
+    # Set createSecret: false (default) if you manage the Secret externally.
+    createSecret: true
+    secretName: thanos-objstore
+    secretKey: objstore.yml
+    config: |
+      type: S3
+      config:
+        bucket: my-thanos-bucket
+        endpoint: s3.eu-west-1.amazonaws.com
+        region: eu-west-1
+        access_key: <ACCESS_KEY>
+        secret_key: <SECRET_KEY>
+```
+
+### 3. Install the chart
+
+```bash
+helm install thanos oci://ghcr.io/thanos-community/helm-charts/thanos \
+  --namespace monitoring \
+  --create-namespace \
+  -f values.yaml
+```
+
+### 4. Verify the installation
+
+```bash
+kubectl get pods -n monitoring -l app.kubernetes.io/instance=thanos
+```
+
+## Object Store Configuration
+
+The object store config is shared by all components that write to or read from the object store. It follows the [Thanos object store YAML format](https://thanos.io/tip/thanos/storage.md/).
+
+### Providing credentials
+
+**Option A — let the chart create the Secret** (suitable for development):
+
+```yaml
+global:
+  objstore:
+    createSecret: true
+    config: |
+      type: GCS
+      config:
+        bucket: my-bucket
+```
+
+**Option B — bring your own Secret** (recommended for production):
+
+Create the Secret externally (e.g. via Vault, External Secrets Operator, or `kubectl`):
+
+```bash
+kubectl create secret generic thanos-objstore \
+  --from-file=objstore.yml=./objstore.yml \
+  -n monitoring
+```
+
+Then reference it in values:
+
+```yaml
+global:
+  objstore:
+    createSecret: false
+    secretName: thanos-objstore
+    secretKey: objstore.yml
+```
+
+### Provider examples
+
+<details>
+<summary>Google Cloud Storage (GCS)</summary>
+
+```yaml
+type: GCS
+config:
+  bucket: my-thanos-bucket
+  service_account: |-
+    {
+      "type": "service_account",
+      ...
+    }
+```
+
+</details>
+
+<details>
+<summary>Amazon S3 / S3-compatible</summary>
+
+```yaml
+type: S3
+config:
+  bucket: my-thanos-bucket
+  endpoint: s3.eu-west-1.amazonaws.com
+  region: eu-west-1
+  access_key: AKIAIOSFODNN7EXAMPLE
+  secret_key: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+```
+
+</details>
+
+<details>
+<summary>Azure Blob Storage</summary>
+
+```yaml
+type: AZURE
+config:
+  storage_account: mystorageaccount
+  storage_account_key: <BASE64_ENCODED_KEY>
+  container: thanos
+  endpoint_suffix: core.windows.net
+```
+
+</details>
+
+## Key Configuration Sections
+
+### Global defaults
+
+Settings under `global` apply to **all components** unless overridden at the component level. This avoids repeating common values (image, security context, node selectors, etc.).
+
+```yaml
+global:
+  image:
+    registry: quay.io
+    repository: thanos/thanos
+    tag: v0.39.2
+    pullPolicy: IfNotPresent
+
+  # Applied to every pod
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: [ALL]
+    runAsNonRoot: true
+
+  # Shared resource defaults (override per component as needed)
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+
+  # Fallback StorageClass for every PVC the chart creates. A component's own
+  # persistence.storageClass wins; empty on both means the cluster default.
+  storageClass: ""
+```
+
+### Query
+
+The Query component is the main entrypoint for PromQL queries. It fans out to all registered Store API endpoints and deduplicates results using replica labels.
+
+```yaml
+query:
+  enabled: true
+  replicaCount: 2
+
+  # Labels that identify replica identity — used for deduplication
+  replicaLabels:
+    - prometheus_replica
+    - receive_replica
+    - ruler_replica
+
+  # gRPC --endpoint arguments. The in-chart components (Receive, Store Gateway, Ruler) are auto-wired
+  # when autogen.enabled is true. Endpoints defined in static[] are always appended; set
+  # autogen.enabled to false to take full control of what endpoint arguments are passed.
+  endpoints:
+    autogen:
+      enabled: true
+    static: []
+    # Example:
+    # static:
+    #   - thanos-storegateway.cluster1.internal:443
+    #   - thanos-receive.cluster1.internal:443
+
+  # Deprecated. Use query.endpoints.static[] instead.
+  stores: []
+
+  ingress:
+    http:
+      enabled: false
+      className: nginx
+      hosts:
+        - host: thanos-query.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+```
+
+#### File-based endpoint discovery
+
+`autogen` and `static` bake their endpoints into the pod spec, so every change to the store topology is a `helm upgrade` and a restart. `query.endpoints.sdConfig` instead passes `--endpoint.sd-config-file`, which Thanos re-reads at runtime — the right fit when the set of Store API servers changes without the chart knowing, for example sidecars appearing next to new Prometheus instances.
+
+Point it at a ConfigMap somebody else maintains:
+
+```yaml
+query:
+  endpoints:
+    sdConfig:
+      existingConfigMap: thanos-endpoints
+      key: endpoints.yml
+      reloadInterval: 30s
+```
+
+Or let the chart render one from an inline config. The file is Thanos' own `EndpointConfig`, documented under [Per-Endpoint TLS Configuration](https://thanos.io/v0.42/components/query.md/#per-endpoint-tls-configuration) — not the Prometheus target-group format, which belongs to the deprecated `--store.sd-files` flag:
+
+```yaml
+query:
+  endpoints:
+    sdConfig:
+      config: |
+        endpoints:
+          - address: thanos-sidecar-0.prometheus:10901
+          - address: thanos-sidecar-1.prometheus:10901
+```
+
+Three things to keep in mind:
+
+- The ConfigMap is mounted as a directory rather than with `subPath`, because the kubelet only keeps the projected file current without one. With `subPath` the file would freeze at its first version and re-reading it would find nothing new.
+- File SD is additive: `autogen` and `static` endpoints are still passed as `--endpoint` arguments alongside it, and Thanos merges them into the file's list on every reload.
+- gRPC client TLS belongs in this file too, as `default_client_config` or per endpoint as `client_config`. The `--grpc-client-tls-*` flags are deprecated after v0.43.0, and Query already logs a warning pointing here.
+
+### Receive
+
+The Receive component accepts Prometheus `remote_write` traffic and stores samples locally in a TSDB WAL before shipping blocks to the object store.
+
+```yaml
+receive:
+  enabled: true
+  replicaCount: 3           # Minimum 3 for a replication factor of 2
+
+  tsdb:
+    retention: 24h          # How long to keep data locally before it is uploaded
+    walCompression: true    # Reduces IO and disk usage
+
+  persistence:
+    enabled: true
+    size: 10Gi
+
+  # Hashring topology — defaults to auto-generating a single ring
+  hashrings:
+    autogen:
+      enabled: true
+      name: default
+    # static: []            # Set to override autogen with a custom hashring config
+```
+
+Configure Prometheus to remote-write to the Receive service:
+
+```yaml
+# In your Prometheus / kube-prometheus-stack values
+prometheus:
+  prometheusSpec:
+    remoteWrite:
+      - url: http://thanos-receive.monitoring.svc.cluster.local:10908/api/v1/receive
+```
+
+#### Split mode (separate Router and Ingester)
+
+For high-availability and horizontal scalability, Receive can be deployed as
+two separate workloads following the [receive split proposal](https://thanos.io/tip/proposals-accepted/202012-receive-split.md):
+
+- **Router** — stateless `Deployment` that terminates client `remote_write`
+  traffic and forwards each request to the correct Ingester(s) according to the
+  hashring config (with optional replication).
+- **Ingester** — stateful `StatefulSet` that stores samples in a local TSDB WAL
+  and ships blocks to the object store, just like standalone Receive.
+
+Set `receive.mode: split` to opt in. In `split` mode the top-level `receive.*`
+fields are **ignored**: configure the Ingester StatefulSet (renamed to
+`<release>-thanos-receive-ingester`) via `receive.ingester.*`, and the Router
+Deployment (`<release>-thanos-receive-router`) via `receive.router.*`. The
+schema enforces that both `ingester` and `router` are populated when
+`mode: split`.
+
+```yaml
+receive:
+  enabled: true
+  mode: split             # standalone (default) | split
+
+  ingester:
+    replicaCount: 3       # Minimum 3 for replication factor 2
+    tsdb:
+      retention: 24h
+      walCompression: true
+    service:
+      grpcPort: 10901
+      httpPort: 10902
+      remoteWritePort: 10908
+    persistence:
+      enabled: true
+      size: 10Gi
+    hashrings:
+      autogen:
+        enabled: true
+
+  router:
+    replicaCount: 2
+    replicationFactor: 2  # Each write fans out to N ingesters
+```
+
+In standalone mode (default), leave `receive.ingester` and `receive.router`
+empty — all configuration lives directly under `receive.*`.
+
+In split mode clients should remote-write to the Router service:
+
+```
+http://<release>-thanos-receive-router.<namespace>.svc.cluster.local:10908/api/v1/receive
+```
+
+#### Externally managed hashrings
+
+`receive.hashrings.external` points the chart at a hashring ConfigMap owned by something else — typically [thanos-receive-controller](https://github.com/observatorium/thanos-receive-controller), which watches the Receive pods and rewrites the ring as they come and go, so that scaling needs no redeploy:
+
+```yaml
+receive:
+  hashrings:
+    refreshInterval: 30s      # re-read the file the controller rewrites
+    external:
+      enabled: true
+      configMapName: thanos-receive-controller-generated
+      key: hashrings.json     # this is the default
+```
+
+In split mode the whole `hashrings` block moves to `receive.ingester.hashrings`, because both workloads resolve the ring from the Ingester config — the Router reads it to route, the Ingester to know its own place in it. A hashring under `receive.router` is rejected at render time rather than silently ignored.
+
+Three things to keep in mind:
+
+- The chart renders no hashring ConfigMap of its own while this is enabled, and `autogen` and `static` are ignored. Without that, Helm and the controller would fight over the same object.
+- The ring is entirely the owner's responsibility, including any per-endpoint fields beyond the address that the [hashring format](https://thanos.io/tip/components/receive.md/) supports. The chart contributes nothing to a ring it does not render.
+- The `checksum/hashrings` pod annotation is dropped, since the ring content is unknown at render time. Receive watches the hashring file with fsnotify and re-reads it on change; `--receive.hashrings-file-refresh-interval` (Thanos default `5m`) re-reads it regardless, which covers the case where the watch cannot be re-established after the file is replaced — what a ConfigMap update does. `refreshInterval` tightens that bound.
+
+`hashrings.algorithm` is independent of all this and applies to standalone and split mode alike: `ketama` (the default, consistent hashing) or the legacy `hashmod`.
+
+#### Cap'n Proto replication
+
+`receive.replication.protocol` selects the wire protocol used to replicate writes between Receive endpoints. It is read in both modes, like `mode`: in split mode the Router dials over it and the Ingester listens on it, in standalone mode the same workload does both.
+
+```yaml
+receive:
+  replication:
+    protocol: capnproto     # protobuf (default) | capnproto
+  service:
+    capnprotoPort: 19391    # this is the default
+```
+
+Two things to keep in mind:
+
+- The port is rendered on the container, on the headless Service and — with `global.networkPolicies` enabled — in the NetworkPolicy. It is deliberately left off the ClusterIP Service, since replication addresses one specific peer through its per-pod DNS name and a load-balanced port would reach a different one.
+- Auto-generated hashrings switch from plain string endpoints to objects carrying an explicit `capnproto_address`, which [the Thanos docs](https://thanos.io/tip/components/receive.md/) recommend over letting Thanos infer it from the gRPC address. Rings the chart does not render are untouched — `hashrings.static`, and an externally managed ring under `hashrings.external` — so their owner has to add `capnproto_address` to the endpoints.
+
+### Store Gateway
+
+The Store Gateway exposes historical blocks from the object store over the Store API. Query routes requests for older data to this component.
+
+```yaml
+storegateway:
+  enabled: true
+  replicaCount: 2
+
+  persistence:
+    enabled: true
+    size: 10Gi              # Used for index cache and chunk downloads
+
+  # Optional: add a caching bucket layer (memcached/redis) to reduce object store calls
+  cachingBucketConfig: ""
+```
+
+### Compactor
+
+The Compactor runs as a **singleton** (one instance). It compacts blocks uploaded by Receive into larger blocks and downsamples them for faster long-range queries.
+
+```yaml
+compactor:
+  enabled: true
+  replicaCount: 1           # Do NOT increase — compactor must run as a singleton
+
+  # Retention is exposed as typed values. Set any of these to "" to disable.
+  retention:
+    resolutionRaw: 30d      # Keep raw samples for 30 days
+    resolution5m: 90d       # Keep 5m-downsampled data for 90 days
+    resolution1h: 365d      # Keep 1h-downsampled data for 1 year
+
+  # --wait is always passed by the chart so the compactor keeps running as a
+  # long-lived StatefulSet pod. Use extraArgs for everything else.
+  extraArgs:
+    - --consistency-delay=30m
+
+  persistence:
+    enabled: true
+    size: 10Gi              # Used as a working directory during compaction
+```
+
+### Query Frontend (optional)
+
+Sits in front of the Query component. Splits large time-range queries, caches results, and reduces load for repeated queries.
+
+```yaml
+queryFrontend:
+  enabled: false            # Enable when query load is significant
+
+  # Downstream URL of the Query component (auto-resolved when both are in the same chart)
+  downstreamUrl: ""
+
+  # Optional: inline caching config (Memcached, Redis, in-memory)
+  cacheConfig: ""
+```
+
+### Ruler (optional)
+
+Evaluates alerting and recording rules on a schedule by querying the Query component, mirroring how Prometheus rules work.
+
+```yaml
+ruler:
+  enabled: false
+
+  query:
+    urls:
+      - http://thanos-query.monitoring.svc.cluster.local:9090
+
+  alertmanagers:
+    config: |
+      static_configs:
+        - targets: ["alertmanager.monitoring.svc.cluster.local:9093"]
+
+  # Inline rule files (key = filename, value = YAML content)
+  rules:
+    my-alerts.yaml: |
+      groups:
+        - name: example
+          rules:
+            - alert: MyAlert
+              expr: up == 0
+              for: 5m
+
+  # Auto-import PrometheusRule CRDs from the cluster (requires kube-prometheus-stack)
+  autoImportPrometheusRules:
+    enabled: true
+    labelSelector: {}
+```
+
+#### Stateless mode
+
+`ruler.remoteWrite.enabled` runs the Ruler [statelessly](https://thanos.io/tip/components/rule.md/): evaluation results are written to a remote-write endpoint — usually Receive — instead of being uploaded to the object store, and the Ruler keeps a WAL rather than a full TSDB. The chart then passes `--remote-write.config-file` in place of `--objstore.config-file` and mounts the remote-write Secret instead of the object store one.
+
+The configuration can carry credentials for the write endpoint, so it follows the same contract as `global.objstore`: the Secret is managed outside the chart by default, and then it has to be named. A wrong or missing name would otherwise only surface as a pod waiting forever on a volume, so an unnamed Secret fails the render instead.
+
+```yaml
+ruler:
+  enabled: true
+  remoteWrite:
+    enabled: true
+    secretName: my-ruler-remote-write   # created by you, e.g. from Vault or ESO
+    secretKey: remote-write.yml
+    # createSecret: true                # opt in to let the chart render the Secret
+    # config: |                         # from `config`, naming it <fullname>-ruler-remote-write
+    #   remote_write:
+    #     - url: http://<release>-thanos-receive:10908/api/v1/receive
+```
+
+Two things to keep in mind:
+
+- The Ruler stays a Query endpoint. It advertises no Store API without a local TSDB, so Query never asks it for series — those come from the receiver the results are written to — but it still serves the Rules API, which is what keeps its rules and alerts visible in Query's `/rules` and `/alerts`.
+- `--data-dir` and the PersistentVolumeClaim stay, since the WAL still needs somewhere to live.
+
+### Persistence
+
+Compactor, Receive (the Ingester in split mode), Ruler and Store Gateway are StatefulSets and provision their own PersistentVolumeClaims from a `volumeClaimTemplate`:
+
+```yaml
+compactor:
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: ""            # falls back to global.storageClass, then the cluster default
+    accessModes:
+      - ReadWriteOnce
+```
+
+Set `persistence.enabled: false` on a component to run it on an `emptyDir` instead. Everything is then lost on restart, which is fine for a scratch Compactor but not for Receive.
+
+#### Choosing a StorageClass
+
+`persistence.storageClass` is resolved per component, with `global.storageClass` as the chart-wide fallback:
+
+```yaml
+global:
+  storageClass: fast-ssd       # used by every PVC the chart creates
+
+storegateway:
+  persistence:
+    storageClass: bulk-hdd     # except this one, which wins locally
+```
+
+When both are empty no `storageClassName` is rendered at all and the cluster default StorageClass applies, which is the behaviour of an install that sets neither. `storageClass` is ignored entirely when `existingClaim` is set — the pre-provisioned claim already has one.
+
+#### Using a pre-provisioned claim
+
+`persistence.existingClaim` mounts a PVC you created yourself and skips the `volumeClaimTemplate` entirely, which is what you want when the volume is managed outside the chart — restored from a snapshot, provisioned by Terraform, or shared with another tool:
+
+```yaml
+ruler:
+  persistence:
+    enabled: true
+    existingClaim: thanos-ruler-data   # size, storageClass and accessModes are ignored
+```
+
+Three things to keep in mind:
+
+- The claim is mounted by **every replica** of the StatefulSet, unlike a `volumeClaimTemplate`, which gives each pod its own claim. Only use `existingClaim` on a single-replica component, or with an access mode that genuinely supports concurrent writers — Thanos does not expect two processes writing the same TSDB or index cache directory.
+- `persistence.enabled: false` wins. With persistence off the component gets an `emptyDir` and `existingClaim` is ignored.
+- A **sharded** Store Gateway falls back to `volumeClaimTemplates` and ignores `existingClaim`, because each shard needs its own volume and a single claim cannot be split across them.
+
+### ServiceAccounts
+
+By default every component runs as a single chart-wide ServiceAccount named `<release>-thanos-thanos`, created when `global.serviceAccount.create` is true:
+
+```yaml
+global:
+  serviceAccount:
+    create: true            # toggle the chart-wide ServiceAccount
+    name: ""                # empty derives <release>-thanos-thanos
+    annotations: {}         # applied to every ServiceAccount, shared and per-component
+    automountServiceAccountToken: true
+```
+
+Cloud identity (AWS IRSA, GKE Workload Identity, Azure Workload Identity) is granted per ServiceAccount, so a single shared account forces every component to share one set of object store permissions. Give a component its own ServiceAccount — rendered from `templates/<component>/serviceaccount.yaml` and named `<release>-thanos-<component>` — to scope those permissions:
+
+```yaml
+compactor:
+  serviceAccount:
+    create: true
+    annotations:
+      eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/thanos-compactor
+
+storegateway:
+  serviceAccount:
+    create: true
+    annotations:
+      eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/thanos-store
+```
+
+Component settings always take precedence over `global.serviceAccount`. To split every component out at once, and drop the then-unused shared account:
+
+```yaml
+global:
+  serviceAccount:
+    create: false           # nothing left to share
+    perComponent: true      # <release>-thanos-<component> for every component
+```
+
+`<component>.serviceAccount` is available on `bucket.bucketweb`, `compactor`, `query`, `queryFrontend`, `storegateway`, `ruler` and `receive` — in split mode on `receive.ingester` and `receive.router` instead of `receive`. All Store Gateway shards share the component ServiceAccount.
+
+To run a component as a ServiceAccount managed outside the chart, set its `name` without `create`:
+
+```yaml
+ruler:
+  serviceAccount:
+    name: my-externally-managed-sa
+```
+
+### Monitoring (ServiceMonitor)
+
+Enable Prometheus scraping for each component by enabling its `serviceMonitor`:
+
+```yaml
+global:
+  serviceMonitor:
+    enabled: true           # Enables ServiceMonitor for all components at once
+    namespace: monitoring   # Namespace where ServiceMonitors are created
+```
+
+Or enable per component:
+
+```yaml
+query:
+  serviceMonitor:
+    enabled: true
+
+receive:
+  serviceMonitor:
+    enabled: true
+```
+
+### Built-in alerting rules
+
+The chart ships with a set of PrometheusRules for Thanos components. They are enabled by default:
+
+```yaml
+global:
+  thanosRules:
+    enabled: true
+    severity:
+      critical: critical
+      warning: warning
+    forDefaults:
+      default: 2m
+      short: 1m
+      componentDown: 5m
+```
+
+## Upgrading
+
+Before upgrading, review the [chart changelog](https://github.com/thanos-community/helm-charts/releases) and the [Thanos release notes](https://github.com/thanos-io/thanos/releases).
+
+```bash
+helm upgrade thanos oci://ghcr.io/thanos-community/helm-charts/thanos \
+  --namespace monitoring \
+  -f values.yaml
+```
+
+> [!WARNING]
+> Registry now lives in `global.image.registry`, repository must be the path without the registry host, and tag defaults to the chart `appVersion`.
+
+### Upgrading to 0.47.2: Ruler rolls on config changes
+
+The Ruler StatefulSet now carries `checksum/rules`, `checksum/query-configuration` and `checksum/alertmanagers-configuration` pod annotations, so a change to `ruler.rules`, `ruler.query.urls` or `ruler.alertmanagers.config` restarts the Ruler instead of leaving it on the old config until something else restarts it.
+
+Because the annotations are new, the first upgrade rolls the Ruler once even if none of those values changed. In stateless mode (`ruler.remoteWrite.enabled: true`) the Ruler keeps no local TSDB, so pending alerts lose their `for` progress on that restart and fire late by up to their `for` duration.
+
+### Upgrading to 0.46.1 — `replicas` under autoscaling
+
+Query, Query Frontend, Store Gateway and Bucketweb no longer render `spec.replicas` when their `autoscaling.enabled` is true. Previously the chart rendered `replicaCount` next to the HorizontalPodAutoscaler, so every `helm upgrade` could reset the count the HPA had chosen, and a GitOps controller that corrects drift — Flux with `driftDetection` enabled, Argo CD with self-heal — reset it on every reconcile, fighting the HPA indefinitely. Components without autoscaling are unaffected.
+
+The first upgrade can briefly scale an autoscaled workload down to one pod. Helm removes a field it set before, and Kubernetes defaults a missing `spec.replicas` to 1 until the HPA restores its count on the next sync, 15 seconds by default. For a Store Gateway that means every pod but `-0` terminates and reloads its index headers when it comes back. Server-side apply, which Helm 4 and the Flux helm-controller use, leaves the field alone if the HPA has changed the count since the last upgrade, because the HPA then owns it. See [Migrating Deployments and StatefulSets to horizontal autoscaling](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#migrating-deployments-and-statefulsets-to-horizontal-autoscaling).
+
+If you worked around the old behaviour with a drift-detection exclusion for `/spec/replicas`, it can be removed after upgrading.
+
+### Upgrading to 0.38.0 — `global.storageClass`
+
+`global.storageClass` is new in 0.38.0 and is used as the fallback `storageClassName` for every PersistentVolumeClaim the chart creates — Compactor, Receive, Ruler and Store Gateway. A component's own `persistence.storageClass` still wins, and when both are empty nothing is rendered, so an install that never set either keeps using the cluster default StorageClass and is unaffected.
+
+The one case that needs attention is an umbrella chart. `global` values propagate into subcharts, so if the parent chart already sets `global.storageClass` for another dependency, Thanos now picks it up and renders a `storageClassName` on StatefulSets that previously had none. `volumeClaimTemplates` are immutable, so the API server rejects the upgrade with `field is immutable`.
+
+Check before upgrading:
+
+```bash
+helm get values thanos --namespace monitoring --all | grep -A1 '^global:'
+kubectl get statefulset --namespace monitoring \
+  --selector app.kubernetes.io/part-of=thanos \
+  -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.volumeClaimTemplates[*].spec.storageClassName}{"\n"}{end}'
+```
+
+If a `global.storageClass` is in play and the existing claims render a different class (or none), either pin the previous behaviour per component:
+
+```yaml
+compactor:
+  persistence:
+    storageClass: ""   # and the same for receive, ruler, storegateway
+```
+
+or recreate the StatefulSets once, which leaves the pods and PVCs running:
+
+```bash
+kubectl delete statefulset --namespace monitoring \
+  --selector app.kubernetes.io/part-of=thanos,app.kubernetes.io/instance=thanos \
+  --cascade=orphan
+
+helm upgrade thanos oci://ghcr.io/thanos-community/helm-charts/thanos \
+  --namespace monitoring \
+  -f values.yaml
+```
+
+Recreating the StatefulSet only changes the template. Existing PVCs are never touched by a StatefulSet, so the new class applies to claims created from then on; move existing data with a restore or a volume clone if you actually want it on the new class.
+
+### Upgrading to 0.36.0 — selector labels
+
+`app.kubernetes.io/name` is now part of every `spec.selector` / `spec.podSelector` the chart renders ([#197](https://github.com/thanos-community/helm-charts/issues/197)). Without it, `component: compactor` + `instance: <release>` was the whole discriminator, so a Thanos component installed by an umbrella chart could select the pods of another application sharing the release name and namespace — a Loki compactor, for instance.
+
+Pod templates have always carried this label, so the tightened selectors match exactly the same pods as before. Services, PodDisruptionBudgets and NetworkPolicies update in place.
+
+`spec.selector` on a Deployment or StatefulSet is immutable, however, so those workloads must be recreated once. Orphan them first, which leaves the pods and PVCs running:
+
+```bash
+kubectl delete statefulset,deployment --namespace monitoring \
+  --selector app.kubernetes.io/part-of=thanos,app.kubernetes.io/instance=thanos \
+  --cascade=orphan
+
+helm upgrade thanos oci://ghcr.io/thanos-community/helm-charts/thanos \
+  --namespace monitoring \
+  -f values.yaml
+```
+
+The recreated StatefulSets adopt the orphaned pods, and the Deployments adopt their existing ReplicaSets — the pod template is unchanged, so its hash is unchanged and no pod restarts. Skipping the step makes `helm upgrade` fail with `field is immutable`.
+
+The same release also adds the chart labels to `volumeClaimTemplates`, which is likewise immutable and covered by the recreation above. Claims that already exist are not relabelled, because a StatefulSet never touches existing PVCs; relabel them by name if you select PVCs by label for backups or cost reporting:
+
+```bash
+kubectl label pvc --namespace monitoring data-thanos-compactor-0 \
+  app.kubernetes.io/name=thanos \
+  app.kubernetes.io/instance=thanos \
+  app.kubernetes.io/part-of=thanos \
+  app.kubernetes.io/component=compactor
+```
+
+## Values Reference
+
+The table below documents all available values. Top-level keys group settings by component. Component-level keys always take precedence over `global` defaults.
+
+## Values
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| bucket.bucketweb.affinity | object | {} | Affinity rules for Bucketweb pod scheduling. |
+| bucket.bucketweb.annotations | object | {} | Extra annotations applied to Bucketweb resources. |
+| bucket.bucketweb.autoscaling.enabled | bool | `false` | Enable HorizontalPodAutoscaler for Bucketweb. |
+| bucket.bucketweb.autoscaling.maxReplicas | int | `3` | Maximum number of Bucketweb replicas. |
+| bucket.bucketweb.autoscaling.minReplicas | int | `1` | Minimum number of Bucketweb replicas. |
+| bucket.bucketweb.autoscaling.targetCPUUtilizationPercentage | int | `80` | Target CPU utilisation percentage for Bucketweb autoscaling. |
+| bucket.bucketweb.autoscaling.targetMemoryUtilizationPercentage | string | `nil` | Target memory utilisation percentage. Null disables memory-based scaling. |
+| bucket.bucketweb.containerSecurityContext | object | {} | Container security context for Bucketweb. Overrides global.containerSecurityContext. |
+| bucket.bucketweb.dnsConfig | object | {} | DNS configuration for Bucketweb pods. Overrides global.dnsConfig. |
+| bucket.bucketweb.enabled | bool | `false` | Enable the Bucketweb deployment (read-only object store browser). |
+| bucket.bucketweb.extraArgs | list | [] | Additional CLI arguments appended to the bucketweb command. |
+| bucket.bucketweb.extraContainers | list | [] | Extra sidecar containers for Bucketweb pods. |
+| bucket.bucketweb.extraEnv | list | [] | Extra environment variables injected into the Bucketweb container. |
+| bucket.bucketweb.extraEnvFrom | list | [] | Extra environment variable sources for the Bucketweb container. |
+| bucket.bucketweb.extraInitContainers | list | [] | Extra init containers for Bucketweb pods. |
+| bucket.bucketweb.extraVolumeMounts | list | [] | Extra volume mounts for the Bucketweb container. |
+| bucket.bucketweb.extraVolumes | list | [] | Extra volumes for Bucketweb pods. |
+| bucket.bucketweb.httpRoute.annotations | object | {} | Annotations for the HTTPRoute resource. |
+| bucket.bucketweb.httpRoute.enabled | bool | `false` | Enable a Gateway API HTTPRoute for Bucketweb (alternative to Ingress). |
+| bucket.bucketweb.httpRoute.extraRules | list | [] | Additional custom rules for Bucketweb HTTPRoute Each item should be a complete HTTPRouteRule object with its own backendRefs, matches, filters, etc. |
+| bucket.bucketweb.httpRoute.filters | list | [] | Gateway filters HTTPRoute rules filter request/response. |
+| bucket.bucketweb.httpRoute.hostnames | list | [] | Hostnames to match. Empty matches all hostnames on the parent Gateway. |
+| bucket.bucketweb.httpRoute.matches | list | [] | Gateway matches HTTPRoute rules match conditions. |
+| bucket.bucketweb.httpRoute.parentRefs | list | [] | Gateway parentRefs the HTTPRoute should attach to. |
+| bucket.bucketweb.httpRoute.timeouts | object | {} | Timeouts for the Bucketweb HTTPRoute rule (Gateway API HTTPRouteTimeouts). |
+| bucket.bucketweb.ingress.annotations | object | {} | Extra annotations for the Ingress resource. |
+| bucket.bucketweb.ingress.className | string | `""` | Ingress class name (e.g. nginx, traefik). |
+| bucket.bucketweb.ingress.enabled | bool | `false` | Enable a Kubernetes Ingress for Bucketweb. |
+| bucket.bucketweb.ingress.hosts[0].host | string | `"bucketweb.local"` |  |
+| bucket.bucketweb.ingress.hosts[0].paths[0].path | string | `"/"` |  |
+| bucket.bucketweb.ingress.hosts[0].paths[0].pathType | string | `"Prefix"` |  |
+| bucket.bucketweb.ingress.tls | list | [] | TLS configuration for the Ingress. |
+| bucket.bucketweb.labels | object | {} | Extra labels applied to Bucketweb resources. |
+| bucket.bucketweb.nodeSelector | object | {} | Node selector for Bucketweb pod scheduling. |
+| bucket.bucketweb.pdb.enabled | bool | `false` | Enable a PodDisruptionBudget for Bucketweb. |
+| bucket.bucketweb.pdb.maxUnavailable | int or string | `""` | Maximum unavailable Bucketweb pods during a disruption. |
+| bucket.bucketweb.pdb.minAvailable | int or string | `""` | Minimum available Bucketweb pods during a disruption. |
+| bucket.bucketweb.persistence | object | {} | Storage configuration for Bucketweb. Bucketweb is stateless; leave empty. |
+| bucket.bucketweb.podLabels | object | {} | Extra labels applied to Bucketweb pods (e.g. for workload identity). |
+| bucket.bucketweb.podSecurityContext | object | {} | Pod security context for Bucketweb. Overrides global.podSecurityContext. |
+| bucket.bucketweb.priorityClassName | string | `""` | Priority class name for Bucketweb pods. |
+| bucket.bucketweb.probes.liveness.enabled | bool | `true` | Enable the liveness probe for Bucketweb. |
+| bucket.bucketweb.probes.liveness.failureThreshold | int | `6` | Consecutive failures before the container is restarted. |
+| bucket.bucketweb.probes.liveness.initialDelaySeconds | int | `30` | Seconds to wait before starting the liveness probe. |
+| bucket.bucketweb.probes.liveness.path | string | `"/-/healthy"` | HTTP path checked by the liveness probe. |
+| bucket.bucketweb.probes.liveness.periodSeconds | int | `10` | How often (seconds) to run the liveness probe. |
+| bucket.bucketweb.probes.liveness.successThreshold | int | `1` | Consecutive successes before the container is considered live. |
+| bucket.bucketweb.probes.liveness.timeoutSeconds | int | `5` | Seconds after which the probe times out. |
+| bucket.bucketweb.probes.readiness.enabled | bool | `true` | Enable the readiness probe for Bucketweb. |
+| bucket.bucketweb.probes.readiness.failureThreshold | int | `6` | Consecutive failures before the pod is marked not-ready. |
+| bucket.bucketweb.probes.readiness.initialDelaySeconds | int | `5` | Seconds to wait before starting the readiness probe. |
+| bucket.bucketweb.probes.readiness.path | string | `"/-/ready"` | HTTP path checked by the readiness probe. |
+| bucket.bucketweb.probes.readiness.periodSeconds | int | `10` | How often (seconds) to run the readiness probe. |
+| bucket.bucketweb.probes.readiness.successThreshold | int | `1` | Consecutive successes before the pod is marked ready. |
+| bucket.bucketweb.probes.readiness.timeoutSeconds | int | `5` | Seconds after which the probe times out. |
+| bucket.bucketweb.probes.startup.enabled | bool | `true` | Enable the startup probe for Bucketweb. |
+| bucket.bucketweb.probes.startup.failureThreshold | int | `60` | Consecutive failures allowed during startup before the container is killed. |
+| bucket.bucketweb.probes.startup.initialDelaySeconds | int | `0` | Seconds to wait before starting the startup probe. |
+| bucket.bucketweb.probes.startup.path | string | `"/-/ready"` | HTTP path checked by the startup probe. |
+| bucket.bucketweb.probes.startup.periodSeconds | int | `5` | How often (seconds) to run the startup probe. |
+| bucket.bucketweb.probes.startup.successThreshold | int | `1` | Consecutive successes required before the startup probe is considered passed. |
+| bucket.bucketweb.probes.startup.timeoutSeconds | int | `5` | Seconds after which the probe times out. |
+| bucket.bucketweb.replicaCount | int | `1` | Number of Bucketweb pod replicas. Ignored when `bucket.bucketweb.autoscaling.enabled` is true, because the HorizontalPodAutoscaler then owns the replica count. |
+| bucket.bucketweb.resources | object | {} | Resource requests and limits for the Bucketweb container. |
+| bucket.bucketweb.service.annotations | object | {} | Extra annotations for the Bucketweb Service. |
+| bucket.bucketweb.service.labels | object | {} | Extra labels for the Bucketweb Service. |
+| bucket.bucketweb.service.nodePort | string | `null` (allocated by Kubernetes) | Static node port for the Bucketweb HTTP port. Only honoured when `type` is NodePort or LoadBalancer; null lets Kubernetes allocate one from the node-port range. |
+| bucket.bucketweb.service.port | int | `10902` | HTTP port exposed by the Bucketweb Service. |
+| bucket.bucketweb.service.type | string | `"ClusterIP"` | Kubernetes Service type for Bucketweb. |
+| bucket.bucketweb.serviceAccount.annotations | object | {} | Extra annotations for the Bucketweb ServiceAccount, merged on top of `global.serviceAccount.annotations`. Use it to scope an IRSA or Workload Identity binding to Bucketweb. Requires `create`. |
+| bucket.bucketweb.serviceAccount.automountServiceAccountToken | string | `null` (inherit `global.serviceAccount.automountServiceAccountToken`) | Mount the ServiceAccount token into Bucketweb pods. Null inherits `global.serviceAccount.automountServiceAccountToken`. Requires `create`. |
+| bucket.bucketweb.serviceAccount.create | string | `null` (inherit `global.serviceAccount.perComponent`) | Create a ServiceAccount for Bucketweb instead of sharing the chart-wide one. Null inherits `global.serviceAccount.perComponent`. |
+| bucket.bucketweb.serviceAccount.name | string | `""` | Name of the ServiceAccount Bucketweb pods run as. Empty derives `<fullname>-bucketweb` when Bucketweb has a dedicated ServiceAccount, and the chart-wide ServiceAccount name otherwise. Setting it without `create` runs Bucketweb as a ServiceAccount managed outside this chart. |
+| bucket.bucketweb.serviceMonitor.annotations | object | {} | Extra annotations for the Bucketweb ServiceMonitor. |
+| bucket.bucketweb.serviceMonitor.enabled | bool | `false` | Enable a Prometheus Operator ServiceMonitor for Bucketweb. |
+| bucket.bucketweb.serviceMonitor.interval | string | `""` | Scrape interval for Bucketweb. Empty uses the Prometheus operator default. |
+| bucket.bucketweb.serviceMonitor.labels | object | {} | Extra labels for the Bucketweb ServiceMonitor. |
+| bucket.bucketweb.serviceMonitor.metricRelabelings | list | [] | Metric relabeling rules applied after Bucketweb metrics are ingested. |
+| bucket.bucketweb.serviceMonitor.relabelings | list | [] | Relabeling rules applied before Bucketweb metrics are ingested. |
+| bucket.bucketweb.serviceMonitor.scheme | string | `""` | Scrape scheme for Bucketweb (http or https). |
+| bucket.bucketweb.serviceMonitor.scrapeTimeout | string | `""` | Scrape timeout for Bucketweb. Empty uses the Prometheus operator default. |
+| bucket.bucketweb.serviceMonitor.tlsConfig | object | {} | TLS configuration for Bucketweb scraping. |
+| bucket.bucketweb.tolerations | list | [] | Tolerations for Bucketweb pod scheduling. |
+| bucket.bucketweb.topologySpreadConstraints | list | [] | Topology spread constraints for Bucketweb pods. |
+| bucket.enabled | bool | `true` | Enable the bucket group. Must be true for the objstore Secret to be created when global.objstore.createSecret is true. |
+| compactor.affinity | object | {} | Affinity rules for Compactor pod scheduling. |
+| compactor.annotations | object | {} | Extra annotations applied to Compactor resources. |
+| compactor.containerSecurityContext | object | {} | Container security context for the Compactor. Overrides global.containerSecurityContext. |
+| compactor.dnsConfig | object | {} | DNS configuration for Compactor pods. Overrides global.dnsConfig. |
+| compactor.enabled | bool | `true` | Enable the Compactor StatefulSet. |
+| compactor.extraArgs[0] | string | `"--log.level=info"` |  |
+| compactor.extraArgs[1] | string | `"--log.format=logfmt"` |  |
+| compactor.extraArgs[2] | string | `"--consistency-delay=30m"` |  |
+| compactor.extraContainers | list | [] | Extra sidecar containers for the Compactor pod. |
+| compactor.extraEnv | list | [] | Extra environment variables injected into the Compactor container. |
+| compactor.extraEnvFrom | list | [] | Extra environment variable sources for the Compactor container. |
+| compactor.extraInitContainers | list | [] | Extra init containers for the Compactor pod. |
+| compactor.extraVolumeMounts | list | [] | Extra volume mounts for the Compactor container. |
+| compactor.extraVolumes | list | [] | Extra volumes for Compactor pods. |
+| compactor.httpRoute.annotations | object | {} | Annotations for the Compactor HTTPRoute resource. |
+| compactor.httpRoute.enabled | bool | `false` | Enable a Gateway API HTTPRoute for the Compactor HTTP endpoint. |
+| compactor.httpRoute.extraRules | list | [] | Additional custom rules for Compactor HTTPRoute Each item should be a complete HTTPRouteRule object with its own backendRefs, matches, filters, etc. |
+| compactor.httpRoute.filters | list | [] | Gateway filters for the Compactor HTTPRoute rules. |
+| compactor.httpRoute.hostnames | list | [] | Hostnames to match on the Compactor HTTPRoute. |
+| compactor.httpRoute.matches | list | [] | Gateway matches for the Compactor HTTPRoute rules. |
+| compactor.httpRoute.parentRefs | list | [] | Gateway parentRefs for the Compactor HTTPRoute. |
+| compactor.httpRoute.timeouts | object | {} | Timeouts for the Compactor HTTPRoute rule (Gateway API HTTPRouteTimeouts). |
+| compactor.ingress.className | string | `""` | Ingress class name for the Compactor (e.g. nginx, traefik). |
+| compactor.ingress.enabled | bool | `false` | Enable a Kubernetes Ingress for the Compactor HTTP endpoint. |
+| compactor.ingress.hosts[0].host | string | `"compactor.local"` |  |
+| compactor.ingress.hosts[0].paths[0].path | string | `"/"` |  |
+| compactor.ingress.hosts[0].paths[0].pathType | string | `"Prefix"` |  |
+| compactor.ingress.tls | list | [] | TLS configuration for the Compactor Ingress. |
+| compactor.labels | object | {} | Extra labels applied to Compactor resources. |
+| compactor.minReadySeconds | int | `0` | Minimum number of seconds for which a newly created Compactor Pod must be Running and Ready, without any container crashing, before it is considered available during a rolling update (StatefulSet `spec.minReadySeconds`). Defaults to 0 (available as soon as Ready); the field is omitted when 0. See https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#minimum-ready-seconds |
+| compactor.nodeSelector | object | {} | Node selector for Compactor pod scheduling. |
+| compactor.pdb.enabled | bool | `false` | Enable a PodDisruptionBudget for the Compactor. |
+| compactor.pdb.maxUnavailable | int or string | `""` | Maximum unavailable Compactor pods during a disruption. |
+| compactor.pdb.minAvailable | int or string | `""` | Minimum available Compactor pods during a disruption. |
+| compactor.persistence.accessModes[0] | string | `"ReadWriteOnce"` |  |
+| compactor.persistence.enabled | bool | `true` | Enable a PersistentVolumeClaim for the Compactor working directory. |
+| compactor.persistence.existingClaim | string | `""` | Use an existing PersistentVolumeClaim. When set, no volumeClaimTemplate is created and the named PVC is mounted directly. Takes precedence over size, storageClass and accessModes. |
+| compactor.persistence.size | string | `"10Gi"` | Storage capacity for the Compactor PVC (used as a scratch space during compaction). |
+| compactor.persistence.storageClass | string | `""` | StorageClass name for the Compactor PVC. Empty uses the cluster default. |
+| compactor.persistence.volumeAttributesClassName | string | `""` | [Volume attributes class](https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/) name for the Compactor PVC. Requires Kubernetes 1.31+ ([with feature gate](https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/#feature-gates-for-graduated-or-deprecated-features)) or 1.36+. Chart will fail if provided but not supported by cluster. |
+| compactor.podLabels | object | {} | Extra labels applied to Compactor pods (e.g. for workload identity). |
+| compactor.podSecurityContext.fsGroup | int | `1000` |  |
+| compactor.podSecurityContext.fsGroupChangePolicy | string | `"OnRootMismatch"` |  |
+| compactor.priorityClassName | string | `""` | Priority class name for Compactor pods. |
+| compactor.probes.liveness.enabled | bool | `true` | Enable the liveness probe for the Compactor. |
+| compactor.probes.liveness.failureThreshold | int | `6` | Consecutive failures before the Compactor container is restarted. |
+| compactor.probes.liveness.initialDelaySeconds | int | `30` | Seconds to wait before starting the Compactor liveness probe. |
+| compactor.probes.liveness.path | string | `"/-/healthy"` | HTTP path checked by the Compactor liveness probe. |
+| compactor.probes.liveness.periodSeconds | int | `10` | How often (seconds) to run the Compactor liveness probe. |
+| compactor.probes.liveness.successThreshold | int | `1` | Consecutive successes before the Compactor container is considered live. |
+| compactor.probes.liveness.timeoutSeconds | int | `5` | Seconds after which the Compactor liveness probe times out. |
+| compactor.probes.readiness.enabled | bool | `true` | Enable the readiness probe for the Compactor. |
+| compactor.probes.readiness.failureThreshold | int | `6` | Consecutive failures before the Compactor pod is marked not-ready. |
+| compactor.probes.readiness.initialDelaySeconds | int | `5` | Seconds to wait before starting the Compactor readiness probe. |
+| compactor.probes.readiness.path | string | `"/-/ready"` | HTTP path checked by the Compactor readiness probe. |
+| compactor.probes.readiness.periodSeconds | int | `10` | How often (seconds) to run the Compactor readiness probe. |
+| compactor.probes.readiness.successThreshold | int | `1` | Consecutive successes before the Compactor pod is marked ready. |
+| compactor.probes.readiness.timeoutSeconds | int | `5` | Seconds after which the Compactor readiness probe times out. |
+| compactor.probes.startup.enabled | bool | `true` | Enable the startup probe for the Compactor. |
+| compactor.probes.startup.failureThreshold | int | `60` | Consecutive failures during Compactor startup before the container is killed. |
+| compactor.probes.startup.initialDelaySeconds | int | `0` | Seconds to wait before starting the Compactor startup probe. |
+| compactor.probes.startup.path | string | `"/-/ready"` | HTTP path checked by the Compactor startup probe. |
+| compactor.probes.startup.periodSeconds | int | `5` | How often (seconds) to run the Compactor startup probe. |
+| compactor.probes.startup.successThreshold | int | `1` | Consecutive successes before the Compactor startup probe is considered passed. |
+| compactor.probes.startup.timeoutSeconds | int | `5` | Seconds after which the Compactor startup probe times out. |
+| compactor.replicaCount | int | `1` | Number of Compactor replicas. Must remain 1 — running multiple compactors against the same bucket causes data corruption. |
+| compactor.resources | object | {} | Resource requests and limits for the Compactor container. |
+| compactor.retention.resolution1h | string | `"365d"` | Retention for 1h downsampled blocks (--retention.resolution-1h). |
+| compactor.retention.resolution5m | string | `"90d"` | Retention for 5m downsampled blocks (--retention.resolution-5m). |
+| compactor.retention.resolutionRaw | string | `"30d"` | Retention for raw resolution blocks (--retention.resolution-raw). |
+| compactor.service.annotations | object | {} | Extra annotations for the Compactor Service. |
+| compactor.service.labels | object | {} | Extra labels for the Compactor Service. |
+| compactor.service.nodePort | string | `null` (allocated by Kubernetes) | Static node port for the Compactor HTTP port. Only honoured when `type` is NodePort or LoadBalancer; null lets Kubernetes allocate one from the node-port range. |
+| compactor.service.port | int | `10902` | HTTP port exposed by the Compactor Service. |
+| compactor.service.type | string | `"ClusterIP"` | Kubernetes Service type for the Compactor HTTP endpoint. |
+| compactor.serviceAccount.annotations | object | {} | Extra annotations for the Compactor ServiceAccount, merged on top of `global.serviceAccount.annotations`. Use it to scope an IRSA or Workload Identity binding to Compactor. Requires `create`. |
+| compactor.serviceAccount.automountServiceAccountToken | string | `null` (inherit `global.serviceAccount.automountServiceAccountToken`) | Mount the ServiceAccount token into Compactor pods. Null inherits `global.serviceAccount.automountServiceAccountToken`. Requires `create`. |
+| compactor.serviceAccount.create | string | `null` (inherit `global.serviceAccount.perComponent`) | Create a ServiceAccount for Compactor instead of sharing the chart-wide one. Null inherits `global.serviceAccount.perComponent`. |
+| compactor.serviceAccount.name | string | `""` | Name of the ServiceAccount Compactor pods run as. Empty derives `<fullname>-compactor` when Compactor has a dedicated ServiceAccount, and the chart-wide ServiceAccount name otherwise. Setting it without `create` runs Compactor as a ServiceAccount managed outside this chart. |
+| compactor.serviceMonitor.annotations | object | {} | Extra annotations for the Compactor ServiceMonitor. |
+| compactor.serviceMonitor.enabled | bool | `false` | Enable a Prometheus Operator ServiceMonitor for the Compactor. |
+| compactor.serviceMonitor.interval | string | `""` | Scrape interval for the Compactor. Empty uses the Prometheus operator default. |
+| compactor.serviceMonitor.labels | object | {} | Extra labels for the Compactor ServiceMonitor. |
+| compactor.serviceMonitor.metricRelabelings | list | [] | Metric relabeling rules applied after Compactor metrics are ingested. |
+| compactor.serviceMonitor.relabelings | list | [] | Relabeling rules applied before Compactor metrics are ingested. |
+| compactor.serviceMonitor.scheme | string | `""` | Scrape scheme for the Compactor (http or https). |
+| compactor.serviceMonitor.scrapeTimeout | string | `""` | Scrape timeout for the Compactor. Empty uses the Prometheus operator default. |
+| compactor.serviceMonitor.tlsConfig | object | {} | TLS configuration for Compactor scraping. |
+| compactor.tolerations | list | [] | Tolerations for Compactor pod scheduling. |
+| compactor.topologySpreadConstraints | list | [] | Topology spread constraints for Compactor pods. |
+| compactor.vpa.enabled | bool | `true` | Enable a VerticalPodAutoscaler for the Compactor. |
+| compactor.vpa.maxAllowed.cpu | string | `"4"` | Maximum CPU resource enforced by the Compactor VPA. |
+| compactor.vpa.maxAllowed.memory | string | `"8Gi"` | Maximum memory resource enforced by the Compactor VPA. |
+| compactor.vpa.minAllowed.cpu | string | `"500m"` | Minimum CPU resource enforced by the Compactor VPA. |
+| compactor.vpa.minAllowed.memory | string | `"512Mi"` | Minimum memory resource enforced by the Compactor VPA. |
+| compactor.vpa.targetKind | string | `"StatefulSet"` | Kubernetes workload kind targeted by the Compactor VPA. |
+| compactor.vpa.updateMode | string | `"Auto"` | VPA update mode for the Compactor. One of Auto, Off, or Initial. |
+| fullnameOverride | string | `""` | Fully override the generated resource name (`thanos.fullname`). Empty uses `<release>-<chart>`. |
+| global.affinity | object | {} | Affinity rules applied to every pod by default. |
+| global.clusterDomain | string | `"cluster.local"` | Cluster DNS domain, used when constructing in-cluster endpoints. |
+| global.commonLabels | object | {} | Extra labels merged into every Kubernetes resource created by this chart. |
+| global.containerSecurityContext.allowPrivilegeEscalation | bool | `false` | Prevent privilege escalation inside the container. |
+| global.containerSecurityContext.capabilities.drop[0] | string | `"ALL"` |  |
+| global.containerSecurityContext.readOnlyRootFilesystem | bool | `true` | Mount the root filesystem as read-only. |
+| global.containerSecurityContext.runAsNonRoot | bool | `true` | Require the container to run as a non-root user. |
+| global.dnsConfig | object | {} | DNS configuration applied to every pod. Component-level values override this. |
+| global.extraContainers | list | [] | Extra sidecar containers added to every pod by default. |
+| global.extraEnv | list | [] | Extra environment variables injected into every main container by default. |
+| global.extraEnvFrom | list | [] | Extra environment variable sources (ConfigMap, Secret) for every main container. |
+| global.extraInitContainers | list | [] | Extra init containers added to every pod by default. |
+| global.extraVolumeMounts | list | [] | Additional volume mounts added to every main container by default. |
+| global.extraVolumes | list | [] | Additional volumes available to every pod by default. |
+| global.image.pullPolicy | string | `"IfNotPresent"` | Image pull policy applied to every container. One of Always, IfNotPresent, Never. |
+| global.image.registry | string | `"quay.io"` | Docker registry for Thanos images (e.g. quay.io). Empty means default registry. |
+| global.image.repository | string | `"thanos/thanos"` | Docker repository for all Thanos containers by default. |
+| global.image.tag | string | `""` | Container image tag. Changing this upgrades all components at once. |
+| global.imagePullSecrets | list | [] | List of imagePullSecrets applied to every pod by default. |
+| global.networkPolicies | bool | `false` | Create a NetworkPolicy for every enabled component. When true each component gets a NetworkPolicy that allows ingress on its service ports from within the namespace and permits all egress. |
+| global.nodeSelector | object | {} | Node selector applied to every pod by default. |
+| global.objstore.config | string | `"type: GCS\nconfig:\n  bucket: change-me\n  endpoint: storage.googleapis.com\n  region: eu-west-1\n  insecure: false\n\n# Example for S3\n# type: S3\n# config:\n#   bucket: my-s3-bucket\n#   endpoint: s3.eu-west-1.amazonaws.com\n#   region: eu-west-1\n#   access_key: myaccess\n#   secret_key: mysecret\n"` | Inline object store configuration rendered into the Secret when `createSecret` is true. Processed via `tpl`, so Helm template syntax (e.g. `{{ .Release.Name }}`) is valid inside the string. Refer to https://thanos.io/tip/thanos/storage.md/ for the full schema. |
+| global.objstore.createSecret | bool | `false` | When true, the chart creates a Kubernetes Secret named `secretName` containing the inline `config` below. Set to false when the Secret is managed externally (Vault, External Secrets Operator, kubectl, etc.). |
+| global.objstore.secretKey | string | `"objstore.yml"` | Key inside the Secret whose value is the object store YAML. |
+| global.objstore.secretName | string | `"thanos-objstore"` | Name of the Kubernetes Secret that carries the object store config. All components mount this Secret as a file. |
+| global.pdb.enabled | bool | `false` | Enable a PodDisruptionBudget for every component. Individual components can override this with their own pdb.enabled. |
+| global.pdb.maxUnavailable | int or string | `""` | Maximum number of unavailable pods during a disruption. Cannot be set at the same time as minAvailable. |
+| global.pdb.minAvailable | int or string | `""` | Minimum number of available pods during a disruption. Cannot be set at the same time as maxUnavailable. |
+| global.podAnnotations | object | {} | Annotations added to every pod by default. Component-level annotations are merged on top. |
+| global.podSecurityContext | object | {} | Pod-level security context applied to every pod. Component-level values override this. |
+| global.priorityClassName | string | `""` | Priority class name applied to every pod by default. |
+| global.probes | object | `{"scheme":"","tcpSocket":false}` | Probe *transport* defaults shared by every component: `scheme` and `tcpSocket` only. Timings and paths are not inherited from here — set those on each component's own `probes.readiness`/`liveness`/`startup`. Any other key here fails schema validation. |
+| global.probes.scheme | string | `""` | Scheme for HTTP probes. Uppercase, as the kubelet requires — unlike its neighbour `serviceMonitor.scheme`, which is lowercase. Set to `HTTPS` when components serve TLS through `--http.config` (https://thanos.io/tip/operating/https.md/). Omitted when empty, so rendered manifests are unchanged unless this is set. |
+| global.probes.tcpSocket | bool | `false` | Use a TCP probe instead of an HTTP one. Required when `--http.config` sets `basic_auth_users`: Thanos protects `/-/healthy` and `/-/ready` too, so HTTP probes 401. |
+| global.rbac.create | bool | `true` | Create RBAC resources (ClusterRole, ClusterRoleBinding) required by components that need cluster-level access (e.g. Ruler auto-import). |
+| global.resources | object | {} | Default resource requests and limits. Override per component as needed. |
+| global.serviceAccount.annotations | object | {} | Extra annotations merged into every ServiceAccount, including the per-component ones (e.g. a shared IRSA or Workload Identity annotation). |
+| global.serviceAccount.automountServiceAccountToken | bool | `true` | Mount the ServiceAccount token into pods by default. Set to false to disable automounting the token for all components. |
+| global.serviceAccount.create | bool | `true` | Create the chart-wide ServiceAccount. Components without a dedicated ServiceAccount run as it. Set to false to run them as an existing ServiceAccount (`global.serviceAccount.name`) or as the namespace `default` one. Turn it off together with `perComponent` to avoid an unused chart-wide ServiceAccount. |
+| global.serviceAccount.name | string | `""` | Name of the chart-wide ServiceAccount. Empty derives `<fullname>-thanos` from the release name. |
+| global.serviceAccount.perComponent | bool | `false` | Give every component its own ServiceAccount named `<fullname>-<component>` instead of the chart-wide one. Equivalent to setting `<component>.serviceAccount.create` on every component, and overridden by it per component. |
+| global.serviceMonitor.annotations | object | {} | Extra annotations merged into every ServiceMonitor resource. |
+| global.serviceMonitor.basicAuth | object | {} | Basic auth credentials for scraping, as `username`/`password` secret references. Needed when `--http.config` sets `basic_auth_users`, which also protects `/metrics`. |
+| global.serviceMonitor.enabled | bool | `false` | Enable a Prometheus Operator ServiceMonitor for every component. Individual components can override this with their own serviceMonitor.enabled. |
+| global.serviceMonitor.interval | string | `""` | Scrape interval. Empty string uses the Prometheus operator default. |
+| global.serviceMonitor.labels | object | {} | Extra labels merged into every ServiceMonitor resource. |
+| global.serviceMonitor.metricRelabelings | list | [] | Metric relabeling rules applied after ingestion. |
+| global.serviceMonitor.namespace | string | `""` | Namespace where ServiceMonitor resources are created. Empty means the same namespace as the release. |
+| global.serviceMonitor.relabelings | list | [] | Relabeling rules applied to scraped metrics before ingestion. |
+| global.serviceMonitor.scheme | string | `""` | Scrape scheme: http or https. |
+| global.serviceMonitor.scrapeTimeout | string | `""` | Scrape timeout. Empty string uses the Prometheus operator default. |
+| global.serviceMonitor.tlsConfig | object | {} | TLS configuration for scraping when scheme is https. |
+| global.storageClass | string | `""` | Default StorageClass name for every PersistentVolumeClaim the chart creates (Compactor, Receive, Ruler and Store Gateway). A component's own `persistence.storageClass` takes precedence; when both are empty no `storageClassName` is rendered and the cluster default StorageClass applies. |
+| global.thanosRules.additionalRuleGroupAnnotations | object | {} | Annotations added to every alert rule across all groups. Applied on top of the rule's default annotations (summary, description, runbook_url). |
+| global.thanosRules.additionalRuleGroupLabels | object | {} | Labels added to every alert rule across all groups. Applied on top of the rule's default labels (severity). Useful for routing alerts to specific Alertmanager receivers (e.g. team, tenant). |
+| global.thanosRules.alertOverrides | object | {} | Per-alert label overrides. Keys are alert names; values are dicts of labels to merge into that alert's labels block. Useful for routing specific alerts to different receivers or adding custom metadata. |
+| global.thanosRules.annotations | object | {} | Extra annotations merged into the PrometheusRule resource metadata. |
+| global.thanosRules.disabledAlerts | list | [] | List of alert names to exclude from the PrometheusRule. Useful for silencing specific alerts without disabling entire rule groups. |
+| global.thanosRules.enabled | bool | `true` | Deploy a PrometheusRule resource with built-in Thanos alerting rules. |
+| global.thanosRules.groups.thanosBucketReplicate.annotations | object | {} | Extra annotations merged into every alert in this group. |
+| global.thanosRules.groups.thanosBucketReplicate.enabled | bool | `false` | Render the thanos-bucket-replicate rule group. |
+| global.thanosRules.groups.thanosBucketReplicate.jobPattern | string | `".*thanos.*bucket-replicate.*"` | Regex used to match the Prometheus `job` label of bucket-replicate scrape targets. |
+| global.thanosRules.groups.thanosBucketReplicate.labels | object | {} | Extra labels merged into every alert in this group. |
+| global.thanosRules.groups.thanosCompact.annotations | object | {} | Extra annotations merged into every alert in this group. |
+| global.thanosRules.groups.thanosCompact.enabled | bool | `true` | Render the thanos-compact rule group. Also requires `compactor.enabled`. |
+| global.thanosRules.groups.thanosCompact.jobPattern | string | `".*thanos.*compact.*"` | Regex used to match the Prometheus `job` label of compactor scrape targets. |
+| global.thanosRules.groups.thanosCompact.labels | object | {} | Extra labels merged into every alert in this group. |
+| global.thanosRules.groups.thanosComponentAbsent.annotations | object | {} | Extra annotations merged into every alert in this group. |
+| global.thanosRules.groups.thanosComponentAbsent.enabled | bool | `true` | Render the thanos-component-absent rule group. |
+| global.thanosRules.groups.thanosComponentAbsent.labels | object | {} | Extra labels merged into every alert in this group. |
+| global.thanosRules.groups.thanosQuery.annotations | object | {} | Extra annotations merged into every alert in this group. |
+| global.thanosRules.groups.thanosQuery.enabled | bool | `true` | Render the thanos-query rule group. Also requires `query.enabled`. |
+| global.thanosRules.groups.thanosQuery.jobPattern | string | `".*thanos.*query.*"` | Regex used to match the Prometheus `job` label of query scrape targets. |
+| global.thanosRules.groups.thanosQuery.labels | object | {} | Extra labels merged into every alert in this group. |
+| global.thanosRules.groups.thanosReceive.annotations | object | {} | Extra annotations merged into every alert in this group. |
+| global.thanosRules.groups.thanosReceive.enabled | bool | `true` | Render the thanos-receive rule group. Also requires `receive.enabled`. |
+| global.thanosRules.groups.thanosReceive.jobPattern | string | `".*thanos.*receive.*"` | Regex used to match the Prometheus `job` label of receive scrape targets. |
+| global.thanosRules.groups.thanosReceive.labels | object | {} | Extra labels merged into every alert in this group. |
+| global.thanosRules.groups.thanosRule.annotations | object | {} | Extra annotations merged into every alert in this group. |
+| global.thanosRules.groups.thanosRule.enabled | bool | `true` | Render the thanos-rule rule group. Also requires `ruler.enabled`. |
+| global.thanosRules.groups.thanosRule.jobPattern | string | `".*thanos.*rule.*"` | Regex used to match the Prometheus `job` label of ruler scrape targets. |
+| global.thanosRules.groups.thanosRule.labels | object | {} | Extra labels merged into every alert in this group. |
+| global.thanosRules.groups.thanosSidecar.annotations | object | {} | Extra annotations merged into every alert in this group. |
+| global.thanosRules.groups.thanosSidecar.enabled | bool | `false` | Render the thanos-sidecar rule group. |
+| global.thanosRules.groups.thanosSidecar.jobPattern | string | `".*thanos.*sidecar.*"` | Regex used to match the Prometheus `job` label of sidecar scrape targets. |
+| global.thanosRules.groups.thanosSidecar.labels | object | {} | Extra labels merged into every alert in this group. |
+| global.thanosRules.groups.thanosStore.annotations | object | {} | Extra annotations merged into every alert in this group. |
+| global.thanosRules.groups.thanosStore.enabled | bool | `true` | Render the thanos-store rule group. Also requires `storegateway.enabled`. |
+| global.thanosRules.groups.thanosStore.jobPattern | string | `".*thanos.*store.*"` | Regex used to match the Prometheus `job` label of store gateway scrape targets. |
+| global.thanosRules.groups.thanosStore.labels | object | {} | Extra labels merged into every alert in this group. |
+| global.thanosRules.labels | object | {} | Extra labels merged into the PrometheusRule resource metadata. |
+| global.thanosRules.severity | object | `{"critical":"critical","info":"info","warning":"warning"}` | Severity label values injected into alert rules. Override these to match your Alertmanager routing conventions. |
+| global.thanosRules.severity.critical | string | `"critical"` | Severity label value used for critical alerts. |
+| global.thanosRules.severity.info | string | `"info"` | Severity label value used for informational alerts. |
+| global.thanosRules.severity.warning | string | `"warning"` | Severity label value used for warning alerts. |
+| global.tolerations | list | [] | Toleration rules applied to every pod by default. |
+| global.topologySpreadConstraints | list | [] | Topology spread constraints applied to every pod by default. |
+| kube-prometheus-stack.enabled | bool | `false` | Enable the kube-prometheus-stack subchart. Deploys Prometheus Operator and associated components into the same namespace as Thanos. |
+| nameOverride | string | `""` | Partially override the chart name used to build resource names. Empty uses the chart name. |
+| namespaceOverride | string | `""` | Namespace to deploy all chart resources into. Empty uses the release namespace (`.Release.Namespace`). |
+| query.affinity | object | {} | Affinity rules for Query pod scheduling. |
+| query.annotations | object | {} | Extra annotations applied to Query resources. |
+| query.autoscaling.enabled | bool | `false` | Enable HorizontalPodAutoscaler for the Query component. |
+| query.autoscaling.maxReplicas | int | `5` | Maximum number of Query replicas. |
+| query.autoscaling.minReplicas | int | `2` | Minimum number of Query replicas. |
+| query.autoscaling.targetCPUUtilizationPercentage | int | `80` | Target CPU utilisation percentage for Query autoscaling. |
+| query.autoscaling.targetMemoryUtilizationPercentage | string | `nil` | Target memory utilisation percentage for Query autoscaling. Null disables memory-based scaling. |
+| query.containerSecurityContext | object | {} | Container security context for Query. Overrides global.containerSecurityContext. |
+| query.dnsConfig | object | {} | DNS configuration for Query pods. Overrides global.dnsConfig. |
+| query.enabled | bool | `true` | Enable the Query Deployment. |
+| query.endpoints.autogen.enabled | bool | `true` | Auto-generate endpoint arguments for the in-chart components (Receive, Store Gateway, Ruler). These use the dnssrv+_grpc._tcp.<svc>.<namespace>.svc.<cluster-domain> format. |
+| query.endpoints.sdConfig.config | string | "" | Inline endpoint config in the Thanos `EndpointConfig` format, rendered into a ConfigMap when `existingConfigMap` is empty. Processed via `tpl`. |
+| query.endpoints.sdConfig.existingConfigMap | string | `""` | Existing ConfigMap holding the endpoint definitions. Takes precedence over `config` and is never written by the chart. |
+| query.endpoints.sdConfig.key | string | `"endpoints.yml"` | Key inside the ConfigMap holding the endpoint definitions. |
+| query.endpoints.sdConfig.reloadInterval | string | `""` | How often Query re-reads the endpoint definitions. Empty leaves the Thanos default. |
+| query.endpoints.static | list | [] | Optional static endpoint arguments. When non-empty will be added as extra endpoints. When `query.endpoints.autogen.enabled` is `false`, these will give you full control over the endpoints. |
+| query.extraArgs[0] | string | `"--log.level=info"` |  |
+| query.extraContainers | list | [] | Extra sidecar containers for Query pods. |
+| query.extraEnv | list | [] | Extra environment variables injected into the Query container. |
+| query.extraEnvFrom | list | [] | Extra environment variable sources for the Query container. |
+| query.extraInitContainers | list | [] | Extra init containers for Query pods. |
+| query.extraVolumeMounts | list | [] | Extra volume mounts for the Query container. |
+| query.extraVolumes | list | [] | Extra volumes for Query pods. |
+| query.grpcRoute.annotations | object | {} | Annotations for the Query GRPCRoute resource. |
+| query.grpcRoute.enabled | bool | `false` | Enable a Gateway API GRPCRoute for the Query gRPC Store API endpoint. |
+| query.grpcRoute.hostnames | list | [] | Hostnames to match on the Query GRPCRoute. |
+| query.grpcRoute.matches | list | [] | Gateway matches for the Query GRPCRoute rules. |
+| query.grpcRoute.parentRefs | list | [] | Gateway parentRefs for the Query GRPCRoute. |
+| query.httpRoute.annotations | object | {} | Annotations for the Query HTTPRoute resource. |
+| query.httpRoute.enabled | bool | `false` | Enable a Gateway API HTTPRoute for the Query HTTP endpoint. |
+| query.httpRoute.extraRules | list | [] | Additional custom rules for Query HTTPRoute Each item should be a complete HTTPRouteRule object with its own backendRefs, matches, filters, etc. |
+| query.httpRoute.filters | list | [] | Gateway filters for the Query HTTPRoute rules. |
+| query.httpRoute.hostnames | list | [] | Hostnames to match on the Query HTTPRoute. |
+| query.httpRoute.matches | list | [] | Gateway matches for the Query HTTPRoute rules. |
+| query.httpRoute.parentRefs | list | [] | Gateway parentRefs for the Query HTTPRoute. |
+| query.httpRoute.timeouts | object | {} | Timeouts for the Query HTTPRoute rule (Gateway API HTTPRouteTimeouts). |
+| query.ingress.annotations | object | {} | Deprecated. Use `query.ingress.http.annotations` instead. |
+| query.ingress.className | string | `""` | Deprecated. Use `query.ingress.http.className` instead. |
+| query.ingress.enabled | bool | `false` | Deprecated. Use `query.ingress.http.enabled` instead. |
+| query.ingress.grpc.annotations | object | {} | Extra annotations for the Query gRPC Ingress. |
+| query.ingress.grpc.className | string | `""` | Ingress class name for Query gRPC endpoint (e.g. nginx, traefik). |
+| query.ingress.grpc.enabled | bool | `false` | Enable a Kubernetes Ingress for the Query gRPC endpoint. Note this is independent of ingress.enabled that is for the HTTP ingress. |
+| query.ingress.grpc.hosts[0].host | string | `"thanos-query-grpc.local"` |  |
+| query.ingress.grpc.hosts[0].paths[0].path | string | `"/"` |  |
+| query.ingress.grpc.hosts[0].paths[0].pathType | string | `"Prefix"` |  |
+| query.ingress.grpc.tls | list | [] | TLS configuration for the Query gRPC Ingress. |
+| query.ingress.hosts[0].host | string | `"thanos-query.local"` |  |
+| query.ingress.hosts[0].paths[0].path | string | `"/"` |  |
+| query.ingress.hosts[0].paths[0].pathType | string | `"Prefix"` |  |
+| query.ingress.http.annotations | object | {} | Extra annotations for the Query HTTP Ingress. |
+| query.ingress.http.className | string | `""` | Ingress class name for Query HTTP endpoint (e.g. nginx, traefik). |
+| query.ingress.http.enabled | bool | `false` | Enable a Kubernetes Ingress for the Query HTTP endpoint. |
+| query.ingress.http.hosts[0].host | string | `"thanos-query.local"` |  |
+| query.ingress.http.hosts[0].paths[0].path | string | `"/"` |  |
+| query.ingress.http.hosts[0].paths[0].pathType | string | `"Prefix"` |  |
+| query.ingress.http.tls | list | [] | TLS configuration for the Query HTTP Ingress. |
+| query.ingress.tls | list | [] | Deprecated. Use `query.ingress.http.tls` instead. |
+| query.labels | object | {} | Extra labels applied to Query resources. |
+| query.nodeSelector | object | {} | Node selector for Query pod scheduling. |
+| query.pdb.enabled | bool | `false` | Enable a PodDisruptionBudget for Query. |
+| query.pdb.maxUnavailable | int or string | `""` | Maximum unavailable Query pods during a disruption. |
+| query.pdb.minAvailable | int or string | `""` | Minimum available Query pods during a disruption. |
+| query.podLabels | object | {} | Extra labels applied to Query pods (e.g. for workload identity). |
+| query.podSecurityContext | object | {} | Pod security context for Query pods. Overrides global.podSecurityContext. |
+| query.priorityClassName | string | `""` | Priority class name for Query pods. |
+| query.probes.liveness.enabled | bool | `true` | Enable the liveness probe for Query. |
+| query.probes.liveness.failureThreshold | int | `6` | Consecutive failures before the Query container is restarted. |
+| query.probes.liveness.initialDelaySeconds | int | `30` | Seconds to wait before starting the Query liveness probe. |
+| query.probes.liveness.path | string | `"/-/healthy"` | HTTP path checked by the Query liveness probe. |
+| query.probes.liveness.periodSeconds | int | `10` | How often (seconds) to run the Query liveness probe. |
+| query.probes.liveness.successThreshold | int | `1` | Consecutive successes before the Query container is considered live. |
+| query.probes.liveness.timeoutSeconds | int | `5` | Seconds after which the Query liveness probe times out. |
+| query.probes.readiness.enabled | bool | `true` | Enable the readiness probe for Query. |
+| query.probes.readiness.failureThreshold | int | `6` | Consecutive failures before the Query pod is marked not-ready. |
+| query.probes.readiness.initialDelaySeconds | int | `5` | Seconds to wait before starting the Query readiness probe. |
+| query.probes.readiness.path | string | `"/-/ready"` | HTTP path checked by the Query readiness probe. |
+| query.probes.readiness.periodSeconds | int | `10` | How often (seconds) to run the Query readiness probe. |
+| query.probes.readiness.successThreshold | int | `1` | Consecutive successes before the Query pod is marked ready. |
+| query.probes.readiness.timeoutSeconds | int | `5` | Seconds after which the Query readiness probe times out. |
+| query.probes.startup.enabled | bool | `true` | Enable the startup probe for Query. |
+| query.probes.startup.failureThreshold | int | `60` | Consecutive failures during Query startup before the container is killed. |
+| query.probes.startup.initialDelaySeconds | int | `0` | Seconds to wait before starting the Query startup probe. |
+| query.probes.startup.path | string | `"/-/ready"` | HTTP path checked by the Query startup probe. |
+| query.probes.startup.periodSeconds | int | `5` | How often (seconds) to run the Query startup probe. |
+| query.probes.startup.successThreshold | int | `1` | Consecutive successes before the Query startup probe is considered passed. |
+| query.probes.startup.timeoutSeconds | int | `5` | Seconds after which the Query startup probe times out. |
+| query.replicaCount | int | `2` | Number of Query pod replicas. Two or more is recommended for HA. Ignored when `query.autoscaling.enabled` is true, because the HorizontalPodAutoscaler then owns the replica count. |
+| query.replicaLabels[0] | string | `"prometheus_replica"` |  |
+| query.replicaLabels[1] | string | `"receive_replica"` |  |
+| query.replicaLabels[2] | string | `"ruler_replica"` |  |
+| query.resources | object | {} | Resource requests and limits for the Query container. |
+| query.service.annotations | object | {} | Extra annotations for the Query Service. |
+| query.service.grpcNodePort | string | `null` (allocated by Kubernetes) | Static node port for the Query gRPC port. |
+| query.service.grpcPort | int | `10901` | gRPC Store API port exposed by the Query Service. |
+| query.service.httpNodePort | string | `null` (allocated by Kubernetes) | Static node port for the Query HTTP port. Only honoured when `type` is NodePort or LoadBalancer; null lets Kubernetes allocate one from the node-port range. |
+| query.service.httpPort | int | `9090` | HTTP/PromQL port exposed by the Query Service. |
+| query.service.labels | object | {} | Extra labels for the Query Service. |
+| query.service.type | string | `"ClusterIP"` | Kubernetes Service type for the Query component. |
+| query.serviceAccount.annotations | object | {} | Extra annotations for the Query ServiceAccount, merged on top of `global.serviceAccount.annotations`. Use it to scope an IRSA or Workload Identity binding to Query. Requires `create`. |
+| query.serviceAccount.automountServiceAccountToken | string | `null` (inherit `global.serviceAccount.automountServiceAccountToken`) | Mount the ServiceAccount token into Query pods. Null inherits `global.serviceAccount.automountServiceAccountToken`. Requires `create`. |
+| query.serviceAccount.create | string | `null` (inherit `global.serviceAccount.perComponent`) | Create a ServiceAccount for Query instead of sharing the chart-wide one. Null inherits `global.serviceAccount.perComponent`. |
+| query.serviceAccount.name | string | `""` | Name of the ServiceAccount Query pods run as. Empty derives `<fullname>-query` when Query has a dedicated ServiceAccount, and the chart-wide ServiceAccount name otherwise. Setting it without `create` runs Query as a ServiceAccount managed outside this chart. |
+| query.serviceMonitor.annotations | object | {} | Extra annotations for the Query ServiceMonitor. |
+| query.serviceMonitor.enabled | bool | `false` | Enable a Prometheus Operator ServiceMonitor for Query. |
+| query.serviceMonitor.interval | string | `""` | Scrape interval for Query. Empty uses the Prometheus operator default. |
+| query.serviceMonitor.labels | object | {} | Extra labels for the Query ServiceMonitor. |
+| query.serviceMonitor.metricRelabelings | list | [] | Metric relabeling rules applied after Query metrics are ingested. |
+| query.serviceMonitor.relabelings | list | [] | Relabeling rules applied before Query metrics are ingested. |
+| query.serviceMonitor.scheme | string | `""` | Scrape scheme for Query (http or https). |
+| query.serviceMonitor.scrapeTimeout | string | `""` | Scrape timeout for Query. Empty uses the Prometheus operator default. |
+| query.serviceMonitor.tlsConfig | object | {} | TLS configuration for Query scraping. |
+| query.stores | list | [] | Deprecated. Use `query.endpoints.static[]` instead. |
+| query.tolerations | list | [] | Tolerations for Query pod scheduling. |
+| query.topologySpreadConstraints | list | [] | Topology spread constraints for Query pods. |
+| queryFrontend.affinity | object | {} | Affinity rules for Query Frontend pod scheduling. |
+| queryFrontend.annotations | object | {} | Extra annotations applied to Query Frontend resources. |
+| queryFrontend.autoscaling.enabled | bool | `false` | Enable HorizontalPodAutoscaler for Query Frontend. |
+| queryFrontend.autoscaling.maxReplicas | int | `5` | Maximum number of Query Frontend replicas. |
+| queryFrontend.autoscaling.minReplicas | int | `2` | Minimum number of Query Frontend replicas. |
+| queryFrontend.autoscaling.targetCPUUtilizationPercentage | int | `80` | Target CPU utilisation percentage for Query Frontend autoscaling. |
+| queryFrontend.autoscaling.targetMemoryUtilizationPercentage | string | `nil` | Target memory utilisation percentage for Query Frontend autoscaling. Null disables memory-based scaling. |
+| queryFrontend.cacheConfig | string | `""` | Optional result cache configuration (Memcached, Redis, or in-memory) passed as an inline YAML string. See https://thanos.io/tip/components/query-frontend.md/ |
+| queryFrontend.containerSecurityContext | object | {} | Container security context for Query Frontend. Overrides global.containerSecurityContext. |
+| queryFrontend.dnsConfig | object | {} | DNS configuration for Query Frontend pods. Overrides global.dnsConfig. |
+| queryFrontend.downstreamUrl | string | `""` | Downstream URL of the Query component. Leave empty to use the in-chart Query service endpoint (auto-resolved). |
+| queryFrontend.enabled | bool | `false` | Enable the Query Frontend Deployment. |
+| queryFrontend.extraArgs | list | [] | Additional CLI arguments appended to the `thanos query-frontend` command. |
+| queryFrontend.extraContainers | list | [] | Extra sidecar containers for Query Frontend pods. |
+| queryFrontend.extraEnv | list | [] | Extra environment variables injected into the Query Frontend container. |
+| queryFrontend.extraEnvFrom | list | [] | Extra environment variable sources for the Query Frontend container. |
+| queryFrontend.extraInitContainers | list | [] | Extra init containers for Query Frontend pods. |
+| queryFrontend.extraVolumeMounts | list | [] | Extra volume mounts for the Query Frontend container. |
+| queryFrontend.extraVolumes | list | [] | Extra volumes for Query Frontend pods. |
+| queryFrontend.httpRoute.annotations | object | {} | Annotations for the Query Frontend HTTPRoute resource. |
+| queryFrontend.httpRoute.enabled | bool | `false` | Enable a Gateway API HTTPRoute for Query Frontend. |
+| queryFrontend.httpRoute.extraRules | list | [] | Additional custom rules for Query Frontend HTTPRoute Each item should be a complete HTTPRouteRule object with its own backendRefs, matches, filters, etc. |
+| queryFrontend.httpRoute.filters | list | [] | Gateway filters for the Query Frontend HTTPRoute rules. |
+| queryFrontend.httpRoute.hostnames | list | [] | Hostnames to match on the Query Frontend HTTPRoute. |
+| queryFrontend.httpRoute.matches | list | [] | Gateway matches for the Query Frontend HTTPRoute rules. |
+| queryFrontend.httpRoute.parentRefs | list | [] | Gateway parentRefs for the Query Frontend HTTPRoute. |
+| queryFrontend.httpRoute.timeouts | object | {} | Timeouts for the Query Frontend HTTPRoute rule (Gateway API HTTPRouteTimeouts). |
+| queryFrontend.ingress.annotations | object | {} | Extra annotations for the Query Frontend Ingress. |
+| queryFrontend.ingress.className | string | `""` | Ingress class name for Query Frontend (e.g. nginx, traefik). |
+| queryFrontend.ingress.enabled | bool | `false` | Enable a Kubernetes Ingress for Query Frontend. |
+| queryFrontend.ingress.hosts[0].host | string | `"thanos-query-frontend.local"` |  |
+| queryFrontend.ingress.hosts[0].paths[0].path | string | `"/"` |  |
+| queryFrontend.ingress.hosts[0].paths[0].pathType | string | `"Prefix"` |  |
+| queryFrontend.ingress.tls | list | [] | TLS configuration for the Query Frontend Ingress. |
+| queryFrontend.labels | object | {} | Extra labels applied to Query Frontend resources. |
+| queryFrontend.nodeSelector | object | {} | Node selector for Query Frontend pod scheduling. |
+| queryFrontend.pdb.enabled | bool | `false` | Enable a PodDisruptionBudget for Query Frontend. |
+| queryFrontend.pdb.maxUnavailable | int or string | `""` | Maximum unavailable Query Frontend pods during a disruption. |
+| queryFrontend.pdb.minAvailable | int or string | `""` | Minimum available Query Frontend pods during a disruption. |
+| queryFrontend.podLabels | object | {} | Extra labels applied to Query Frontend pods (e.g. for workload identity). |
+| queryFrontend.podSecurityContext | object | {} | Pod security context for Query Frontend pods. Overrides global.podSecurityContext. |
+| queryFrontend.priorityClassName | string | `""` | Priority class name for Query Frontend pods. |
+| queryFrontend.probes.liveness.enabled | bool | `true` | Enable the liveness probe for Query Frontend. |
+| queryFrontend.probes.liveness.failureThreshold | int | `6` | Consecutive failures before the Query Frontend container is restarted. |
+| queryFrontend.probes.liveness.initialDelaySeconds | int | `30` | Seconds to wait before starting the Query Frontend liveness probe. |
+| queryFrontend.probes.liveness.path | string | `"/-/healthy"` | HTTP path checked by the Query Frontend liveness probe. |
+| queryFrontend.probes.liveness.periodSeconds | int | `10` | How often (seconds) to run the Query Frontend liveness probe. |
+| queryFrontend.probes.liveness.successThreshold | int | `1` | Consecutive successes before the Query Frontend container is considered live. |
+| queryFrontend.probes.liveness.timeoutSeconds | int | `5` | Seconds after which the Query Frontend liveness probe times out. |
+| queryFrontend.probes.readiness.enabled | bool | `true` | Enable the readiness probe for Query Frontend. |
+| queryFrontend.probes.readiness.failureThreshold | int | `6` | Consecutive failures before the Query Frontend pod is marked not-ready. |
+| queryFrontend.probes.readiness.initialDelaySeconds | int | `5` | Seconds to wait before starting the Query Frontend readiness probe. |
+| queryFrontend.probes.readiness.path | string | `"/-/ready"` | HTTP path checked by the Query Frontend readiness probe. |
+| queryFrontend.probes.readiness.periodSeconds | int | `10` | How often (seconds) to run the Query Frontend readiness probe. |
+| queryFrontend.probes.readiness.successThreshold | int | `1` | Consecutive successes before the Query Frontend pod is marked ready. |
+| queryFrontend.probes.readiness.timeoutSeconds | int | `5` | Seconds after which the Query Frontend readiness probe times out. |
+| queryFrontend.probes.startup.enabled | bool | `true` | Enable the startup probe for Query Frontend. |
+| queryFrontend.probes.startup.failureThreshold | int | `60` | Consecutive failures during Query Frontend startup before the container is killed. |
+| queryFrontend.probes.startup.initialDelaySeconds | int | `0` | Seconds to wait before starting the Query Frontend startup probe. |
+| queryFrontend.probes.startup.path | string | `"/-/ready"` | HTTP path checked by the Query Frontend startup probe. |
+| queryFrontend.probes.startup.periodSeconds | int | `5` | How often (seconds) to run the Query Frontend startup probe. |
+| queryFrontend.probes.startup.successThreshold | int | `1` | Consecutive successes before the Query Frontend startup probe is considered passed. |
+| queryFrontend.probes.startup.timeoutSeconds | int | `5` | Seconds after which the Query Frontend startup probe times out. |
+| queryFrontend.replicaCount | int | `2` | Number of Query Frontend pod replicas. Ignored when `queryFrontend.autoscaling.enabled` is true, because the HorizontalPodAutoscaler then owns the replica count. |
+| queryFrontend.resources | object | {} | Resource requests and limits for the Query Frontend container. |
+| queryFrontend.service.annotations | object | {} | Extra annotations for the Query Frontend Service. |
+| queryFrontend.service.labels | object | {} | Extra labels for the Query Frontend Service. |
+| queryFrontend.service.nodePort | string | `null` (allocated by Kubernetes) | Static node port for the Query Frontend HTTP port. Only honoured when `type` is NodePort or LoadBalancer; null lets Kubernetes allocate one from the node-port range. |
+| queryFrontend.service.port | int | `9090` | HTTP port exposed by the Query Frontend Service. |
+| queryFrontend.service.type | string | `"ClusterIP"` | Kubernetes Service type for Query Frontend. |
+| queryFrontend.serviceAccount.annotations | object | {} | Extra annotations for the Query Frontend ServiceAccount, merged on top of `global.serviceAccount.annotations`. Use it to scope an IRSA or Workload Identity binding to Query Frontend. Requires `create`. |
+| queryFrontend.serviceAccount.automountServiceAccountToken | string | `null` (inherit `global.serviceAccount.automountServiceAccountToken`) | Mount the ServiceAccount token into Query Frontend pods. Null inherits `global.serviceAccount.automountServiceAccountToken`. Requires `create`. |
+| queryFrontend.serviceAccount.create | string | `null` (inherit `global.serviceAccount.perComponent`) | Create a ServiceAccount for Query Frontend instead of sharing the chart-wide one. Null inherits `global.serviceAccount.perComponent`. |
+| queryFrontend.serviceAccount.name | string | `""` | Name of the ServiceAccount Query Frontend pods run as. Empty derives `<fullname>-query-frontend` when Query Frontend has a dedicated ServiceAccount, and the chart-wide ServiceAccount name otherwise. Setting it without `create` runs Query Frontend as a ServiceAccount managed outside this chart. |
+| queryFrontend.serviceMonitor.annotations | object | {} | Extra annotations for the Query Frontend ServiceMonitor. |
+| queryFrontend.serviceMonitor.enabled | bool | `false` | Enable a Prometheus Operator ServiceMonitor for Query Frontend. |
+| queryFrontend.serviceMonitor.interval | string | `""` | Scrape interval for Query Frontend. Empty uses the Prometheus operator default. |
+| queryFrontend.serviceMonitor.labels | object | {} | Extra labels for the Query Frontend ServiceMonitor. |
+| queryFrontend.serviceMonitor.metricRelabelings | list | [] | Metric relabeling rules applied after Query Frontend metrics are ingested. |
+| queryFrontend.serviceMonitor.relabelings | list | [] | Relabeling rules applied before Query Frontend metrics are ingested. |
+| queryFrontend.serviceMonitor.scheme | string | `""` | Scrape scheme for Query Frontend (http or https). |
+| queryFrontend.serviceMonitor.scrapeTimeout | string | `""` | Scrape timeout for Query Frontend. Empty uses the Prometheus operator default. |
+| queryFrontend.serviceMonitor.tlsConfig | object | {} | TLS configuration for Query Frontend scraping. |
+| queryFrontend.tolerations | list | [] | Tolerations for Query Frontend pod scheduling. |
+| queryFrontend.topologySpreadConstraints | list | [] | Topology spread constraints for Query Frontend pods. |
+| receive.affinity | object | {} | Affinity rules for Receive pod scheduling. |
+| receive.annotations | object | {} | Extra annotations applied to Receive resources. |
+| receive.containerSecurityContext | object | {} | Container security context for Receive. Overrides global.containerSecurityContext. |
+| receive.dnsConfig | object | {} | DNS configuration for Receive pods. Overrides global.dnsConfig. |
+| receive.enabled | bool | `true` | Enable the Receive StatefulSet. |
+| receive.extraArgs | list | [] | Additional CLI arguments appended to the `thanos receive` command. |
+| receive.extraContainers | list | [] | Extra sidecar containers for Receive pods. |
+| receive.extraEnv | list | [] | Extra environment variables injected into the Receive container. |
+| receive.extraEnvFrom | list | [] | Extra environment variable sources for the Receive container. |
+| receive.extraInitContainers | list | [] | Extra init containers for Receive pods. |
+| receive.extraVolumeMounts | list | [] | Extra volume mounts for the Receive container. |
+| receive.extraVolumes | list | [] | Extra volumes for Receive pods. |
+| receive.grpcRoute.annotations | object | {} | Annotations for the Receive GRPCRoute resource. |
+| receive.grpcRoute.enabled | bool | `false` | Enable a Gateway API GRPCRoute for the Receive gRPC Store API endpoint. |
+| receive.grpcRoute.hostnames | list | [] | Hostnames to match on the Receive GRPCRoute. |
+| receive.grpcRoute.matches | list | [] | Gateway matches for the Receive GRPCRoute rules. |
+| receive.grpcRoute.parentRefs | list | [] | Gateway parentRefs for the Receive GRPCRoute. |
+| receive.hashrings.algorithm | string | `"ketama"` | Hashring algorithm. `ketama` is consistent hashing; `hashmod` is the legacy one and reshuffles nearly every series when the ring changes. |
+| receive.hashrings.autogen.enabled | bool | `true` | Auto-generate a single default hashring whose endpoints are derived from the StatefulSet pod DNS names: `<pod-0>.<headless-svc>:10901 ... <pod-N>.<headless-svc>:10901`. |
+| receive.hashrings.autogen.name | string | `"default"` | Name of the auto-generated hashring. |
+| receive.hashrings.external.configMapName | string | `""` | Name of the externally managed ConfigMap. Required when `enabled`. |
+| receive.hashrings.external.enabled | bool | `false` | Mount a hashring ConfigMap managed outside the chart and render none of its own. Ignores `autogen` and `static`. |
+| receive.hashrings.external.key | string | `"hashrings.json"` | Key inside that ConfigMap holding the hashring JSON. |
+| receive.hashrings.refreshInterval | string | `""` | How often Receive re-reads the hashring file, as a Go duration. Empty leaves the Thanos default. Only useful when the file changes at runtime. |
+| receive.hashrings.static | list | [] | Optional static hashring configuration. When non-empty this overrides `autogen` and gives full control over ring topology. |
+| receive.httpRoute.annotations | object | {} | Annotations for the Receive HTTPRoute resource. |
+| receive.httpRoute.enabled | bool | `false` | Enable a Gateway API HTTPRoute for the Receive HTTP endpoint. |
+| receive.httpRoute.extraRules | list | [] | Additional custom rules for Receive HTTPRoute Each item should be a complete HTTPRouteRule object with its own backendRefs, matches, filters, etc. |
+| receive.httpRoute.filters | list | [] | Gateway filters for the Receive HTTPRoute rules. |
+| receive.httpRoute.hostnames | list | [] | Hostnames to match on the Receive HTTPRoute. |
+| receive.httpRoute.matches | list | [] | Gateway matches for the Receive HTTPRoute rules. |
+| receive.httpRoute.parentRefs | list | [] | Gateway parentRefs for the Receive HTTPRoute. |
+| receive.httpRoute.timeouts | object | {} | Timeouts for the Receive HTTPRoute rule (Gateway API HTTPRouteTimeouts). |
+| receive.ingester | object | see `receive.ingester.persistence.*` below | Ingester StatefulSet config. Required when `receive.mode` is `split`; ignored in `standalone` mode. Only `persistence` is defaulted by the chart. |
+| receive.ingester.persistence.enabled | bool | `true` | Enable a PersistentVolumeClaim for the Ingester TSDB WAL. |
+| receive.ingester.persistence.existingClaim | string | `""` | Use an existing PersistentVolumeClaim. When set, no volumeClaimTemplate is created and the named PVC is mounted directly. Takes precedence over size, storageClass and accessModes. |
+| receive.ingester.persistence.size | string | `"10Gi"` | Storage capacity for the Ingester PVC. Should be sized to hold at least `tsdb.retention` worth of data. |
+| receive.ingester.persistence.storageClass | string | `""` | StorageClass name for the Ingester PVC. Empty uses the cluster default. |
+| receive.ingester.persistence.volumeAttributesClassName | string | `""` | [Volume attributes class](https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/) name for the Ingester PVC. Requires Kubernetes 1.31+ ([with feature gate](https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/#feature-gates-for-graduated-or-deprecated-features)) or 1.36+. Chart will fail if provided but not supported by cluster. |
+| receive.ingress.annotations | object | {} | Deprecated. Use `receive.ingress.http.annotations` instead. |
+| receive.ingress.className | string | `""` | Deprecated. Use `receive.ingress.http.className` instead. |
+| receive.ingress.enabled | bool | `false` | Deprecated. Use `receive.ingress.http.enabled` instead. |
+| receive.ingress.grpc.annotations | object | {} | Extra annotations for the Receive gRPC Ingress. |
+| receive.ingress.grpc.className | string | `""` | Ingress class name for Receive gRPC endpoint (e.g. nginx, traefik). |
+| receive.ingress.grpc.enabled | bool | `false` | Enable a Kubernetes Ingress for the Receive gRPC endpoint. Note this is independent of ingress.enabled that is for the HTTP ingress. |
+| receive.ingress.grpc.hosts[0].host | string | `"thanos-receive-grpc.local"` |  |
+| receive.ingress.grpc.hosts[0].paths[0].path | string | `"/"` |  |
+| receive.ingress.grpc.hosts[0].paths[0].pathType | string | `"Prefix"` |  |
+| receive.ingress.grpc.tls | list | [] | TLS configuration for the Receive gRPC Ingress. |
+| receive.ingress.hosts[0].host | string | `"thanos-receive.local"` |  |
+| receive.ingress.hosts[0].paths[0].path | string | `"/"` |  |
+| receive.ingress.hosts[0].paths[0].pathType | string | `"Prefix"` |  |
+| receive.ingress.http.annotations | object | {} | Extra annotations for the Receive HTTP Ingress. |
+| receive.ingress.http.className | string | `""` | Ingress class name for Receive HTTP endpoint (e.g. nginx, traefik). |
+| receive.ingress.http.enabled | bool | `false` | Enable a Kubernetes Ingress for the Receive HTTP endpoint. |
+| receive.ingress.http.hosts[0].host | string | `"thanos-receive.local"` |  |
+| receive.ingress.http.hosts[0].paths[0].path | string | `"/"` |  |
+| receive.ingress.http.hosts[0].paths[0].pathType | string | `"Prefix"` |  |
+| receive.ingress.http.tls | list | [] | TLS configuration for the Receive HTTP Ingress. |
+| receive.ingress.remoteWrite.annotations | object | {} | Extra annotations for the Receive remote-write Ingress. |
+| receive.ingress.remoteWrite.className | string | `""` | Ingress class name for Receive remote-write endpoint (e.g. nginx, traefik). |
+| receive.ingress.remoteWrite.enabled | bool | `false` | Enable a Kubernetes Ingress for the Receive remote-write endpoint. |
+| receive.ingress.remoteWrite.hosts[0].host | string | `"thanos-receive-remote-write.local"` |  |
+| receive.ingress.remoteWrite.hosts[0].paths[0].path | string | `"/"` |  |
+| receive.ingress.remoteWrite.hosts[0].paths[0].pathType | string | `"Prefix"` |  |
+| receive.ingress.remoteWrite.tls | list | [] | TLS configuration for the Receive remote-write Ingress. |
+| receive.ingress.tls | list | [] | Deprecated. Use `receive.ingress.http.tls` instead. |
+| receive.labels | object | {} | Extra labels applied to Receive resources. |
+| receive.minReadySeconds | int | `0` | Minimum number of seconds for which a newly created Receive Pod must be Running and Ready, without any container crashing, before it is considered available during a rolling update (StatefulSet `spec.minReadySeconds`). Defaults to 0 (available as soon as Ready); the field is omitted when 0. In `split` mode set `receive.ingester.minReadySeconds` instead. See https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#minimum-ready-seconds |
+| receive.mode | string | `"standalone"` | Receive deployment topology. One of: `standalone` — single workload that both routes and ingests (RouterIngestor mode); `split` — separate Router (Deployment) and Ingester (StatefulSet) workloads, following the receive split proposal (https://thanos.io/tip/proposals-accepted/202012-receive-split.md).  Field shape depends on mode:   - `standalone`: configure the workload directly via top-level `receive.*`     fields (replicaCount, tsdb, service, persistence, etc.). `receive.ingester`     and `receive.router` are ignored.   - `split`: configure each workload via `receive.ingester.*` and     `receive.router.*`. Top-level `receive.*` fields are ignored. The schema     requires both `ingester` and `router` to be populated in this mode. |
+| receive.nodeSelector | object | {} | Node selector for Receive pod scheduling. |
+| receive.pdb.enabled | bool | `false` | Enable a PodDisruptionBudget for Receive. |
+| receive.pdb.maxUnavailable | int or string | `""` | Maximum unavailable Receive pods during a disruption. |
+| receive.pdb.minAvailable | int or string | `""` | Minimum available Receive pods during a disruption. |
+| receive.persistence.accessModes[0] | string | `"ReadWriteOnce"` |  |
+| receive.persistence.enabled | bool | `true` | Enable a PersistentVolumeClaim for the Receive TSDB WAL. |
+| receive.persistence.existingClaim | string | `""` | Use an existing PersistentVolumeClaim. When set, no volumeClaimTemplate is created and the named PVC is mounted directly. Takes precedence over size, storageClass and accessModes. |
+| receive.persistence.size | string | `"10Gi"` | Storage capacity for the Receive PVC. Should be sized to hold at least `tsdb.retention` worth of data. |
+| receive.persistence.storageClass | string | `""` | StorageClass name for the Receive PVC. Empty uses the cluster default. |
+| receive.persistence.volumeAttributesClassName | string | `""` | [Volume attributes class](https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/) name for the Receive PVC. Requires Kubernetes 1.31+ ([with feature gate](https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/#feature-gates-for-graduated-or-deprecated-features)) or 1.36+. Chart will fail if provided but not supported by cluster. |
+| receive.podLabels | object | {} | Extra labels applied to Receive pods (e.g. for workload identity). In split mode this applies to the Ingester; set `receive.ingester.podLabels` and `receive.router.podLabels` to target each workload independently. |
+| receive.podSecurityContext.fsGroup | int | `1000` |  |
+| receive.podSecurityContext.fsGroupChangePolicy | string | `"OnRootMismatch"` |  |
+| receive.priorityClassName | string | `""` | Priority class name for Receive pods. |
+| receive.probes.liveness.enabled | bool | `true` | Enable the liveness probe for Receive. |
+| receive.probes.liveness.failureThreshold | int | `6` | Consecutive failures before the Receive container is restarted. |
+| receive.probes.liveness.initialDelaySeconds | int | `30` | Seconds to wait before starting the Receive liveness probe. |
+| receive.probes.liveness.path | string | `"/-/healthy"` | HTTP path checked by the Receive liveness probe. |
+| receive.probes.liveness.periodSeconds | int | `10` | How often (seconds) to run the Receive liveness probe. |
+| receive.probes.liveness.successThreshold | int | `1` | Consecutive successes before the Receive container is considered live. |
+| receive.probes.liveness.timeoutSeconds | int | `5` | Seconds after which the Receive liveness probe times out. |
+| receive.probes.readiness.enabled | bool | `true` | Enable the readiness probe for Receive. |
+| receive.probes.readiness.failureThreshold | int | `6` | Consecutive failures before the Receive pod is marked not-ready. |
+| receive.probes.readiness.initialDelaySeconds | int | `5` | Seconds to wait before starting the Receive readiness probe. |
+| receive.probes.readiness.path | string | `"/-/ready"` | HTTP path checked by the Receive readiness probe. |
+| receive.probes.readiness.periodSeconds | int | `10` | How often (seconds) to run the Receive readiness probe. |
+| receive.probes.readiness.successThreshold | int | `1` | Consecutive successes before the Receive pod is marked ready. |
+| receive.probes.readiness.timeoutSeconds | int | `5` | Seconds after which the Receive readiness probe times out. |
+| receive.probes.startup.enabled | bool | `true` | Enable the startup probe for Receive. |
+| receive.probes.startup.failureThreshold | int | `60` | Consecutive failures during Receive startup before the container is killed. |
+| receive.probes.startup.initialDelaySeconds | int | `0` | Seconds to wait before starting the Receive startup probe. |
+| receive.probes.startup.path | string | `"/-/ready"` | HTTP path checked by the Receive startup probe. |
+| receive.probes.startup.periodSeconds | int | `5` | How often (seconds) to run the Receive startup probe. |
+| receive.probes.startup.successThreshold | int | `1` | Consecutive successes before the Receive startup probe is considered passed. |
+| receive.probes.startup.timeoutSeconds | int | `5` | Seconds after which the Receive startup probe times out. |
+| receive.replicaCount | int | `3` | Number of Receive pod replicas. Minimum 3 is recommended for replication factor 2 (write quorum = floor(replicaCount/2)+1). In `split` mode this controls the Ingester StatefulSet replica count. |
+| receive.replication.protocol | string | `"protobuf"` | Wire protocol used to replicate writes between Receive endpoints. `capnproto` needs `service.capnprotoPort` reachable between the pods. |
+| receive.resources | object | {} | Resource requests and limits for the Receive container. |
+| receive.router.affinity | object | {} | Affinity rules for Router pod scheduling. Falls back to receive.affinity. |
+| receive.router.annotations | object | {} | Extra annotations applied to Router resources. |
+| receive.router.containerSecurityContext | object | {} | Container security context for the Router container. Falls back to receive.containerSecurityContext, then global.containerSecurityContext. |
+| receive.router.dnsConfig | object | {} | DNS configuration for Router pods. Falls back to receive.dnsConfig. |
+| receive.router.extraArgs | list | [] | Additional CLI arguments appended to the `thanos receive` command for the Router. |
+| receive.router.extraContainers | list | [] | Extra sidecar containers for Router pods. |
+| receive.router.extraEnv | list | [] | Extra environment variables injected into the Router container. |
+| receive.router.extraEnvFrom | list | [] | Extra environment variable sources for the Router container. |
+| receive.router.extraInitContainers | list | [] | Extra init containers for Router pods. |
+| receive.router.extraVolumeMounts | list | [] | Extra volume mounts for the Router container. |
+| receive.router.extraVolumes | list | [] | Extra volumes for Router pods. |
+| receive.router.httpRoute.annotations | object | {} | Annotations for the Router HTTPRoute resource. |
+| receive.router.httpRoute.enabled | bool | `false` | Enable a Gateway API HTTPRoute for the Router HTTP endpoint. |
+| receive.router.httpRoute.extraRules | list | [] | Additional custom rules for Router HTTPRoute Each item should be a complete HTTPRouteRule object with its own backendRefs, matches, filters, etc. |
+| receive.router.httpRoute.filters | list | [] | Gateway filters for the Router HTTPRoute rules. |
+| receive.router.httpRoute.hostnames | list | [] | Hostnames to match on the Router HTTPRoute. |
+| receive.router.httpRoute.matches | list | [] | Gateway matches for the Router HTTPRoute rules. |
+| receive.router.httpRoute.parentRefs | list | [] | Gateway parentRefs for the Router HTTPRoute. |
+| receive.router.httpRoute.timeouts | object | {} | Timeouts for the Router HTTPRoute rule (Gateway API HTTPRouteTimeouts). |
+| receive.router.ingress.http.annotations | object | {} | Extra annotations for the Router HTTP Ingress. |
+| receive.router.ingress.http.className | string | `""` | Ingress class name for Router HTTP endpoint. |
+| receive.router.ingress.http.enabled | bool | `false` | Enable a Kubernetes Ingress for the Router HTTP endpoint. |
+| receive.router.ingress.http.hosts[0].host | string | `"thanos-receive-router.local"` |  |
+| receive.router.ingress.http.hosts[0].paths[0].path | string | `"/"` |  |
+| receive.router.ingress.http.hosts[0].paths[0].pathType | string | `"Prefix"` |  |
+| receive.router.ingress.http.tls | list | [] | TLS configuration for the Router HTTP Ingress. |
+| receive.router.ingress.remoteWrite.annotations | object | {} | Extra annotations for the Router remote-write Ingress. |
+| receive.router.ingress.remoteWrite.className | string | `""` | Ingress class name for Router remote-write endpoint. |
+| receive.router.ingress.remoteWrite.enabled | bool | `false` | Enable a Kubernetes Ingress for the Router remote-write endpoint. |
+| receive.router.ingress.remoteWrite.hosts[0].host | string | `"thanos-receive-router-remote-write.local"` |  |
+| receive.router.ingress.remoteWrite.hosts[0].paths[0].path | string | `"/"` |  |
+| receive.router.ingress.remoteWrite.hosts[0].paths[0].pathType | string | `"Prefix"` |  |
+| receive.router.ingress.remoteWrite.tls | list | [] | TLS configuration for the Router remote-write Ingress. |
+| receive.router.labels | object | {} | Extra labels applied to Router resources. |
+| receive.router.nodeSelector | object | {} | Node selector for Router pod scheduling. Falls back to receive.nodeSelector. |
+| receive.router.pdb.enabled | bool | `false` | Enable a PodDisruptionBudget for Router. |
+| receive.router.pdb.maxUnavailable | int or string | `""` | Maximum unavailable Router pods during a disruption. |
+| receive.router.pdb.minAvailable | int or string | `""` | Minimum available Router pods during a disruption. |
+| receive.router.podLabels | object | {} | Extra labels applied to Router pods (e.g. for workload identity). |
+| receive.router.podSecurityContext | object | {} | Pod security context for Router pods. Falls back to receive.podSecurityContext, then global.podSecurityContext. |
+| receive.router.priorityClassName | string | `""` | Priority class name for Router pods. Falls back to receive.priorityClassName. |
+| receive.router.probes.liveness.enabled | bool | `true` | Enable the liveness probe for Router. |
+| receive.router.probes.liveness.failureThreshold | int | `6` | Consecutive failures before the Router container is restarted. |
+| receive.router.probes.liveness.initialDelaySeconds | int | `30` | Seconds to wait before starting the Router liveness probe. |
+| receive.router.probes.liveness.path | string | `"/-/healthy"` | HTTP path checked by the Router liveness probe. |
+| receive.router.probes.liveness.periodSeconds | int | `10` | How often (seconds) to run the Router liveness probe. |
+| receive.router.probes.liveness.successThreshold | int | `1` | Consecutive successes before the Router container is considered live. |
+| receive.router.probes.liveness.timeoutSeconds | int | `5` | Seconds after which the Router liveness probe times out. |
+| receive.router.probes.readiness.enabled | bool | `true` | Enable the readiness probe for Router. |
+| receive.router.probes.readiness.failureThreshold | int | `6` | Consecutive failures before the Router pod is marked not-ready. |
+| receive.router.probes.readiness.initialDelaySeconds | int | `5` | Seconds to wait before starting the Router readiness probe. |
+| receive.router.probes.readiness.path | string | `"/-/ready"` | HTTP path checked by the Router readiness probe. |
+| receive.router.probes.readiness.periodSeconds | int | `10` | How often (seconds) to run the Router readiness probe. |
+| receive.router.probes.readiness.successThreshold | int | `1` | Consecutive successes before the Router pod is marked ready. |
+| receive.router.probes.readiness.timeoutSeconds | int | `5` | Seconds after which the Router readiness probe times out. |
+| receive.router.probes.startup.enabled | bool | `true` | Enable the startup probe for Router. |
+| receive.router.probes.startup.failureThreshold | int | `60` | Consecutive failures during Router startup before the container is killed. |
+| receive.router.probes.startup.initialDelaySeconds | int | `0` | Seconds to wait before starting the Router startup probe. |
+| receive.router.probes.startup.path | string | `"/-/ready"` | HTTP path checked by the Router startup probe. |
+| receive.router.probes.startup.periodSeconds | int | `5` | How often (seconds) to run the Router startup probe. |
+| receive.router.probes.startup.successThreshold | int | `1` | Consecutive successes before the Router startup probe is considered passed. |
+| receive.router.probes.startup.timeoutSeconds | int | `5` | Seconds after which the Router startup probe times out. |
+| receive.router.replicaCount | int | `2` | Number of Router pod replicas. Routers are stateless so scale horizontally based on incoming write throughput. |
+| receive.router.replicationFactor | int | `1` | Replication factor used when forwarding writes to Ingesters. Each write is sent to this many Ingesters. Must be <= ingester replicaCount. |
+| receive.router.resources | object | {} | Resource requests and limits for the Router container. |
+| receive.router.service.annotations | object | {} | Extra annotations for the Router Service. |
+| receive.router.service.httpNodePort | string | `null` (allocated by Kubernetes) | Static node port for the Router HTTP port. Only honoured when `type` is NodePort or LoadBalancer; null lets Kubernetes allocate one from the node-port range. |
+| receive.router.service.httpPort | int | `10902` | HTTP port exposed by the Router Service (metrics, probes). |
+| receive.router.service.labels | object | {} | Extra labels for the Router Service. |
+| receive.router.service.remoteWriteNodePort | string | `null` (allocated by Kubernetes) | Static node port for the Router remote-write port. |
+| receive.router.service.remoteWritePort | int | `10908` | Remote-write ingestion port exposed by the Router Service. |
+| receive.router.service.type | string | `"ClusterIP"` | Kubernetes Service type for the Router component. |
+| receive.router.serviceAccount.annotations | object | {} | Extra annotations for the Router ServiceAccount, merged on top of `global.serviceAccount.annotations`. Use it to scope an IRSA or Workload Identity binding to Router. Requires `create`. |
+| receive.router.serviceAccount.automountServiceAccountToken | string | `null` (inherit `global.serviceAccount.automountServiceAccountToken`) | Mount the ServiceAccount token into Router pods. Null inherits `global.serviceAccount.automountServiceAccountToken`. Requires `create`. |
+| receive.router.serviceAccount.create | string | `null` (inherit `global.serviceAccount.perComponent`) | Create a ServiceAccount for Router instead of sharing the chart-wide one. Null inherits `global.serviceAccount.perComponent`. |
+| receive.router.serviceAccount.name | string | `""` | Name of the ServiceAccount Router pods run as. Empty derives `<fullname>-receive-router` when Router has a dedicated ServiceAccount, and the chart-wide ServiceAccount name otherwise. Setting it without `create` runs Router as a ServiceAccount managed outside this chart. |
+| receive.router.serviceMonitor.annotations | object | {} | Extra annotations for the Router ServiceMonitor. |
+| receive.router.serviceMonitor.enabled | bool | `false` | Enable a Prometheus Operator ServiceMonitor for Router. |
+| receive.router.serviceMonitor.interval | string | `""` | Scrape interval for Router. Empty uses the Prometheus operator default. |
+| receive.router.serviceMonitor.labels | object | {} | Extra labels for the Router ServiceMonitor. |
+| receive.router.serviceMonitor.metricRelabelings | list | [] | Metric relabeling rules applied after Router metrics are ingested. |
+| receive.router.serviceMonitor.relabelings | list | [] | Relabeling rules applied before Router metrics are ingested. |
+| receive.router.serviceMonitor.scheme | string | `""` | Scrape scheme for Router (http or https). |
+| receive.router.serviceMonitor.scrapeTimeout | string | `""` | Scrape timeout for Router. Empty uses the Prometheus operator default. |
+| receive.router.serviceMonitor.tlsConfig | object | {} | TLS configuration for Router scraping. |
+| receive.router.tolerations | list | [] | Tolerations for Router pod scheduling. Falls back to receive.tolerations. |
+| receive.router.topologySpreadConstraints | list | [] | Topology spread constraints for Router pods. Falls back to receive.topologySpreadConstraints. |
+| receive.router.vpa.enabled | bool | `false` | Enable a VerticalPodAutoscaler for the Router Deployment. |
+| receive.router.vpa.maxAllowed.cpu | string | `"2"` | Maximum CPU resource enforced by the Router VPA. |
+| receive.router.vpa.maxAllowed.memory | string | `"4Gi"` | Maximum memory resource enforced by the Router VPA. |
+| receive.router.vpa.minAllowed.cpu | string | `"100m"` | Minimum CPU resource enforced by the Router VPA. |
+| receive.router.vpa.minAllowed.memory | string | `"256Mi"` | Minimum memory resource enforced by the Router VPA. |
+| receive.router.vpa.targetKind | string | `"Deployment"` | Kubernetes workload kind targeted by the Router VPA. |
+| receive.router.vpa.updateMode | string | `"Auto"` | VPA update mode for Router. One of Auto, Off, or Initial. |
+| receive.service.annotations | object | {} | Extra annotations for the Receive Service. |
+| receive.service.capnprotoPort | int | `19391` | Cap'n Proto replication port. Only rendered when `replication.protocol` is `capnproto`. |
+| receive.service.grpcPort | int | `10901` | gRPC Store API port exposed by the Receive Service. |
+| receive.service.httpNodePort | string | `null` (allocated by Kubernetes) | Static node port for the Receive HTTP port. Only honoured when `type` is NodePort or LoadBalancer; null lets Kubernetes allocate one from the node-port range. |
+| receive.service.httpPort | int | `10902` | HTTP port exposed by the Receive Service. |
+| receive.service.labels | object | {} | Extra labels for the Receive Service. |
+| receive.service.remoteWriteNodePort | string | `null` (allocated by Kubernetes) | Static node port for the Receive remote-write port. |
+| receive.service.remoteWritePort | int | `10908` | Remote-write ingestion port exposed by the Receive Service. |
+| receive.service.type | string | `"ClusterIP"` | Kubernetes Service type for the Receive component. |
+| receive.serviceAccount.annotations | object | {} | Extra annotations for the Receive ServiceAccount, merged on top of `global.serviceAccount.annotations`. Use it to scope an IRSA or Workload Identity binding to Receive. Requires `create`. |
+| receive.serviceAccount.automountServiceAccountToken | string | `null` (inherit `global.serviceAccount.automountServiceAccountToken`) | Mount the ServiceAccount token into Receive pods. Null inherits `global.serviceAccount.automountServiceAccountToken`. Requires `create`. |
+| receive.serviceAccount.create | string | `null` (inherit `global.serviceAccount.perComponent`) | Create a ServiceAccount for Receive instead of sharing the chart-wide one. Null inherits `global.serviceAccount.perComponent`. |
+| receive.serviceAccount.name | string | `""` | Name of the ServiceAccount Receive pods run as. Empty derives `<fullname>-receive` when Receive has a dedicated ServiceAccount, and the chart-wide ServiceAccount name otherwise. Setting it without `create` runs Receive as a ServiceAccount managed outside this chart. |
+| receive.serviceMonitor.annotations | object | {} | Extra annotations for the Receive ServiceMonitor. |
+| receive.serviceMonitor.enabled | bool | `false` | Enable a Prometheus Operator ServiceMonitor for Receive. |
+| receive.serviceMonitor.interval | string | `""` | Scrape interval for Receive. Empty uses the Prometheus operator default. |
+| receive.serviceMonitor.labels | object | {} | Extra labels for the Receive ServiceMonitor. |
+| receive.serviceMonitor.metricRelabelings | list | [] | Metric relabeling rules applied after Receive metrics are ingested. |
+| receive.serviceMonitor.relabelings | list | [] | Relabeling rules applied before Receive metrics are ingested. |
+| receive.serviceMonitor.scheme | string | `""` | Scrape scheme for Receive (http or https). |
+| receive.serviceMonitor.scrapeTimeout | string | `""` | Scrape timeout for Receive. Empty uses the Prometheus operator default. |
+| receive.serviceMonitor.tlsConfig | object | {} | TLS configuration for Receive scraping. |
+| receive.tenancyHeader | string | `""` | Optional HTTP header name used to segregate tenants in multi-tenant setups. When set, Receive routes write requests to the correct tenant shard based on this header. |
+| receive.tolerations | list | [] | Tolerations for Receive pod scheduling. |
+| receive.topologySpreadConstraints | list | [] | Topology spread constraints for Receive pods. |
+| receive.tsdb.retention | string | `"24h"` | How long Receive keeps data in the local WAL before uploading to the object store. |
+| receive.tsdb.walCompression | bool | `true` | Enable WAL compression to reduce disk I/O and storage usage. |
+| receive.vpa.enabled | bool | `true` | Enable a VerticalPodAutoscaler for the Receive StatefulSet. |
+| receive.vpa.maxAllowed.cpu | string | `"4"` | Maximum CPU resource enforced by the Receive VPA. |
+| receive.vpa.maxAllowed.memory | string | `"8Gi"` | Maximum memory resource enforced by the Receive VPA. |
+| receive.vpa.minAllowed.cpu | string | `"500m"` | Minimum CPU resource enforced by the Receive VPA. |
+| receive.vpa.minAllowed.memory | string | `"512Mi"` | Minimum memory resource enforced by the Receive VPA. |
+| receive.vpa.targetKind | string | `"StatefulSet"` | Kubernetes workload kind targeted by the Receive VPA. |
+| receive.vpa.updateMode | string | `"Auto"` | VPA update mode for Receive. One of Auto, Off, or Initial. |
+| ruler.affinity | object | {} | Affinity rules for Ruler pod scheduling. |
+| ruler.alertQueryUrl | string | `""` | URL used in rule alert annotations to link back to a Thanos query UI. |
+| ruler.alertmanagers.config | string | `"alertmanagers:\n  - static_configs:\n      - alertmanager.monitoring.svc.cluster.local:9093\n    scheme: http\n    api_version: v2\n"` |  |
+| ruler.annotations | object | {} | Extra annotations applied to Ruler resources. |
+| ruler.autoImportPrometheusRules.enabled | bool | `true` | Enable automatic import of PrometheusRule CRDs from the cluster into the Ruler. Requires kube-prometheus-stack (or any Prometheus Operator deployment) to be present in the cluster. |
+| ruler.autoImportPrometheusRules.labelSelector | object | {} | Label selector used to filter which PrometheusRule CRDs are imported. Empty selector imports all PrometheusRule resources visible to the sidecar. |
+| ruler.autoImportPrometheusRules.sidecar.image.pullPolicy | string | `"IfNotPresent"` | Image pull policy for the kubectl sidecar. |
+| ruler.autoImportPrometheusRules.sidecar.image.registry | string | `"docker.io"` | Docker Registry for the kubectl sidecar that reads PrometheusRule CRDs (e.g. docker.io).  Empty means default registry. |
+| ruler.autoImportPrometheusRules.sidecar.image.repository | string | `"alpine/kubectl"` | Repository for the kubectl sidecar that reads PrometheusRule CRDs. |
+| ruler.autoImportPrometheusRules.sidecar.image.tag | string | `"latest"` | Tag for the kubectl sidecar image. |
+| ruler.autoImportPrometheusRules.sidecar.resources | object | {} | Resource requests and limits for the prometheus-rules sidecar. |
+| ruler.containerSecurityContext | object | {} | Container security context for Ruler. Overrides global.containerSecurityContext. |
+| ruler.dnsConfig | object | {} | DNS configuration for Ruler pods. Overrides global.dnsConfig. |
+| ruler.enabled | bool | `false` | Enable the Ruler StatefulSet. |
+| ruler.extraArgs | list | [] | Additional CLI arguments appended to the `thanos rule` command. |
+| ruler.extraContainers | list | [] | Extra sidecar containers for Ruler pods. |
+| ruler.extraEnv | list | [] | Extra environment variables injected into the Ruler container. |
+| ruler.extraEnvFrom | list | [] | Extra environment variable sources for the Ruler container. |
+| ruler.extraInitContainers | list | [] | Extra init containers for Ruler pods. |
+| ruler.extraVolumeMounts | list | [] | Extra volume mounts for the Ruler container. |
+| ruler.extraVolumes | list | [] | Extra volumes for Ruler pods. |
+| ruler.httpRoute.annotations | object | {} | Annotations for the Ruler HTTPRoute resource. |
+| ruler.httpRoute.enabled | bool | `false` | Enable a Gateway API HTTPRoute for the Ruler HTTP endpoint. |
+| ruler.httpRoute.extraRules | list | [] | Additional custom rules for Ruler HTTPRoute Each item should be a complete HTTPRouteRule object with its own backendRefs, matches, filters, etc. |
+| ruler.httpRoute.filters | list | [] | Gateway filters for the Ruler HTTPRoute rules. |
+| ruler.httpRoute.hostnames | list | [] | Hostnames to match on the Ruler HTTPRoute. |
+| ruler.httpRoute.matches | list | [] | Gateway matches for the Ruler HTTPRoute rules. |
+| ruler.httpRoute.parentRefs | list | [] | Gateway parentRefs for the Ruler HTTPRoute. |
+| ruler.httpRoute.timeouts | object | {} | Timeouts for the Ruler HTTPRoute rule (Gateway API HTTPRouteTimeouts). |
+| ruler.ingress.annotations | object | {} | Extra annotations for the Ruler Ingress. |
+| ruler.ingress.className | string | `""` | Ingress class name for Ruler (e.g. nginx, traefik). |
+| ruler.ingress.enabled | bool | `false` | Enable a Kubernetes Ingress for the Ruler HTTP endpoint. |
+| ruler.ingress.hosts[0].host | string | `"thanos-ruler.local"` |  |
+| ruler.ingress.hosts[0].paths[0].path | string | `"/"` |  |
+| ruler.ingress.hosts[0].paths[0].pathType | string | `"Prefix"` |  |
+| ruler.ingress.tls | list | [] | TLS configuration for the Ruler Ingress. |
+| ruler.labels | object | {} | Extra labels applied to Ruler resources. |
+| ruler.minReadySeconds | int | `0` | Minimum number of seconds for which a newly created Ruler Pod must be Running and Ready, without any container crashing, before it is considered available during a rolling update (StatefulSet `spec.minReadySeconds`). Defaults to 0 (available as soon as Ready); the field is omitted when 0. See https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#minimum-ready-seconds |
+| ruler.nodeSelector | object | {} | Node selector for Ruler pod scheduling. |
+| ruler.pdb.enabled | bool | `false` | Enable a PodDisruptionBudget for the Ruler. |
+| ruler.pdb.maxUnavailable | int or string | `""` | Maximum unavailable Ruler pods during a disruption. |
+| ruler.pdb.minAvailable | int or string | `""` | Minimum available Ruler pods during a disruption. |
+| ruler.persistence.accessModes[0] | string | `"ReadWriteOnce"` |  |
+| ruler.persistence.enabled | bool | `true` | Enable a PersistentVolumeClaim for the Ruler data directory. |
+| ruler.persistence.existingClaim | string | `""` | Use an existing PersistentVolumeClaim. When set, no volumeClaimTemplate is created and the named PVC is mounted directly. Takes precedence over size, storageClass and accessModes. |
+| ruler.persistence.size | string | `"10Gi"` | Storage capacity for the Ruler PVC. |
+| ruler.persistence.storageClass | string | `""` | StorageClass name for the Ruler PVC. Empty uses the cluster default. |
+| ruler.persistence.volumeAttributesClassName | string | `""` | [Volume attributes class](https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/) name for the Ruler PVC. Requires Kubernetes 1.31+ ([with feature gate](https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/#feature-gates-for-graduated-or-deprecated-features)) or 1.36+. Chart will fail if provided but not supported by cluster. |
+| ruler.podLabels | object | {} | Extra labels applied to Ruler pods (e.g. for workload identity). |
+| ruler.podSecurityContext.fsGroup | int | `1000` |  |
+| ruler.podSecurityContext.fsGroupChangePolicy | string | `"OnRootMismatch"` |  |
+| ruler.priorityClassName | string | `""` | Priority class name for Ruler pods. |
+| ruler.probes.liveness.enabled | bool | `true` | Enable the liveness probe for the Ruler. |
+| ruler.probes.liveness.failureThreshold | int | `6` | Consecutive failures before the Ruler container is restarted. |
+| ruler.probes.liveness.initialDelaySeconds | int | `30` | Seconds to wait before starting the Ruler liveness probe. |
+| ruler.probes.liveness.path | string | `"/-/healthy"` | HTTP path checked by the Ruler liveness probe. |
+| ruler.probes.liveness.periodSeconds | int | `10` | How often (seconds) to run the Ruler liveness probe. |
+| ruler.probes.liveness.successThreshold | int | `1` | Consecutive successes before the Ruler container is considered live. |
+| ruler.probes.liveness.timeoutSeconds | int | `5` | Seconds after which the Ruler liveness probe times out. |
+| ruler.probes.readiness.enabled | bool | `true` | Enable the readiness probe for the Ruler. |
+| ruler.probes.readiness.failureThreshold | int | `6` | Consecutive failures before the Ruler pod is marked not-ready. |
+| ruler.probes.readiness.initialDelaySeconds | int | `5` | Seconds to wait before starting the Ruler readiness probe. |
+| ruler.probes.readiness.path | string | `"/-/ready"` | HTTP path checked by the Ruler readiness probe. |
+| ruler.probes.readiness.periodSeconds | int | `10` | How often (seconds) to run the Ruler readiness probe. |
+| ruler.probes.readiness.successThreshold | int | `1` | Consecutive successes before the Ruler pod is marked ready. |
+| ruler.probes.readiness.timeoutSeconds | int | `5` | Seconds after which the Ruler readiness probe times out. |
+| ruler.probes.startup.enabled | bool | `true` | Enable the startup probe for the Ruler. |
+| ruler.probes.startup.failureThreshold | int | `60` | Consecutive failures during Ruler startup before the container is killed. |
+| ruler.probes.startup.initialDelaySeconds | int | `0` | Seconds to wait before starting the Ruler startup probe. |
+| ruler.probes.startup.path | string | `"/-/ready"` | HTTP path checked by the Ruler startup probe. |
+| ruler.probes.startup.periodSeconds | int | `5` | How often (seconds) to run the Ruler startup probe. |
+| ruler.probes.startup.successThreshold | int | `1` | Consecutive successes before the Ruler startup probe is considered passed. |
+| ruler.probes.startup.timeoutSeconds | int | `5` | Seconds after which the Ruler startup probe times out. |
+| ruler.query.urls | list | [] | List of Query component base URLs used by the Ruler to evaluate rules. |
+| ruler.remoteWrite.config | string | "" | Inline remote-write configuration rendered into the Secret when `createSecret` is true. Processed via `tpl`. |
+| ruler.remoteWrite.createSecret | bool | `false` | When true, the chart creates `secretName` from the inline `config` below. Set to false when the Secret is managed externally (Vault, External Secrets Operator, kubectl, etc.). |
+| ruler.remoteWrite.enabled | bool | `false` | Run the Ruler in stateless mode. It then keeps a WAL only, stops uploading blocks and no longer serves the Store API. |
+| ruler.remoteWrite.secretKey | string | `"remote-write.yml"` | Key inside the Secret whose value is the remote-write YAML. |
+| ruler.remoteWrite.secretName | string | `""` | Name of the Secret that carries the remote-write config. Required unless `createSecret` is true, which derives `<fullname>-ruler-remote-write`. |
+| ruler.replicaCount | int | `2` | Number of Ruler pod replicas. Multiple replicas require consistent rule distribution to avoid duplicate alerts. |
+| ruler.resources | object | {} | Resource requests and limits for the Ruler container. |
+| ruler.rules."example-alerts.yaml" | string | `"groups:\n  - name: thanos-example\n    rules:\n      - alert: ExampleAlwaysFiring\n        expr: vector(1)\n        for: 1m\n        labels:\n          severity: warning\n        annotations:\n          summary: Example alert firing\n"` |  |
+| ruler.service.annotations | object | {} | Extra annotations for the Ruler Service. |
+| ruler.service.grpcPort | int | `10901` | gRPC Store API port exposed by the Ruler headless Service. |
+| ruler.service.httpNodePort | string | `null` (allocated by Kubernetes) | Static node port for the Ruler HTTP port. The gRPC port is only exposed on the headless Service, which never has node ports. Only honoured when `type` is NodePort or LoadBalancer; null lets Kubernetes allocate one from the node-port range. |
+| ruler.service.httpPort | int | `10902` | HTTP port exposed by the Ruler Service. |
+| ruler.service.labels | object | {} | Extra labels for the Ruler Service. |
+| ruler.service.type | string | `"ClusterIP"` | Kubernetes Service type for the Ruler component. |
+| ruler.serviceAccount.annotations | object | {} | Extra annotations for the Ruler ServiceAccount, merged on top of `global.serviceAccount.annotations`. Use it to scope an IRSA or Workload Identity binding to Ruler. Requires `create`. |
+| ruler.serviceAccount.automountServiceAccountToken | string | `null` (inherit `global.serviceAccount.automountServiceAccountToken`) | Mount the ServiceAccount token into Ruler pods. Null inherits `global.serviceAccount.automountServiceAccountToken`. Requires `create`. |
+| ruler.serviceAccount.create | string | `null` (inherit `global.serviceAccount.perComponent`) | Create a ServiceAccount for Ruler instead of sharing the chart-wide one. Null inherits `global.serviceAccount.perComponent`. |
+| ruler.serviceAccount.name | string | `""` | Name of the ServiceAccount Ruler pods run as. Empty derives `<fullname>-ruler` when Ruler has a dedicated ServiceAccount, and the chart-wide ServiceAccount name otherwise. Setting it without `create` runs Ruler as a ServiceAccount managed outside this chart. |
+| ruler.serviceMonitor.annotations | object | {} | Extra annotations for the Ruler ServiceMonitor. |
+| ruler.serviceMonitor.enabled | bool | `false` | Enable a Prometheus Operator ServiceMonitor for the Ruler. |
+| ruler.serviceMonitor.interval | string | `""` | Scrape interval for the Ruler. Empty uses the Prometheus operator default. |
+| ruler.serviceMonitor.labels | object | {} | Extra labels for the Ruler ServiceMonitor. |
+| ruler.serviceMonitor.metricRelabelings | list | [] | Metric relabeling rules applied after Ruler metrics are ingested. |
+| ruler.serviceMonitor.relabelings | list | [] | Relabeling rules applied before Ruler metrics are ingested. |
+| ruler.serviceMonitor.scheme | string | `""` | Scrape scheme for the Ruler (http or https). |
+| ruler.serviceMonitor.scrapeTimeout | string | `""` | Scrape timeout for the Ruler. Empty uses the Prometheus operator default. |
+| ruler.serviceMonitor.tlsConfig | object | {} | TLS configuration for Ruler scraping. |
+| ruler.tolerations | list | [] | Tolerations for Ruler pod scheduling. |
+| ruler.topologySpreadConstraints | list | [] | Topology spread constraints for Ruler pods. |
+| rustfs.enabled | bool | `false` | Deploy a local RustFS instance as an S3-compatible object store alongside Thanos. Intended for CI and development only. Do not enable in production. |
+| rustfs.initBucket.accessKey | string | `"rustfsadmin"` | RustFS admin username. Ignored when existingSecret is set. |
+| rustfs.initBucket.bucketName | string | `"thanos"` | S3 bucket name to create. |
+| rustfs.initBucket.existingSecret | string | `""` | Name of an existing Secret containing the RustFS credentials. When set, accessKey and secretKey are ignored. The Secret must contain the keys defined in existingSecretKeys. |
+| rustfs.initBucket.existingSecretKeys.accessKey | string | `"access-key"` | Key in the existing Secret for the access key. |
+| rustfs.initBucket.existingSecretKeys.secretKey | string | `"secret-key"` | Key in the existing Secret for the secret key. |
+| rustfs.initBucket.image | string | `"docker.io/rustfs/rc:latest"` | Image used by the init-bucket Job to create the S3 bucket via the RustFS CLI. |
+| rustfs.initBucket.secretKey | string | `"rustfsadmin"` | RustFS admin password. Ignored when existingSecret is set. |
+| rustfs.secret.allowInsecureDefaults | bool | `true` | Opt into the well-known default rustfs credentials. Dev/CI only. |
+| storegateway.affinity | object | {} | Affinity rules for Store Gateway pod scheduling. |
+| storegateway.annotations | object | {} | Extra annotations applied to Store Gateway resources. |
+| storegateway.autoscaling.enabled | bool | `false` | Enable HorizontalPodAutoscaler for the Store Gateway. |
+| storegateway.autoscaling.maxReplicas | int | `6` | Maximum number of Store Gateway replicas. |
+| storegateway.autoscaling.minReplicas | int | `2` | Minimum number of Store Gateway replicas. |
+| storegateway.autoscaling.targetCPUUtilizationPercentage | int | `80` | Target CPU utilisation percentage for Store Gateway autoscaling. |
+| storegateway.autoscaling.targetMemoryUtilizationPercentage | string | `nil` | Target memory utilisation percentage for Store Gateway autoscaling. Null disables memory-based scaling. |
+| storegateway.cachingBucketConfig | string | `""` | Optional caching bucket configuration (e.g. Memcached) that wraps the object store to reduce the number of object store API calls. Provide as an inline YAML string. See https://thanos.io/tip/components/store.md/#caching-bucket |
+| storegateway.containerSecurityContext | object | {} | Container security context for Store Gateway. Overrides global.containerSecurityContext. |
+| storegateway.dnsConfig | object | {} | DNS configuration for Store Gateway pods. Overrides global.dnsConfig. |
+| storegateway.enabled | bool | `true` | Enable the Store Gateway StatefulSet. |
+| storegateway.extraArgs | list | [] | Additional CLI arguments appended to the `thanos store` command. |
+| storegateway.extraContainers | list | [] | Extra sidecar containers for Store Gateway pods. |
+| storegateway.extraEnv | list | [] | Extra environment variables injected into the Store Gateway container. |
+| storegateway.extraEnvFrom | list | [] | Extra environment variable sources for the Store Gateway container. |
+| storegateway.extraInitContainers | list | [] | Extra init containers for Store Gateway pods. |
+| storegateway.extraVolumeMounts | list | [] | Extra volume mounts for the Store Gateway container. |
+| storegateway.extraVolumes | list | [] | Extra volumes for Store Gateway pods. |
+| storegateway.grpcRoute.annotations | object | {} | Annotations for the Store Gateway GRPCRoute resource. |
+| storegateway.grpcRoute.enabled | bool | `false` | Enable a Gateway API GRPCRoute for the Store Gateway gRPC Store API endpoint. |
+| storegateway.grpcRoute.hostnames | list | [] | Hostnames to match on the Store Gateway GRPCRoute. |
+| storegateway.grpcRoute.matches | list | [] | Gateway matches for the Store Gateway GRPCRoute rules. |
+| storegateway.grpcRoute.parentRefs | list | [] | Gateway parentRefs for the Store Gateway GRPCRoute. |
+| storegateway.httpRoute.annotations | object | {} | Annotations for the Store Gateway HTTPRoute resource. |
+| storegateway.httpRoute.enabled | bool | `false` | Enable a Gateway API HTTPRoute for the Store Gateway HTTP endpoint. |
+| storegateway.httpRoute.extraRules | list | [] | Additional custom rules for Store Gateway HTTPRoute Each item should be a complete HTTPRouteRule object with its own backendRefs, matches, filters, etc. |
+| storegateway.httpRoute.filters | list | [] | Gateway filters for the Store Gateway HTTPRoute rules. |
+| storegateway.httpRoute.hostnames | list | [] | Hostnames to match on the Store Gateway HTTPRoute. |
+| storegateway.httpRoute.matches | list | [] | Gateway matches for the Store Gateway HTTPRoute rules. |
+| storegateway.httpRoute.parentRefs | list | [] | Gateway parentRefs for the Store Gateway HTTPRoute. |
+| storegateway.httpRoute.timeouts | object | {} | Timeouts for the Store Gateway HTTPRoute rule (Gateway API HTTPRouteTimeouts). |
+| storegateway.ingress.annotations | object | {} | Deprecated. Use `storegateway.ingress.http.annotations` instead. |
+| storegateway.ingress.className | string | `""` | Deprecated. Use `storegateway.ingress.http.className` instead. |
+| storegateway.ingress.enabled | bool | `false` | Deprecated. Use `storegateway.ingress.http.enabled` instead. |
+| storegateway.ingress.grpc.annotations | object | {} | Extra annotations for the Store Gateway gRPC Ingress. |
+| storegateway.ingress.grpc.className | string | `""` | Ingress class name for Store Gateway gRPC endpoint (e.g. nginx, traefik). |
+| storegateway.ingress.grpc.enabled | bool | `false` | Enable a Kubernetes Ingress for the Store Gateway gRPC endpoint. Note this is independent of ingress.enabled that is for the HTTP ingress. |
+| storegateway.ingress.grpc.hosts[0].host | string | `"thanos-store-grpc.local"` |  |
+| storegateway.ingress.grpc.hosts[0].paths[0].path | string | `"/"` |  |
+| storegateway.ingress.grpc.hosts[0].paths[0].pathType | string | `"Prefix"` |  |
+| storegateway.ingress.grpc.tls | list | [] | TLS configuration for the Store Gateway gRPC Ingress. |
+| storegateway.ingress.hosts[0].host | string | `"thanos-store.local"` |  |
+| storegateway.ingress.hosts[0].paths[0].path | string | `"/"` |  |
+| storegateway.ingress.hosts[0].paths[0].pathType | string | `"Prefix"` |  |
+| storegateway.ingress.http.annotations | object | {} | Extra annotations for the Store Gateway HTTP Ingress. |
+| storegateway.ingress.http.className | string | `""` | Ingress class name for Store Gateway HTTP endpoint (e.g. nginx, traefik). |
+| storegateway.ingress.http.enabled | bool | `false` | Enable a Kubernetes Ingress for the Store Gateway HTTP endpoint. |
+| storegateway.ingress.http.hosts[0].host | string | `"thanos-store.local"` |  |
+| storegateway.ingress.http.hosts[0].paths[0].path | string | `"/"` |  |
+| storegateway.ingress.http.hosts[0].paths[0].pathType | string | `"Prefix"` |  |
+| storegateway.ingress.http.tls | list | [] | TLS configuration for the Store Gateway HTTP Ingress. |
+| storegateway.ingress.tls | list | [] | Deprecated. Use `storegateway.ingress.http.tls` instead. |
+| storegateway.labels | object | {} | Extra labels applied to Store Gateway resources. |
+| storegateway.minReadySeconds | int | `0` | Minimum number of seconds for which a newly created Store Gateway Pod must be Running and Ready, without any container crashing, before it is considered available during a rolling update (StatefulSet `spec.minReadySeconds`). Defaults to 0 (available as soon as Ready); the field is omitted when 0. See https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#minimum-ready-seconds |
+| storegateway.nodeSelector | object | {} | Node selector for Store Gateway pod scheduling. |
+| storegateway.pdb.enabled | bool | `false` | Enable a PodDisruptionBudget for the Store Gateway. |
+| storegateway.pdb.maxUnavailable | int or string | `""` | Maximum unavailable Store Gateway pods during a disruption. |
+| storegateway.pdb.minAvailable | int or string | `""` | Minimum available Store Gateway pods during a disruption. |
+| storegateway.persistence.accessModes[0] | string | `"ReadWriteOnce"` |  |
+| storegateway.persistence.enabled | bool | `true` | Enable a PersistentVolumeClaim for the Store Gateway index cache and chunk store. |
+| storegateway.persistence.existingClaim | string | `""` | Use an existing PersistentVolumeClaim. When set, no volumeClaimTemplate is created and the named PVC is mounted directly. Takes precedence over size, storageClass and accessModes. Not compatible with sharded mode — each shard requires its own PVC, use the default volumeClaimTemplates instead. |
+| storegateway.persistence.size | string | `"10Gi"` | Storage capacity for the Store Gateway PVC. |
+| storegateway.persistence.storageClass | string | `""` | StorageClass name for the Store Gateway PVC. Empty uses the cluster default. |
+| storegateway.persistence.volumeAttributesClassName | string | `""` | [Volume attributes class](https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/) name for the Store Gateway PVC. Requires Kubernetes 1.31+ ([with feature gate](https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/#feature-gates-for-graduated-or-deprecated-features)) or 1.36+. Chart will fail if provided but not supported by cluster. |
+| storegateway.podLabels | object | {} | Extra labels applied to Store Gateway pods (e.g. for workload identity). |
+| storegateway.podSecurityContext.fsGroup | int | `1000` |  |
+| storegateway.podSecurityContext.fsGroupChangePolicy | string | `"OnRootMismatch"` |  |
+| storegateway.priorityClassName | string | `""` | Priority class name for Store Gateway pods. |
+| storegateway.probes.liveness.enabled | bool | `true` | Enable the liveness probe for the Store Gateway. |
+| storegateway.probes.liveness.failureThreshold | int | `6` | Consecutive failures before the Store Gateway container is restarted. |
+| storegateway.probes.liveness.initialDelaySeconds | int | `30` | Seconds to wait before starting the Store Gateway liveness probe. |
+| storegateway.probes.liveness.path | string | `"/-/healthy"` | HTTP path checked by the Store Gateway liveness probe. |
+| storegateway.probes.liveness.periodSeconds | int | `10` | How often (seconds) to run the Store Gateway liveness probe. |
+| storegateway.probes.liveness.successThreshold | int | `1` | Consecutive successes before the Store Gateway container is considered live. |
+| storegateway.probes.liveness.timeoutSeconds | int | `5` | Seconds after which the Store Gateway liveness probe times out. |
+| storegateway.probes.readiness.enabled | bool | `true` | Enable the readiness probe for the Store Gateway. |
+| storegateway.probes.readiness.failureThreshold | int | `6` | Consecutive failures before the Store Gateway pod is marked not-ready. |
+| storegateway.probes.readiness.initialDelaySeconds | int | `5` | Seconds to wait before starting the Store Gateway readiness probe. |
+| storegateway.probes.readiness.path | string | `"/-/ready"` | HTTP path checked by the Store Gateway readiness probe. |
+| storegateway.probes.readiness.periodSeconds | int | `10` | How often (seconds) to run the Store Gateway readiness probe. |
+| storegateway.probes.readiness.successThreshold | int | `1` | Consecutive successes before the Store Gateway pod is marked ready. |
+| storegateway.probes.readiness.timeoutSeconds | int | `5` | Seconds after which the Store Gateway readiness probe times out. |
+| storegateway.probes.startup.enabled | bool | `true` | Enable the startup probe for the Store Gateway. |
+| storegateway.probes.startup.failureThreshold | int | `60` | Consecutive failures during Store Gateway startup before the container is killed. |
+| storegateway.probes.startup.initialDelaySeconds | int | `0` | Seconds to wait before starting the Store Gateway startup probe. |
+| storegateway.probes.startup.path | string | `"/-/ready"` | HTTP path checked by the Store Gateway startup probe. |
+| storegateway.probes.startup.periodSeconds | int | `5` | How often (seconds) to run the Store Gateway startup probe. |
+| storegateway.probes.startup.successThreshold | int | `1` | Consecutive successes before the Store Gateway startup probe is considered passed. |
+| storegateway.probes.startup.timeoutSeconds | int | `5` | Seconds after which the Store Gateway startup probe times out. |
+| storegateway.replicaCount | int | `2` | Number of Store Gateway pod replicas. Two or more is recommended for HA. In sharded mode this is the replica count *per shard*. Ignored when `storegateway.autoscaling.enabled` is true, because the HorizontalPodAutoscaler then owns the replica count. |
+| storegateway.resources | object | {} | Resource requests and limits for the Store Gateway container. |
+| storegateway.service.annotations | object | {} | Extra annotations for the Store Gateway Service. |
+| storegateway.service.grpcNodePort | string | `null` (allocated by Kubernetes) | Static node port for the Store Gateway gRPC port. Ignored when sharding is enabled. |
+| storegateway.service.grpcPort | int | `10901` | gRPC Store API port exposed by the Store Gateway Service. |
+| storegateway.service.httpNodePort | string | `null` (allocated by Kubernetes) | Static node port for the Store Gateway HTTP port. Ignored when sharding is enabled, because the aggregate Service is headless then and the per-shard Services cannot share a single node port. Only honoured when `type` is NodePort or LoadBalancer; null lets Kubernetes allocate one from the node-port range. |
+| storegateway.service.httpPort | int | `10902` | HTTP port exposed by the Store Gateway Service. |
+| storegateway.service.labels | object | {} | Extra labels for the Store Gateway Service. |
+| storegateway.service.type | string | `"ClusterIP"` | Kubernetes Service type for the Store Gateway. |
+| storegateway.serviceAccount.annotations | object | {} | Extra annotations for the Store Gateway ServiceAccount, merged on top of `global.serviceAccount.annotations`. Use it to scope an IRSA or Workload Identity binding to Store Gateway. Requires `create`. |
+| storegateway.serviceAccount.automountServiceAccountToken | string | `null` (inherit `global.serviceAccount.automountServiceAccountToken`) | Mount the ServiceAccount token into Store Gateway pods. Null inherits `global.serviceAccount.automountServiceAccountToken`. Requires `create`. |
+| storegateway.serviceAccount.create | string | `null` (inherit `global.serviceAccount.perComponent`) | Create a ServiceAccount for Store Gateway instead of sharing the chart-wide one. Null inherits `global.serviceAccount.perComponent`. |
+| storegateway.serviceAccount.name | string | `""` | Name of the ServiceAccount Store Gateway pods run as. Empty derives `<fullname>-storegateway` when Store Gateway has a dedicated ServiceAccount, and the chart-wide ServiceAccount name otherwise. Setting it without `create` runs Store Gateway as a ServiceAccount managed outside this chart. |
+| storegateway.serviceMonitor.annotations | object | {} | Extra annotations for the Store Gateway ServiceMonitor. |
+| storegateway.serviceMonitor.enabled | bool | `false` | Enable a Prometheus Operator ServiceMonitor for the Store Gateway. |
+| storegateway.serviceMonitor.interval | string | `""` | Scrape interval for the Store Gateway. Empty uses the Prometheus operator default. |
+| storegateway.serviceMonitor.labels | object | {} | Extra labels for the Store Gateway ServiceMonitor. |
+| storegateway.serviceMonitor.metricRelabelings | list | [] | Metric relabeling rules applied after Store Gateway metrics are ingested. |
+| storegateway.serviceMonitor.relabelings | list | [] | Relabeling rules applied before Store Gateway metrics are ingested. |
+| storegateway.serviceMonitor.scheme | string | `""` | Scrape scheme for the Store Gateway (http or https). |
+| storegateway.serviceMonitor.scrapeTimeout | string | `""` | Scrape timeout for the Store Gateway. Empty uses the Prometheus operator default. |
+| storegateway.serviceMonitor.tlsConfig | object | {} | TLS configuration for Store Gateway scraping. |
+| storegateway.sharded.enabled | bool | `false` | Enable sharded Store Gateway deployments (one StatefulSet per shard). |
+| storegateway.sharded.hashPartitioning.extraRelabelingConfigs | list | [] | Extra relabeling rules prepended to the generated hashmod/keep pair in each shard's `--selector.relabel-config` (e.g. to drop blocks by external labels before hashing). |
+| storegateway.sharded.hashPartitioning.shards | int | `1` | Number of hash shards. A value greater than 1 enables hash partitioning; the default of 1 disables it (a single hash shard is equivalent to no hash partitioning — use time partitioning only). |
+| storegateway.sharded.timePartitioning | list | [] | Time-based partitioning. A list of `{ min, max }` ranges; each entry becomes a shard (or, combined with `hashPartitioning.shards`, a set of shards) restricted to that range via `--min-time` / `--max-time`. Values accept Thanos time formats (RFC3339 or relative durations like `-6w`); an empty string leaves that bound open. |
+| storegateway.tolerations | list | [] | Tolerations for Store Gateway pod scheduling. |
+| storegateway.topologySpreadConstraints | list | [] | Topology spread constraints for Store Gateway pods. |
+
+---
+
+----------------------------------------------
+Autogenerated from chart metadata using [helm-docs v1.14.2](https://github.com/norwoodj/helm-docs/releases/v1.14.2)

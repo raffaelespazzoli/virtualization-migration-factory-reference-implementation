@@ -1,0 +1,43 @@
+# Override the chart's ClusterRole/ClusterRoleBinding with a namespace-scoped
+# Role/RoleBinding so the rule-importer sidecar can only read PrometheusRules
+# from thanos-system. The chart's import script uses -A (all namespaces) but
+# the API server enforces the RBAC scope — kubectl silently returns only
+# what the ServiceAccount can see.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: thanos-ruler-rule-importer
+  namespace: thanos-system
+  labels:
+    app.kubernetes.io/component: ruler
+    app.kubernetes.io/instance: thanos
+    app.kubernetes.io/name: thanos
+    app.kubernetes.io/part-of: thanos
+rules:
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - prometheusrules
+    verbs:
+      - get
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: thanos-ruler-rule-importer
+  namespace: thanos-system
+  labels:
+    app.kubernetes.io/component: ruler
+    app.kubernetes.io/instance: thanos
+    app.kubernetes.io/name: thanos
+    app.kubernetes.io/part-of: thanos
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: thanos-ruler-rule-importer
+subjects:
+  - kind: ServiceAccount
+    name: thanos-thanos
+    namespace: thanos-system

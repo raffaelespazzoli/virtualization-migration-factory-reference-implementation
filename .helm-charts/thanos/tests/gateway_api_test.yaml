@@ -1,0 +1,716 @@
+suite: gateway api routes
+
+tests:
+  # -- Query HTTPRoute ------------------------------------------------
+
+  - it: does not render query HTTPRoute when disabled
+    template: query/httproute.yaml
+    set:
+      query.enabled: true
+      query.httpRoute.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders query HTTPRoute with correct kind and apiVersion
+    template: query/httproute.yaml
+    set:
+      query.enabled: true
+      query.httpRoute.enabled: true
+      query.httpRoute.parentRefs:
+        - name: my-gateway
+          namespace: gateway-system
+    asserts:
+      - isKind:
+          of: HTTPRoute
+      - equal:
+          path: apiVersion
+          value: gateway.networking.k8s.io/v1
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-query
+
+  - it: sets parentRefs on query HTTPRoute
+    template: query/httproute.yaml
+    set:
+      query.enabled: true
+      query.httpRoute.enabled: true
+      query.httpRoute.parentRefs:
+        - name: prod-gateway
+          namespace: infra
+    asserts:
+      - equal:
+          path: spec.parentRefs[0].name
+          value: prod-gateway
+      - equal:
+          path: spec.parentRefs[0].namespace
+          value: infra
+
+  - it: sets hostnames on query HTTPRoute
+    template: query/httproute.yaml
+    set:
+      query.enabled: true
+      query.httpRoute.enabled: true
+      query.httpRoute.parentRefs:
+        - name: my-gateway
+      query.httpRoute.hostnames:
+        - thanos-query.example.com
+    asserts:
+      - equal:
+          path: spec.hostnames[0]
+          value: thanos-query.example.com
+
+  - it: routes to correct service port on query HTTPRoute
+    template: query/httproute.yaml
+    set:
+      query.enabled: true
+      query.httpRoute.enabled: true
+      query.httpRoute.parentRefs:
+        - name: my-gateway
+      query.service.httpPort: 9090
+    asserts:
+      - equal:
+          path: spec.rules[0].backendRefs[0].port
+          value: 9090
+
+  - it: sets matches on query HTTPRoute
+    template: query/httproute.yaml
+    set:
+      query.enabled: true
+      query.httpRoute.enabled: true
+      query.httpRoute.parentRefs:
+        - name: my-gateway
+      query.httpRoute.matches:
+        - path:
+            type: PathPrefix
+            value: /
+    asserts:
+      - equal:
+          path: spec.rules[0].matches[0].path.type
+          value: PathPrefix
+      - equal:
+          path: spec.rules[0].matches[0].path.value
+          value: /
+
+  - it: sets filters on query HTTPRoute
+    template: query/httproute.yaml
+    set:
+      query.enabled: true
+      query.httpRoute.enabled: true
+      query.httpRoute.parentRefs:
+        - name: my-gateway
+      query.httpRoute.filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+    asserts:
+      - equal:
+          path: spec.rules[0].filters[0].requestRedirect.scheme
+          value: https
+      - equal:
+          path: spec.rules[0].filters[0].requestRedirect.statusCode
+          value: 301
+
+  - it: sets timeouts on query HTTPRoute
+    template: query/httproute.yaml
+    set:
+      query.enabled: true
+      query.httpRoute.enabled: true
+      query.httpRoute.parentRefs:
+        - name: my-gateway
+      query.httpRoute.timeouts:
+        request: 300s
+        backendRequest: 295s
+    asserts:
+      - equal:
+          path: spec.rules[0].timeouts.request
+          value: 300s
+      - equal:
+          path: spec.rules[0].timeouts.backendRequest
+          value: 295s
+
+  - it: omits timeouts on query HTTPRoute when unset
+    template: query/httproute.yaml
+    set:
+      query.enabled: true
+      query.httpRoute.enabled: true
+      query.httpRoute.parentRefs:
+        - name: my-gateway
+    asserts:
+      - notExists:
+          path: spec.rules[0].timeouts
+
+  - it: sets extraRules with matches on query HTTPRoute
+    template: query/httproute.yaml
+    set:
+      query.enabled: true
+      query.httpRoute.enabled: true
+      query.httpRoute.parentRefs:
+        - name: my-gateway
+      query.httpRoute.matches:
+        - path:
+            type: PathPrefix
+            value: /
+      query.httpRoute.extraRules:
+        - backendRefs:
+            - name: compactor
+              port: 10902
+          matches:
+            - path:
+                type: PathPrefix
+                value: /compactor
+    asserts:
+      - equal:
+          path: spec.rules[1].backendRefs[0].port
+          value: 10902
+      - equal:
+          path: spec.rules[1].matches[0].path.value
+          value: /compactor
+
+  - it: sets extraRules with filters on query HTTPRoute
+    template: query/httproute.yaml
+    set:
+      query.enabled: true
+      query.httpRoute.enabled: true
+      query.httpRoute.parentRefs:
+        - name: my-gateway
+      query.httpRoute.extraRules:
+        - backendRefs:
+            - name: other-service
+              port: 8080
+          matches:
+            - path:
+                type: PathPrefix
+                value: /api
+          filters:
+            - type: RequestRedirect
+              requestRedirect:
+                scheme: https
+                statusCode: 301
+    asserts:
+      - equal:
+          path: spec.rules[1].backendRefs[0].port
+          value: 8080
+      - equal:
+          path: spec.rules[1].matches[0].path.value
+          value: /api
+      - equal:
+          path: spec.rules[1].filters[0].requestRedirect.scheme
+          value: https
+      - equal:
+          path: spec.rules[1].filters[0].requestRedirect.statusCode
+          value: 301
+
+  # -- Query GRPCRoute ------------------------------------------------
+
+  - it: does not render query GRPCRoute when disabled
+    template: query/grpcroute.yaml
+    set:
+      query.enabled: true
+      query.grpcRoute.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders query GRPCRoute with correct kind
+    template: query/grpcroute.yaml
+    set:
+      query.enabled: true
+      query.grpcRoute.enabled: true
+      query.grpcRoute.parentRefs:
+        - name: my-gateway
+          namespace: gateway-system
+    asserts:
+      - isKind:
+          of: GRPCRoute
+      - equal:
+          path: apiVersion
+          value: gateway.networking.k8s.io/v1
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-query-grpc
+
+  - it: routes gRPC to correct port
+    template: query/grpcroute.yaml
+    set:
+      query.enabled: true
+      query.grpcRoute.enabled: true
+      query.grpcRoute.parentRefs:
+        - name: my-gateway
+      query.service.grpcPort: 10901
+    asserts:
+      - equal:
+          path: spec.rules[0].backendRefs[0].port
+          value: 10901
+
+  - it: sets matches on query GRPCRoute
+    template: query/grpcroute.yaml
+    set:
+      query.enabled: true
+      query.grpcRoute.enabled: true
+      query.grpcRoute.parentRefs:
+        - name: my-gateway
+      query.grpcRoute.matches:
+        - headers:
+            - name: content-type
+              value: application/grpc
+    asserts:
+      - equal:
+          path: spec.rules[0].matches[0].headers[0].name
+          value: content-type
+      - equal:
+          path: spec.rules[0].matches[0].headers[0].value
+          value: application/grpc
+
+  - it: omits matches on query GRPCRoute when unset
+    template: query/grpcroute.yaml
+    set:
+      query.enabled: true
+      query.grpcRoute.enabled: true
+      query.grpcRoute.parentRefs:
+        - name: my-gateway
+    asserts:
+      - notExists:
+          path: spec.rules[0].matches
+
+  # -- Store Gateway GRPCRoute ----------------------------------------
+
+  - it: renders storegateway GRPCRoute
+    template: storegateway/grpcroute.yaml
+    set:
+      storegateway.enabled: true
+      storegateway.grpcRoute.enabled: true
+      storegateway.grpcRoute.parentRefs:
+        - name: my-gateway
+    asserts:
+      - isKind:
+          of: GRPCRoute
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-storegateway-grpc
+
+  - it: sets matches on storegateway GRPCRoute
+    template: storegateway/grpcroute.yaml
+    set:
+      storegateway.enabled: true
+      storegateway.grpcRoute.enabled: true
+      storegateway.grpcRoute.parentRefs:
+        - name: my-gateway
+      storegateway.grpcRoute.matches:
+        - headers:
+            - name: content-type
+              value: application/grpc
+    asserts:
+      - equal:
+          path: spec.rules[0].matches[0].headers[0].name
+          value: content-type
+      - equal:
+          path: spec.rules[0].matches[0].headers[0].value
+          value: application/grpc
+
+  - it: does not render storegateway GRPCRoute when disabled
+    template: storegateway/grpcroute.yaml
+    set:
+      storegateway.enabled: true
+      storegateway.grpcRoute.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # -- Store Gateway HTTPRoute ----------------------------------------
+
+  - it: renders storegateway HTTPRoute
+    template: storegateway/httproute.yaml
+    set:
+      storegateway.enabled: true
+      storegateway.httpRoute.enabled: true
+      storegateway.httpRoute.parentRefs:
+        - name: my-gateway
+    asserts:
+      - isKind:
+          of: HTTPRoute
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-storegateway
+
+  - it: routes to correct HTTP port on storegateway HTTPRoute
+    template: storegateway/httproute.yaml
+    set:
+      storegateway.enabled: true
+      storegateway.httpRoute.enabled: true
+      storegateway.httpRoute.parentRefs:
+        - name: my-gateway
+      storegateway.service.httpPort: 10902
+    asserts:
+      - equal:
+          path: spec.rules[0].backendRefs[0].port
+          value: 10902
+
+  - it: does not render storegateway HTTPRoute when disabled
+    template: storegateway/httproute.yaml
+    set:
+      storegateway.enabled: true
+      storegateway.httpRoute.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: sets matches on storegateway HTTPRoute
+    template: storegateway/httproute.yaml
+    set:
+      storegateway.httpRoute.enabled: true
+      storegateway.httpRoute.parentRefs:
+        - name: my-gateway
+      storegateway.httpRoute.matches:
+        - path:
+            type: PathPrefix
+            value: /storegateway
+    asserts:
+      - equal:
+          path: spec.rules[0].matches[0].path.type
+          value: PathPrefix
+      - equal:
+          path: spec.rules[0].matches[0].path.value
+          value: /storegateway
+
+  - it: sets filters on storegateway HTTPRoute
+    template: storegateway/httproute.yaml
+    set:
+      storegateway.httpRoute.enabled: true
+      storegateway.httpRoute.parentRefs:
+        - name: my-gateway
+      storegateway.httpRoute.filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: X-Forwarded-Proto
+                value: https
+    asserts:
+      - equal:
+          path: spec.rules[0].filters[0].type
+          value: RequestHeaderModifier
+      - equal:
+          path: spec.rules[0].filters[0].requestHeaderModifier.add[0].name
+          value: X-Forwarded-Proto
+
+  - it: sets extraRules with matches and filters on storegateway HTTPRoute
+    template: storegateway/httproute.yaml
+    set:
+      storegateway.httpRoute.enabled: true
+      storegateway.httpRoute.parentRefs:
+        - name: my-gateway
+      storegateway.httpRoute.extraRules:
+        - backendRefs:
+            - name: other-service
+              port: 8080
+          matches:
+            - path:
+                type: PathPrefix
+                value: /api
+          filters:
+            - type: RequestRedirect
+              requestRedirect:
+                scheme: https
+                statusCode: 301
+    asserts:
+      - equal:
+          path: spec.rules[1].backendRefs[0].port
+          value: 8080
+      - equal:
+          path: spec.rules[1].matches[0].path.value
+          value: /api
+      - equal:
+          path: spec.rules[1].filters[0].requestRedirect.scheme
+          value: https
+      - equal:
+          path: spec.rules[1].filters[0].requestRedirect.statusCode
+          value: 301
+
+  # -- Receive HTTPRoute ----------------------------------------------
+
+  - it: renders receive HTTPRoute
+    template: receive/httproute.yaml
+    set:
+      receive.enabled: true
+      receive.httpRoute.enabled: true
+      receive.httpRoute.parentRefs:
+        - name: my-gateway
+    asserts:
+      - isKind:
+          of: HTTPRoute
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive
+
+  - it: does not render HTTPRoute when parent component is disabled
+    template: receive/httproute.yaml
+    set:
+      receive.enabled: false
+      receive.httpRoute.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # -- Receive GRPCRoute ----------------------------------------------
+
+  - it: renders receive GRPCRoute
+    template: receive/grpcroute.yaml
+    set:
+      receive.enabled: true
+      receive.grpcRoute.enabled: true
+      receive.grpcRoute.parentRefs:
+        - name: my-gateway
+    asserts:
+      - isKind:
+          of: GRPCRoute
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive-grpc
+
+  - it: sets matches on receive GRPCRoute
+    template: receive/grpcroute.yaml
+    set:
+      receive.enabled: true
+      receive.grpcRoute.enabled: true
+      receive.grpcRoute.parentRefs:
+        - name: my-gateway
+      receive.grpcRoute.matches:
+        - headers:
+            - name: content-type
+              value: application/grpc
+    asserts:
+      - equal:
+          path: spec.rules[0].matches[0].headers[0].name
+          value: content-type
+      - equal:
+          path: spec.rules[0].matches[0].headers[0].value
+          value: application/grpc
+
+  - it: routes gRPC to correct port on receive GRPCRoute
+    template: receive/grpcroute.yaml
+    set:
+      receive.enabled: true
+      receive.grpcRoute.enabled: true
+      receive.grpcRoute.parentRefs:
+        - name: my-gateway
+      receive.service.grpcPort: 10901
+    asserts:
+      - equal:
+          path: spec.rules[0].backendRefs[0].port
+          value: 10901
+
+  - it: does not render receive GRPCRoute when disabled
+    template: receive/grpcroute.yaml
+    set:
+      receive.enabled: true
+      receive.grpcRoute.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # -- Bucketweb HTTPRoute --------------------------------------------
+
+  - it: renders bucketweb HTTPRoute
+    template: bucket/httproute.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.httpRoute.enabled: true
+      bucket.bucketweb.httpRoute.parentRefs:
+        - name: my-gateway
+    asserts:
+      - isKind:
+          of: HTTPRoute
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-bucketweb
+
+  - it: routes to correct port on bucketweb HTTPRoute
+    template: bucket/httproute.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.httpRoute.enabled: true
+      bucket.bucketweb.httpRoute.parentRefs:
+        - name: my-gateway
+      bucket.bucketweb.service.port: 10902
+    asserts:
+      - equal:
+          path: spec.rules[0].backendRefs[0].port
+          value: 10902
+
+  - it: does not render bucketweb HTTPRoute when disabled
+    template: bucket/httproute.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.httpRoute.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: does not render bucketweb HTTPRoute when bucket is disabled
+    template: bucket/httproute.yaml
+    set:
+      bucket.enabled: false
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.httpRoute.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # -- Compactor HTTPRoute --------------------------------------------
+
+  - it: renders compactor HTTPRoute
+    template: compactor/httproute.yaml
+    set:
+      compactor.enabled: true
+      compactor.httpRoute.enabled: true
+      compactor.httpRoute.parentRefs:
+        - name: my-gateway
+    asserts:
+      - isKind:
+          of: HTTPRoute
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-compactor
+
+  - it: routes to correct port on compactor HTTPRoute
+    template: compactor/httproute.yaml
+    set:
+      compactor.enabled: true
+      compactor.httpRoute.enabled: true
+      compactor.httpRoute.parentRefs:
+        - name: my-gateway
+      compactor.service.port: 10902
+    asserts:
+      - equal:
+          path: spec.rules[0].backendRefs[0].port
+          value: 10902
+
+  - it: does not render compactor HTTPRoute when disabled
+    template: compactor/httproute.yaml
+    set:
+      compactor.enabled: true
+      compactor.httpRoute.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: does not render compactor HTTPRoute when component is disabled
+    template: compactor/httproute.yaml
+    set:
+      compactor.enabled: false
+      compactor.httpRoute.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # -- Query Frontend HTTPRoute ---------------------------------------
+
+  - it: renders query-frontend HTTPRoute
+    template: query-frontend/httproute.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.httpRoute.enabled: true
+      queryFrontend.httpRoute.parentRefs:
+        - name: my-gateway
+    asserts:
+      - isKind:
+          of: HTTPRoute
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-query-frontend
+
+  - it: routes to correct port on query-frontend HTTPRoute
+    template: query-frontend/httproute.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.httpRoute.enabled: true
+      queryFrontend.httpRoute.parentRefs:
+        - name: my-gateway
+      queryFrontend.service.port: 9090
+    asserts:
+      - equal:
+          path: spec.rules[0].backendRefs[0].port
+          value: 9090
+
+  - it: sets timeouts on query-frontend HTTPRoute
+    template: query-frontend/httproute.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.httpRoute.enabled: true
+      queryFrontend.httpRoute.parentRefs:
+        - name: my-gateway
+      queryFrontend.httpRoute.timeouts:
+        request: 0s
+    asserts:
+      - equal:
+          path: spec.rules[0].timeouts.request
+          value: 0s
+
+  - it: does not render query-frontend HTTPRoute when disabled
+    template: query-frontend/httproute.yaml
+    set:
+      queryFrontend.enabled: true
+      queryFrontend.httpRoute.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: does not render query-frontend HTTPRoute when component is disabled
+    template: query-frontend/httproute.yaml
+    set:
+      queryFrontend.enabled: false
+      queryFrontend.httpRoute.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # -- Ruler HTTPRoute ------------------------------------------------
+
+  - it: renders ruler HTTPRoute
+    template: ruler/httproute.yaml
+    set:
+      ruler.enabled: true
+      ruler.httpRoute.enabled: true
+      ruler.httpRoute.parentRefs:
+        - name: my-gateway
+    asserts:
+      - isKind:
+          of: HTTPRoute
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-ruler
+
+  - it: routes to correct port on ruler HTTPRoute
+    template: ruler/httproute.yaml
+    set:
+      ruler.enabled: true
+      ruler.httpRoute.enabled: true
+      ruler.httpRoute.parentRefs:
+        - name: my-gateway
+      ruler.service.httpPort: 10902
+    asserts:
+      - equal:
+          path: spec.rules[0].backendRefs[0].port
+          value: 10902
+
+  - it: does not render ruler HTTPRoute when disabled
+    template: ruler/httproute.yaml
+    set:
+      ruler.enabled: true
+      ruler.httpRoute.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: does not render ruler HTTPRoute when component is disabled
+    template: ruler/httproute.yaml
+    set:
+      ruler.enabled: false
+      ruler.httpRoute.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0

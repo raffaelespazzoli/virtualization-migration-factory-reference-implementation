@@ -1,0 +1,83 @@
+{{- if and .Values.bucket.enabled .Values.bucket.bucketweb.enabled }}
+{{- $ctx := dict "Values" (dict "bucketweb" .Values.bucket.bucketweb "global" .Values.global) }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "thanos.compName" (list . "bucketweb") }}
+  namespace: {{ include "thanos.namespace" . }}
+  labels:
+    {{- include "thanos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: bucketweb
+    {{- with .Values.bucket.bucketweb.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- include "thanos.annotations" (dict "Values" .Values "component" "bucketweb") | nindent 4 }}
+    {{- with .Values.bucket.bucketweb.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if not .Values.bucket.bucketweb.autoscaling.enabled }}
+  replicas: {{ .Values.bucket.bucketweb.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "thanos.selectorLabels" (dict "root" $ "component" "bucketweb") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "thanos.labels" . | nindent 8 }}
+        app.kubernetes.io/component: bucketweb
+        {{- include "thanos.podLabels" (dict "root" $ctx "key" "bucketweb") | nindent 8 }}
+      annotations:
+        {{- with .Values.global.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "thanos.serviceAccountName" (dict "root" . "component" "bucketweb") }}
+      {{- include "thanos.affinity" (dict "Values" $ctx.Values "component" "bucketweb") | nindent 6 }}
+      {{- include "thanos.imagePullSecrets" . | nindent 6 }}
+      {{- include "thanos.podSC" (dict "root" $ctx "key" "bucketweb") | nindent 6 }}
+      containers:
+        - name: bucketweb
+          image: {{ include "thanos.image" (dict "root" . "image" .Values.global.image) | quote }}
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          args:
+            - tools
+            - bucket
+            - web
+            - --http-address=0.0.0.0:{{ .Values.bucket.bucketweb.service.port }}
+            - --objstore.config-file=/etc/thanos/objstore.yml
+          {{- range .Values.bucket.bucketweb.extraArgs }}
+            - {{ . | quote }}
+          {{- end }}
+          {{- include "thanos.extraEnvBlock" (dict "Values" $ctx.Values "component" "bucketweb") | nindent 10 }}
+          {{- include "thanos.extraEnvFromBlock" (dict "Values" $ctx.Values "component" "bucketweb") | nindent 10 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.bucket.bucketweb.service.port }}
+          volumeMounts:
+            - name: objstore
+              mountPath: /etc/thanos
+              readOnly: true
+            {{- include "thanos.extraMountItems" (dict "root" $ctx "key" "bucketweb") | nindent 12 }}
+          {{- include "thanos.containerSC" (dict "root" $ctx "key" "bucketweb") | nindent 10 }}
+          resources:
+            {{- toYaml .Values.bucket.bucketweb.resources | nindent 12 }}
+          {{- include "thanos.httpProbes" (dict "root" $ctx "key" "bucketweb") | nindent 10 }}
+        {{- include "thanos.extraContainers" (dict "Values" $ctx.Values "component" "bucketweb" "root" .) | nindent 8 }}
+      {{- include "thanos.dnsConfig" (dict "Values" $ctx.Values "component" "bucketweb") | nindent 6 }}
+      {{- include "thanos.initContainers" (dict "Values" $ctx.Values "component" "bucketweb" "root" .) | nindent 6 }}
+      {{- include "thanos.nodeSelector" (dict "Values" $ctx.Values "component" "bucketweb") | nindent 6 }}
+      {{- include "thanos.priorityClassName" (dict "Values" $ctx.Values "component" "bucketweb") | nindent 6 }}
+      {{- include "thanos.tolerations" (dict "Values" $ctx.Values "component" "bucketweb") | nindent 6 }}
+      {{- include "thanos.topologySpreadConstraints" (dict "Values" $ctx.Values "component" "bucketweb") | nindent 6 }}
+      volumes:
+        - name: objstore
+          secret:
+            secretName: {{ .Values.global.objstore.secretName }}
+            items:
+              - key: {{ .Values.global.objstore.secretKey }}
+                path: objstore.yml
+        {{- include "thanos.extraVolumeItems" (dict "root" $ctx "key" "bucketweb") | nindent 8 }}
+{{- end }}

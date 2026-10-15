@@ -1,0 +1,45 @@
+{{- if and .Values.compactor.enabled (or .Values.compactor.serviceMonitor.enabled .Values.global.serviceMonitor.enabled) }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "thanos.compName" (list . "compactor") }}
+  namespace: {{ include "thanos.namespace" . }}
+  labels:
+    {{- include "thanos.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: compactor
+    {{- if .Values.global.serviceMonitor.labels }}{{ toYaml .Values.global.serviceMonitor.labels | nindent 4 }}{{- end }}
+    {{- if .Values.compactor.serviceMonitor.labels }}{{ toYaml .Values.compactor.serviceMonitor.labels | nindent 4 }}{{- end }}
+  annotations:
+    {{- include "thanos.annotations" (dict "Values" .Values "component" "compactor") | nindent 4 }}
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ include "thanos.namespace" . }}
+  selector:
+    matchLabels:
+      {{- include "thanos.selectorLabels" (dict "root" $ "component" "compactor") | nindent 6 }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ default .Values.global.serviceMonitor.interval .Values.compactor.serviceMonitor.interval | quote }}
+      scrapeTimeout: {{ default .Values.global.serviceMonitor.scrapeTimeout .Values.compactor.serviceMonitor.scrapeTimeout | quote }}
+      {{- with (default .Values.global.serviceMonitor.scheme .Values.compactor.serviceMonitor.scheme) }}
+      scheme: {{ . }}
+      {{- end }}
+      {{- with (default .Values.global.serviceMonitor.tlsConfig .Values.compactor.serviceMonitor.tlsConfig) }}
+      tlsConfig:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with (default .Values.global.serviceMonitor.basicAuth .Values.compactor.serviceMonitor.basicAuth) }}
+      basicAuth:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with (default .Values.global.serviceMonitor.metricRelabelings .Values.compactor.serviceMonitor.metricRelabelings) }}
+      metricRelabelings:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with (default .Values.global.serviceMonitor.relabelings .Values.compactor.serviceMonitor.relabelings) }}
+      relabelings:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

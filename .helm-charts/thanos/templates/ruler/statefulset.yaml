@@ -1,0 +1,213 @@
+{{- if .Values.ruler.enabled }}
+{{- $stateless := .Values.ruler.remoteWrite.enabled -}}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "thanos.compName" (list . "ruler") }}
+  namespace: {{ include "thanos.namespace" . }}
+  labels:
+    {{- include "thanos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ruler
+    {{- with .Values.ruler.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- include "thanos.annotations" (dict "Values" .Values "component" "ruler") | nindent 4 }}
+    {{- with .Values.ruler.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  serviceName: {{ include "thanos.compName" (list . "ruler") }}
+  replicas: {{ .Values.ruler.replicaCount }}
+  {{- if .Values.ruler.minReadySeconds }}
+  minReadySeconds: {{ .Values.ruler.minReadySeconds }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "thanos.selectorLabels" (dict "root" $ "component" "ruler") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "thanos.labels" . | nindent 8 }}
+        app.kubernetes.io/component: ruler
+        {{- include "thanos.podLabels" (dict "root" . "key" "ruler") | nindent 8 }}
+      {{- $anns := dict -}}
+      {{- if $stateless }}
+      {{- if .Values.ruler.remoteWrite.createSecret }}
+      {{- $_ := set $anns "checksum/remote-write-configuration" (.Values.ruler.remoteWrite.config | sha256sum) -}}
+      {{- end }}
+      {{- else }}
+      {{- $_ := set $anns "checksum/objstore-configuration" (.Values.global.objstore.config | sha256sum) -}}
+      {{- end }}
+      {{- $_ := set $anns "checksum/rules" (include (print $.Template.BasePath "/ruler/configmaprules.yaml") . | sha256sum) -}}
+      {{- $_ := set $anns "checksum/query-configuration" (include (print $.Template.BasePath "/ruler/configmap-query.yaml") . | sha256sum) -}}
+      {{- $_ := set $anns "checksum/alertmanagers-configuration" (include (print $.Template.BasePath "/ruler/configmap-alertmanagers.yaml") . | sha256sum) -}}
+      {{- with .Values.global.podAnnotations }}
+      {{- $anns = merge $anns . -}}
+      {{- end }}
+      {{- if $anns }}
+      annotations:
+        {{- toYaml $anns | nindent 8 }}
+      {{- else }}
+      annotations: {}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "thanos.serviceAccountName" (dict "root" . "component" "ruler") }}
+      {{- include "thanos.affinity" (dict "Values" .Values "component" "ruler") | nindent 6 }}
+      {{- include "thanos.imagePullSecrets" . | nindent 6 }}
+      {{- include "thanos.podSC" (dict "root" . "key" "ruler") | nindent 6 }}
+      containers:
+        - name: ruler
+          image: {{ include "thanos.image" (dict "root" . "image" .Values.global.image) | quote }}
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          args:
+            - rule
+            - --http-address=0.0.0.0:{{ .Values.ruler.service.httpPort }}
+            - --grpc-address=0.0.0.0:{{ .Values.ruler.service.grpcPort }}
+            - --data-dir=/var/thanos/ruler
+          {{- if $stateless }}
+            - --remote-write.config-file=/etc/thanos/remote-write.yml
+          {{- else }}
+            - --objstore.config-file=/etc/thanos/objstore.yml
+          {{- end }}
+            - --rule-file=/etc/thanos/rules/*.yaml
+            - --label=ruler_replica="$(POD_NAME)"
+            - --alert.label-drop=ruler_replica
+          {{- if .Values.ruler.autoImportPrometheusRules.enabled }}
+            - --rule-file=/etc/thanos/rules/generated/*.yaml
+          {{- end }}
+            - --alertmanagers.config-file=/etc/thanos/alertmanagers.yaml
+            - --query.config-file=/etc/thanos/query-urls.yaml
+          {{- if .Values.ruler.alertQueryUrl }}
+            - --alert.query-url={{ .Values.ruler.alertQueryUrl }}
+          {{- end }}
+          {{- range .Values.ruler.extraArgs }}
+            - {{ . | quote }}
+          {{- end }}
+          {{- include "thanos.podEnvBlock" (dict "Values" .Values "component" "ruler") | nindent 10 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.ruler.service.httpPort }}
+            - name: grpc
+              containerPort: {{ .Values.ruler.service.grpcPort }}
+          volumeMounts:
+            - name: data
+              mountPath: /var/thanos/ruler
+          {{- if $stateless }}
+            - name: remote-write
+              mountPath: /etc/thanos/remote-write.yml
+              subPath: remote-write.yml
+              readOnly: true
+          {{- else }}
+            - name: objstore
+              mountPath: /etc/thanos/objstore.yml
+              subPath: objstore.yml
+              readOnly: true
+          {{- end }}
+            - name: rules
+              mountPath: /etc/thanos/rules
+          {{- if .Values.ruler.autoImportPrometheusRules.enabled }}
+            - name: generated-rules
+              mountPath: /etc/thanos/rules/generated
+          {{- end }}
+            - name: am
+              mountPath: /etc/thanos/alertmanagers.yaml
+              subPath: alertmanagers.yaml
+            - name: query
+              mountPath: /etc/thanos/query-urls.yaml
+              subPath: query-urls.yaml
+            {{- include "thanos.extraMountItems" (dict "root" . "key" "ruler") | nindent 12 }}
+          {{- include "thanos.containerSC" (dict "root" . "key" "ruler") | nindent 10 }}
+          resources:
+            {{- toYaml .Values.ruler.resources | nindent 12 }}
+          {{- include "thanos.httpProbes" (dict "root" . "key" "ruler") | nindent 10 }}
+
+        {{- if .Values.ruler.autoImportPrometheusRules.enabled }}
+        - name: prometheus-rule-importer
+          image: {{ include "thanos.image" (dict "root" . "image" .Values.ruler.autoImportPrometheusRules.sidecar.image) | quote }}
+          imagePullPolicy: {{ .Values.ruler.autoImportPrometheusRules.sidecar.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - /scripts/import.sh
+          resources:
+            {{- toYaml .Values.ruler.autoImportPrometheusRules.sidecar.resources | nindent 12 }}
+          volumeMounts:
+            - name: generated-rules
+              mountPath: /generated
+            - name: rule-importer-script
+              mountPath: /scripts
+          {{- include "thanos.ruler.autoImportPrometheusRules.containerSC" . | nindent 10 }}
+        {{- end }}
+        {{- include "thanos.extraContainers" (dict "Values" .Values "component" "ruler" "root" .) | nindent 8 }}
+      {{- include "thanos.dnsConfig" (dict "Values" .Values "component" "ruler") | nindent 6 }}
+      {{- include "thanos.initContainers" (dict "Values" .Values "component" "ruler" "root" .) | nindent 6 }}
+      {{- include "thanos.nodeSelector" (dict "Values" .Values "component" "ruler") | nindent 6 }}
+      {{- include "thanos.priorityClassName" (dict "Values" .Values "component" "ruler") | nindent 6 }}
+      {{- include "thanos.tolerations" (dict "Values" .Values "component" "ruler") | nindent 6 }}
+      {{- include "thanos.topologySpreadConstraints" (dict "Values" .Values "component" "ruler") | nindent 6 }}
+      volumes:
+        {{- if $stateless }}
+        - name: remote-write
+          secret:
+            secretName: {{ include "thanos.ruler.remoteWriteSecretName" . }}
+            items:
+              - key: {{ .Values.ruler.remoteWrite.secretKey }}
+                path: remote-write.yml
+        {{- else }}
+        - name: objstore
+          secret:
+            secretName: {{ .Values.global.objstore.secretName }}
+            items:
+              - key: {{ .Values.global.objstore.secretKey }}
+                path: objstore.yml
+        {{- end }}
+        - name: rules
+          configMap:
+            name: {{ include "thanos.compName" (list . "ruler") }}-rules
+
+        {{- if .Values.ruler.autoImportPrometheusRules.enabled }}
+        - name: generated-rules
+          emptyDir: {}
+        - name: rule-importer-script
+          configMap:
+            name: {{ include "thanos.compName" (list . "ruler") }}-rule-importer
+            defaultMode: 0755
+        {{- end }}
+
+        - name: am
+          configMap:
+            name: {{ include "thanos.compName" (list . "ruler") }}-am
+        - name: query
+          configMap:
+            name: {{ include "thanos.compName" (list . "ruler") }}-query
+
+        {{- if not .Values.ruler.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+        {{- if and .Values.ruler.persistence.enabled .Values.ruler.persistence.existingClaim }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ .Values.ruler.persistence.existingClaim }}
+        {{- end }}
+
+        {{- include "thanos.extraVolumeItems" (dict "root" . "key" "ruler") | nindent 8 }}
+
+  {{- if and .Values.ruler.persistence.enabled (not .Values.ruler.persistence.existingClaim) }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "thanos.labels" $ | nindent 10 }}
+          app.kubernetes.io/component: ruler
+      spec:
+        accessModes:
+        {{- range .Values.ruler.persistence.accessModes | default (list "ReadWriteOnce") }}
+          - {{ . | quote }}
+        {{- end }}
+        {{- include "thanos.storageClass" (dict "root" . "key" "ruler" "persistence" .Values.ruler.persistence) | indent 8 }}
+        resources:
+          requests:
+            storage: {{ .Values.ruler.persistence.size }}
+  {{- end }}
+{{- end }}

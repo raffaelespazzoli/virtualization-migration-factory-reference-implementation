@@ -1,0 +1,1855 @@
+suite: receive component
+
+tests:
+  # -- StatefulSet basics ---------------------------------------------
+
+  - it: renders statefulset when receive is enabled
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+    asserts:
+      - isKind:
+          of: StatefulSet
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive
+
+  - it: does not render when receive is disabled
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: sets the correct replica count
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      receive.replicaCount: 3
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 3
+
+  - it: renders minReadySeconds when set
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      receive.minReadySeconds: 30
+    asserts:
+      - equal:
+          path: spec.minReadySeconds
+          value: 30
+
+  - it: omits minReadySeconds when zero
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      receive.minReadySeconds: 0
+    asserts:
+      - notExists:
+          path: spec.minReadySeconds
+
+  - it: uses the global image repository and app version
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      global.image.registry: quay.io
+      global.image.repository: thanos/thanos
+    chart:
+      appVersion: "x.y.z"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: quay.io/thanos/thanos:x.y.z
+
+  - it: uses the global image repository and tag
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      global.image.registry: quay.io
+      global.image.repository: thanos/thanos
+      global.image.tag: v0.40.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: quay.io/thanos/thanos:v0.40.0
+
+  - it: sets tsdb retention flag
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      receive.tsdb.retention: 48h
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --tsdb.retention=48h
+
+  - it: enables WAL compression when set
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      receive.tsdb.walCompression: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --tsdb.wal-compression
+
+  - it: passes extra CLI args
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      receive.extraArgs:
+        - --log.level=debug
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--log.level=debug"
+
+  - it: mounts persistence volume
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      receive.persistence.enabled: true
+      receive.persistence.size: 20Gi
+    asserts:
+      - isNotEmpty:
+          path: spec.volumeClaimTemplates
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.resources.requests.storage
+          value: 20Gi
+      - notExists:
+          path: spec.volumeClaimTemplates[0].spec.volumeAttributesClassName
+
+  - it: fail if persistence attribute class is specified but not supported
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      receive.persistence.enabled: true
+      receive.persistence.size: 20Gi
+      receive.persistence.volumeAttributesClassName: "unsupported"
+    asserts:
+      - failedTemplate:
+          errorMessage: "volumeAttributesClassName has been specified for 'receive'. However, 'storage.k8s.io/v1/VolumeAttributesClass' isn't supported"
+
+  - it: render persistence attribute class if specified and supported
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      receive.persistence.enabled: true
+      receive.persistence.size: 20Gi
+      receive.persistence.volumeAttributesClassName: "supported"
+    capabilities:
+      apiVersions:
+        - storage.k8s.io/v1/VolumeAttributesClass
+    asserts:
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.volumeAttributesClassName
+          value: supported
+
+  - it: uses emptyDir when persistence is disabled
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      receive.persistence.enabled: false
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: data
+            emptyDir: {}
+
+  - it: mounts existing PVC when existingClaim is set
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      receive.persistence.enabled: true
+      receive.persistence.existingClaim: receive-existing-pvc
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: data
+            persistentVolumeClaim:
+              claimName: receive-existing-pvc
+      - notExists:
+          path: spec.volumeClaimTemplates
+
+  - it: creates volumeClaimTemplates when existingClaim is empty
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      receive.persistence.enabled: true
+      receive.persistence.existingClaim: ""
+      receive.persistence.size: 20Gi
+    asserts:
+      - isNotEmpty:
+          path: spec.volumeClaimTemplates
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.resources.requests.storage
+          value: 20Gi
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: data
+            persistentVolumeClaim:
+              claimName: ""
+          any: true
+
+  - it: mounts existing PVC in split mode when ingester existingClaim is set
+    template: receive/statefulset.yaml
+    values:
+      - _split_defaults.yaml
+    set:
+      receive.ingester.persistence.enabled: true
+      receive.ingester.persistence.existingClaim: ingester-existing-pvc
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: data
+            persistentVolumeClaim:
+              claimName: ingester-existing-pvc
+      - notExists:
+          path: spec.volumeClaimTemplates
+
+  - it: creates volumeClaimTemplates in split mode when ingester existingClaim is empty
+    template: receive/statefulset.yaml
+    values:
+      - _split_defaults.yaml
+    set:
+      receive.ingester.persistence.enabled: true
+      receive.ingester.persistence.existingClaim: ""
+      receive.ingester.persistence.size: 20Gi
+    asserts:
+      - isNotEmpty:
+          path: spec.volumeClaimTemplates
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.resources.requests.storage
+          value: 20Gi
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: data
+            persistentVolumeClaim:
+              claimName: ""
+          any: true
+
+  - it: honours receive.persistence.accessModes on the generated claim
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      receive.persistence.enabled: true
+      receive.persistence.accessModes:
+        - ReadWriteMany
+    asserts:
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.accessModes
+          value:
+            - ReadWriteMany
+
+  - it: ignores existingClaim when persistence is disabled
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      receive.persistence.enabled: false
+      receive.persistence.existingClaim: receive-existing-pvc
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: data
+            emptyDir: {}
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: data
+            persistentVolumeClaim:
+              claimName: receive-existing-pvc
+          any: true
+      - notExists:
+          path: spec.volumeClaimTemplates
+
+  - it: falls back to global.storageClass when receive sets none
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      receive.persistence.enabled: true
+      global.storageClass: global-sc
+    asserts:
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.storageClassName
+          value: global-sc
+
+  - it: lets receive.persistence.storageClass win over global.storageClass
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      receive.persistence.enabled: true
+      global.storageClass: global-sc
+      receive.persistence.storageClass: receive-sc
+    asserts:
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.storageClassName
+          value: receive-sc
+
+  - it: falls back to global.storageClass on the ingester in split mode
+    template: receive/statefulset.yaml
+    values:
+      - _split_defaults.yaml
+    set:
+      global.storageClass: global-sc
+    asserts:
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.storageClassName
+          value: global-sc
+
+  - it: lets receive.ingester.persistence.storageClass win in split mode
+    template: receive/statefulset.yaml
+    values:
+      - _split_defaults.yaml
+    set:
+      global.storageClass: global-sc
+      receive.ingester.persistence.storageClass: ingester-sc
+    asserts:
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.storageClassName
+          value: ingester-sc
+
+  # -- Annotations and labels -----------------------------------------
+
+  - it: applies component annotations
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      receive.annotations:
+        custom-annotation: my-value
+    asserts:
+      - equal:
+          path: metadata.annotations.custom-annotation
+          value: my-value
+
+  - it: applies component labels
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      receive.labels:
+        custom-label: my-value
+    asserts:
+      - equal:
+          path: metadata.labels.custom-label
+          value: my-value
+
+  - it: applies pod labels to the pod template only in standalone mode
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      receive.podLabels:
+        azure.workload.identity/use: "true"
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels["azure.workload.identity/use"]
+          value: "true"
+      - notExists:
+          path: metadata.labels["azure.workload.identity/use"]
+
+  # -- Extra env vars -------------------------------------------------
+
+  - it: injects component extraEnv
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      receive.extraEnv:
+        - name: LOG_FORMAT
+          value: json
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: LOG_FORMAT
+            value: json
+
+  - it: merges global and component extraEnv with component winning
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      global.extraEnv:
+        - name: LOG_FORMAT
+          value: json
+        - name: SHARED_VAR
+          value: global-value
+      receive.extraEnv:
+        - name: SHARED_VAR
+          value: component-value
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: LOG_FORMAT
+            value: json
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SHARED_VAR
+            value: component-value
+
+  # -- Extra envFrom vars -----------------------------------------------
+
+  - it: merges global and component extraEnvFrom with component winning
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      global.extraEnvFrom:
+        - name: GLOBAL_FROM
+          value: global-value
+        - name: SHARED_FROM
+          value: global-value
+      receive.extraEnvFrom:
+        - name: SHARED_FROM
+          value: component-value
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].envFrom
+          content:
+            name: GLOBAL_FROM
+            value: global-value
+      - contains:
+          path: spec.template.spec.containers[0].envFrom
+          content:
+            name: SHARED_FROM
+            value: component-value
+
+  # -- Security contexts ----------------------------------------------
+
+  - it: applies global container security context
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      global.containerSecurityContext:
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+          value: true
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsNonRoot
+          value: true
+
+  - it: applies component container security context overriding global
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      global.containerSecurityContext:
+        runAsNonRoot: true
+      receive.containerSecurityContext:
+        runAsNonRoot: false
+        runAsUser: 1001
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsNonRoot
+          value: false
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsUser
+          value: 1001
+
+  - it: applies pod security context
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      receive.podSecurityContext:
+        fsGroup: 1001
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.fsGroup
+          value: 1001
+
+  # -- DNS configuration -----------------------------------------------
+
+  - it: applies global dnsConfig as fallback
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      global.dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0].name
+          value: ndots
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0].value
+          value: "1"
+
+  - it: applies component dnsConfig overriding global
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      global.dnsConfig:
+        options:
+          - name: ndots
+            value: "5"
+      receive.dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0].name
+          value: ndots
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0].value
+          value: "1"
+
+  - it: does not render dnsConfig when not set
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+    asserts:
+      - notExists:
+          path: spec.template.spec.dnsConfig
+
+  # -- Scheduling and placement ---------------------------------------
+
+  - it: applies component affinity overriding global
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      global.affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: topology.kubernetes.io/zone
+                    operator: In
+                    values:
+                      - ap-southeast-2a
+      receive.affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/instance: thanos
+                topologyKey: kubernetes.io/hostname
+    asserts:
+      - isNotEmpty:
+          path: spec.template.spec.affinity.podAntiAffinity
+      - notExists:
+          path: spec.template.spec.affinity.nodeAffinity
+
+  - it: applies global affinity as fallback
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      global.affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: topology.kubernetes.io/zone
+                    operator: In
+                    values:
+                      - ap-southeast-2a
+    asserts:
+      - isNotEmpty:
+          path: spec.template.spec.affinity.nodeAffinity
+
+  - it: applies component nodeSelector overriding global
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      global.nodeSelector:
+        node-role: node
+      receive.nodeSelector:
+        node-role: thanos
+    asserts:
+      - equal:
+          path: spec.template.spec.nodeSelector.node-role
+          value: thanos
+
+  - it: applies global nodeSelector as fallback
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      global.nodeSelector:
+        node-role: thanos
+    asserts:
+      - equal:
+          path: spec.template.spec.nodeSelector.node-role
+          value: thanos
+
+  - it: applies component tolerations
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      receive.tolerations:
+        - key: dedicated
+          operator: Equal
+          value: thanos
+          effect: NoSchedule
+    asserts:
+      - contains:
+          path: spec.template.spec.tolerations
+          content:
+            key: dedicated
+            operator: Equal
+            value: thanos
+            effect: NoSchedule
+
+  - it: applies global tolerations as fallback
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      global.tolerations:
+        - key: dedicated
+          operator: Equal
+          value: thanos
+          effect: NoSchedule
+    asserts:
+      - contains:
+          path: spec.template.spec.tolerations
+          content:
+            key: dedicated
+            operator: Equal
+            value: thanos
+            effect: NoSchedule
+
+  - it: applies component topologySpreadConstraints overriding global
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      global.topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: thanos
+      receive.topologySpreadConstraints:
+        - maxSkew: 2
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: thanos
+    asserts:
+      - contains:
+          path: spec.template.spec.topologySpreadConstraints
+          content:
+            maxSkew: 2
+            topologyKey: topology.kubernetes.io/zone
+            whenUnsatisfiable: ScheduleAnyway
+            labelSelector:
+              matchLabels:
+                app: thanos
+
+  - it: applies global topologySpreadConstraints as fallback
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      global.topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: thanos
+    asserts:
+      - contains:
+          path: spec.template.spec.topologySpreadConstraints
+          content:
+            maxSkew: 1
+            topologyKey: topology.kubernetes.io/zone
+            whenUnsatisfiable: DoNotSchedule
+            labelSelector:
+              matchLabels:
+                app: thanos
+
+  - it: applies component priorityClassName overriding global
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      global.priorityClassName: high-priority
+      receive.priorityClassName: critical
+    asserts:
+      - equal:
+          path: spec.template.spec.priorityClassName
+          value: critical
+
+  - it: applies global priorityClassName as fallback
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      global.priorityClassName: high-priority
+    asserts:
+      - equal:
+          path: spec.template.spec.priorityClassName
+          value: high-priority
+
+  # -- Extra init and sidecar containers ------------------------------
+
+  - it: merges global and component extraInitContainers
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      global.extraInitContainers:
+        - name: global-init
+          image: busybox:latest
+          command: ["echo", "global"]
+      receive.extraInitContainers:
+        - name: component-init
+          image: busybox:latest
+          command: ["echo", "component"]
+    asserts:
+      - contains:
+          path: spec.template.spec.initContainers
+          content:
+            name: global-init
+            image: busybox:latest
+            command: ["echo", "global"]
+      - contains:
+          path: spec.template.spec.initContainers
+          content:
+            name: component-init
+            image: busybox:latest
+            command: ["echo", "component"]
+
+  - it: merges global and component extraContainers
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      global.extraContainers:
+        - name: global-init
+          image: busybox:latest
+          command: ["echo", "global"]
+      receive.extraContainers:
+        - name: component-init
+          image: busybox:latest
+          command: ["echo", "component"]
+    asserts:
+      - contains:
+          path: spec.template.spec.containers
+          content:
+            name: global-init
+            image: busybox:latest
+            command: ["echo", "global"]
+      - contains:
+          path: spec.template.spec.containers
+          content:
+            name: component-init
+            image: busybox:latest
+            command: ["echo", "component"]
+
+  # -- Service --------------------------------------------------------
+
+  - it: applies service annotations to receive service
+    template: receive/service.yaml
+    documentIndex: 0
+    set:
+      receive.enabled: true
+      receive.service.annotations:
+        custom-annotation: my-value
+    asserts:
+      - equal:
+          path: metadata.annotations.custom-annotation
+          value: my-value
+
+  - it: applies service annotations to receive headless service
+    template: receive/service.yaml
+    documentIndex: 1
+    set:
+      receive.enabled: true
+      receive.service.annotations:
+        custom-annotation: my-value
+    asserts:
+      - equal:
+          path: metadata.annotations.custom-annotation
+          value: my-value
+
+  - it: applies service labels to receive service
+    template: receive/service.yaml
+    documentIndex: 0
+    set:
+      receive.enabled: true
+      receive.service.labels:
+        monitoring: "true"
+    asserts:
+      - equal:
+          path: metadata.labels.monitoring
+          value: "true"
+
+  - it: applies service labels to receive headless service
+    template: receive/service.yaml
+    documentIndex: 1
+    set:
+      receive.enabled: true
+      receive.service.labels:
+        monitoring: "true"
+    asserts:
+      - equal:
+          path: metadata.labels.monitoring
+          value: "true"
+
+  # -- PodDisruptionBudget --------------------------------------------
+
+  - it: renders PDB when component pdb is enabled
+    template: receive/pdb.yaml
+    set:
+      receive.enabled: true
+      receive.pdb.enabled: true
+      receive.pdb.maxUnavailable: "1"
+    asserts:
+      - isKind:
+          of: PodDisruptionBudget
+      - equal:
+          path: spec.maxUnavailable
+          value: 1
+
+  - it: renders PDB via global pdb.enabled fallback
+    template: receive/pdb.yaml
+    set:
+      receive.enabled: true
+      global.pdb.enabled: true
+      global.pdb.minAvailable: "1"
+    asserts:
+      - isKind:
+          of: PodDisruptionBudget
+      - equal:
+          path: spec.minAvailable
+          value: 1
+
+  - it: component PDB values override global
+    template: receive/pdb.yaml
+    set:
+      receive.enabled: true
+      global.pdb.enabled: true
+      global.pdb.minAvailable: "1"
+      receive.pdb.minAvailable: "3"
+    asserts:
+      - equal:
+          path: spec.minAvailable
+          value: 3
+
+  - it: does not render PDB when both component and global pdb are disabled
+    template: receive/pdb.yaml
+    set:
+      receive.enabled: true
+      receive.pdb.enabled: false
+      global.pdb.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # -- Ingress -----------------------------------------------------------
+
+  - it: renders ingress when enabled
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.enabled: true
+      receive.ingress.hosts:
+        - host: thanos.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - isKind:
+          of: Ingress
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive
+
+  - it: applies global.podAnnotations to receive ingress metadata
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.enabled: true
+      receive.ingress.hosts:
+        - host: thanos.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+      global.podAnnotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+    asserts:
+      - equal:
+          path: metadata.annotations["cluster-autoscaler.kubernetes.io/safe-to-evict"]
+          value: "false"
+
+  - it: applies global.podAnnotations to receive pod template
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      global.podAnnotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["cluster-autoscaler.kubernetes.io/safe-to-evict"]
+          value: "false"
+
+  - it: applies global.podAnnotations to receive router ingress in split mode
+    template: receive/split/router-ingress.yaml
+    values:
+      - _split_defaults.yaml
+    set:
+      receive.router.ingress.http.enabled: true
+      receive.router.ingress.http.hosts:
+        - host: receive.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+      global.podAnnotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+    asserts:
+      - equal:
+          path: metadata.annotations["cluster-autoscaler.kubernetes.io/safe-to-evict"]
+          value: "false"
+
+  - it: applies global.podAnnotations to receive router pod template in split mode
+    template: receive/split/router-deployment.yaml
+    values:
+      - _split_defaults.yaml
+    set:
+      global.podAnnotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["cluster-autoscaler.kubernetes.io/safe-to-evict"]
+          value: "false"
+
+  - it: does not render ingress when disabled
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: sets ingress class name
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.enabled: true
+      receive.ingress.className: nginx
+      receive.ingress.hosts:
+        - host: thanos.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: nginx
+
+  - it: sets ingress host and path
+    template: query/ingress.yaml
+    set:
+      query.enabled: true
+      query.ingress.enabled: true
+      query.ingress.hosts:
+        - host: thanos.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.rules[0].host
+          value: thanos.example.com
+      - equal:
+          path: spec.rules[0].http.paths[0].path
+          value: /
+
+  - it: ingress targets http port
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.enabled: true
+      receive.ingress.hosts:
+        - host: thanos.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.name
+          value: http
+
+  - it: renders ingress when http.enabled is true
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.http.enabled: true
+      receive.ingress.http.hosts:
+        - host: thanos-receive-http.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - isKind:
+          of: Ingress
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive
+
+  - it: does not render ingress when neither enabled nor http.enabled is true
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.enabled: false
+      receive.ingress.http.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: uses http values for class name host and tls
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.http.enabled: true
+      receive.ingress.http.className: nginx-http
+      receive.ingress.http.hosts:
+        - host: thanos-receive-http.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+      receive.ingress.http.tls:
+        - hosts:
+            - thanos-receive-http.example.com
+          secretName: thanos-receive-http-tls
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: nginx-http
+      - equal:
+          path: spec.rules[0].host
+          value: thanos-receive-http.example.com
+      - equal:
+          path: spec.tls[0].secretName
+          value: thanos-receive-http-tls
+
+  - it: applies http annotations
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.http.enabled: true
+      receive.ingress.http.annotations:
+        cert-manager.io/cluster-issuer: letsencrypt
+      receive.ingress.http.hosts:
+        - host: thanos-receive-http.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: metadata.annotations["cert-manager.io/cluster-issuer"]
+          value: letsencrypt
+
+  - it: prefers http values over deprecated when both are set
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.enabled: true
+      receive.ingress.className: deprecated-nginx
+      receive.ingress.hosts:
+        - host: deprecated.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+      receive.ingress.http.enabled: true
+      receive.ingress.http.className: nginx-http
+      receive.ingress.http.hosts:
+        - host: thanos-receive-http.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: nginx-http
+      - equal:
+          path: spec.rules[0].host
+          value: thanos-receive-http.example.com
+
+  # -- gRPC Ingress ------------------------------------------------------
+
+  - it: renders grpc ingress when enabled
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.grpc.enabled: true
+      receive.ingress.grpc.hosts:
+        - host: thanos-receive-grpc.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - isKind:
+          of: Ingress
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive-grpc
+
+  - it: does not render grpc ingress when disabled
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.grpc.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: does not render grpc ingress when receive is disabled
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: false
+      receive.ingress.grpc.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: sets grpc ingress class name
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.grpc.enabled: true
+      receive.ingress.grpc.className: nginx
+      receive.ingress.grpc.hosts:
+        - host: thanos-receive-grpc.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: nginx
+
+  - it: sets grpc ingress host and path and targets grpc port
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.grpc.enabled: true
+      receive.ingress.grpc.hosts:
+        - host: thanos-receive-grpc.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.rules[0].host
+          value: thanos-receive-grpc.example.com
+      - equal:
+          path: spec.rules[0].http.paths[0].path
+          value: /
+      - equal:
+          path: spec.rules[0].http.paths[0].pathType
+          value: Prefix
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.name
+          value: RELEASE-NAME-thanos-receive
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.name
+          value: grpc
+
+  - it: applies grpc ingress annotations
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.grpc.enabled: true
+      receive.ingress.grpc.annotations:
+        nginx.ingress.kubernetes.io/backend-protocol: GRPC
+      receive.ingress.grpc.hosts:
+        - host: thanos-receive-grpc.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: metadata.annotations["nginx.ingress.kubernetes.io/backend-protocol"]
+          value: GRPC
+
+  - it: renders grpc ingress tls when provided
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.grpc.enabled: true
+      receive.ingress.grpc.hosts:
+        - host: thanos-receive-grpc.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+      receive.ingress.grpc.tls:
+        - hosts:
+            - thanos-receive-grpc.example.com
+          secretName: thanos-receive-grpc-tls
+    asserts:
+      - equal:
+          path: spec.tls[0].hosts[0]
+          value: thanos-receive-grpc.example.com
+      - equal:
+          path: spec.tls[0].secretName
+          value: thanos-receive-grpc-tls
+
+  - it: renders both http and grpc ingresses when both are enabled
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.http.enabled: true
+      receive.ingress.grpc.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 2
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive-grpc
+        documentIndex: 0
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.name
+          value: grpc
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive
+        documentIndex: 1
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.name
+          value: http
+        documentIndex: 1
+
+  # -- Remote-write Ingress ------------------------------------------------------
+
+  - it: renders remote-write ingress when enabled
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.remoteWrite.enabled: true
+      receive.ingress.remoteWrite.hosts:
+        - host: thanos-receive-remote-write.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - isKind:
+          of: Ingress
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive-remote-write
+
+  - it: does not render remote-write ingress when disabled
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.remoteWrite.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: does not render remote-write ingress when receive is disabled
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: false
+      receive.ingress.remoteWrite.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: sets remote-write ingress class name
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.remoteWrite.enabled: true
+      receive.ingress.remoteWrite.className: nginx
+      receive.ingress.remoteWrite.hosts:
+        - host: thanos-receive-remote-write.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: nginx
+
+  - it: sets remote-write ingress host and path and targets remote-write port
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.remoteWrite.enabled: true
+      receive.ingress.remoteWrite.hosts:
+        - host: thanos-receive-remote-write.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.rules[0].host
+          value: thanos-receive-remote-write.example.com
+      - equal:
+          path: spec.rules[0].http.paths[0].path
+          value: /
+      - equal:
+          path: spec.rules[0].http.paths[0].pathType
+          value: Prefix
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.name
+          value: RELEASE-NAME-thanos-receive
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.name
+          value: remote-write
+
+  - it: applies remote-write ingress annotations
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.remoteWrite.enabled: true
+      receive.ingress.remoteWrite.annotations:
+        nginx.ingress.kubernetes.io/backend-protocol: HTTP
+      receive.ingress.remoteWrite.hosts:
+        - host: thanos-receive-remote-write.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: metadata.annotations["nginx.ingress.kubernetes.io/backend-protocol"]
+          value: HTTP
+
+  - it: renders remote-write ingress tls when provided
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.remoteWrite.enabled: true
+      receive.ingress.remoteWrite.hosts:
+        - host: thanos-receive-remote-write.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+      receive.ingress.remoteWrite.tls:
+        - hosts:
+            - thanos-receive-remote-write.example.com
+          secretName: thanos-receive-remote-write-tls
+    asserts:
+      - equal:
+          path: spec.tls[0].hosts[0]
+          value: thanos-receive-remote-write.example.com
+      - equal:
+          path: spec.tls[0].secretName
+          value: thanos-receive-remote-write-tls
+
+  - it: renders both http and remote-write ingresses when both are enabled
+    template: receive/ingress.yaml
+    set:
+      receive.enabled: true
+      receive.ingress.http.enabled: true
+      receive.ingress.remoteWrite.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 2
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive
+        documentIndex: 0
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.name
+          value: http
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive-remote-write
+        documentIndex: 1
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.name
+          value: remote-write
+        documentIndex: 1
+
+  # -- ServiceMonitor ----------------------------------------------------
+
+  - it: renders servicemonitor when component enabled
+    template: receive/servicemonitor.yaml
+    set:
+      receive.enabled: true
+      receive.serviceMonitor.enabled: true
+    asserts:
+      - isKind:
+          of: ServiceMonitor
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive
+
+  - it: renders servicemonitor via global fallback
+    template: receive/servicemonitor.yaml
+    set:
+      receive.enabled: true
+      global.serviceMonitor.enabled: true
+    asserts:
+      - isKind:
+          of: ServiceMonitor
+
+  - it: does not render servicemonitor when disabled
+    template: receive/servicemonitor.yaml
+    set:
+      receive.enabled: true
+      receive.serviceMonitor.enabled: false
+      global.serviceMonitor.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # -- VerticalPodAutoscaler ---------------------------------------------
+
+  - it: renders VPA when enabled and CRD is available
+    template: receive/vpa.yaml
+    capabilities:
+      majorVersion: 1
+      minorVersion: 29
+      apiVersions:
+        - autoscaling.k8s.io/v1/VerticalPodAutoscaler
+    set:
+      receive.enabled: true
+      receive.vpa.enabled: true
+      receive.vpa.minAllowed.cpu: 500m
+      receive.vpa.minAllowed.memory: 512Mi
+      receive.vpa.maxAllowed.cpu: "4"
+      receive.vpa.maxAllowed.memory: 8Gi
+    asserts:
+      - isKind:
+          of: VerticalPodAutoscaler
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive
+      - equal:
+          path: spec.resourcePolicy.containerPolicies[0].minAllowed.cpu
+          value: 500m
+      - equal:
+          path: spec.resourcePolicy.containerPolicies[0].maxAllowed.memory
+          value: 8Gi
+
+  - it: does not render VPA when disabled
+    template: receive/vpa.yaml
+    capabilities:
+      majorVersion: 1
+      minorVersion: 29
+      apiVersions:
+        - autoscaling.k8s.io/v1/VerticalPodAutoscaler
+    set:
+      receive.enabled: true
+      receive.vpa.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # -- ConfigMap hashrings -----------------------------------------------
+
+  - it: renders hashrings configmap when receive is enabled
+    template: receive/configmap-hashrings.yaml
+    set:
+      receive.enabled: true
+    asserts:
+      - isKind:
+          of: ConfigMap
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive-hashrings
+
+  - it: does not render hashrings configmap when receive is disabled
+    template: receive/configmap-hashrings.yaml
+    set:
+      receive.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # -- NetworkPolicy -------------------------------------------------------
+
+  - it: does not render networkpolicy when networkPolicies is disabled
+    template: receive/networkpolicy.yaml
+    set:
+      receive.enabled: true
+      global.networkPolicies: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: does not render networkpolicy when receive is disabled
+    template: receive/networkpolicy.yaml
+    set:
+      receive.enabled: false
+      global.networkPolicies: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders networkpolicy when receive and networkPolicies are enabled
+    template: receive/networkpolicy.yaml
+    set:
+      receive.enabled: true
+      global.networkPolicies: true
+    asserts:
+      - isKind:
+          of: NetworkPolicy
+      - equal:
+          path: apiVersion
+          value: networking.k8s.io/v1
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive
+
+  # -- Split mode -----------------------------------------------------------
+
+  - it: rejects an invalid receive.mode value
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+      receive.mode: bogus
+    asserts:
+      - failedTemplate:
+          errorPattern: "standalone.*split"
+
+  - it: defaults to standalone mode and uses the receive name
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive
+      - equal:
+          path: spec.serviceName
+          value: RELEASE-NAME-thanos-receive-headless
+
+  - it: suffixes the StatefulSet with -ingester in split mode
+    template: receive/statefulset.yaml
+    values:
+      - _split_defaults.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive-ingester
+      - equal:
+          path: spec.serviceName
+          value: RELEASE-NAME-thanos-receive-ingester-headless
+
+  - it: renders ingester minReadySeconds in split mode
+    template: receive/statefulset.yaml
+    values:
+      - _split_defaults.yaml
+    set:
+      receive.ingester.minReadySeconds: 45
+    asserts:
+      - equal:
+          path: spec.minReadySeconds
+          value: 45
+
+  - it: omits router-only flags from the StatefulSet args in split mode
+    template: receive/statefulset.yaml
+    values:
+      - _split_defaults.yaml
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: --receive.hashrings-file=/etc/thanos/hashrings.json
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: --receive.hashrings-algorithm=ketama
+
+  - it: keeps router flags on the StatefulSet args in standalone mode
+    template: receive/statefulset.yaml
+    set:
+      receive.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --receive.hashrings-file=/etc/thanos/hashrings.json
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --receive.hashrings-algorithm=ketama
+
+  - it: omits the hashrings configmap volume mount from ingester in split mode
+    template: receive/statefulset.yaml
+    values:
+      - _split_defaults.yaml
+    asserts:
+      - notContains:
+          path: spec.template.spec.volumes[0].projected.sources
+          content:
+            configMap:
+              name: RELEASE-NAME-thanos-receive-hashrings
+              items:
+                - key: hashrings.json
+                  path: hashrings.json
+
+  - it: suffixes the headless service with -ingester in split mode
+    template: receive/service.yaml
+    values:
+      - _split_defaults.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive-ingester
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive-ingester-headless
+        documentIndex: 1
+
+  - it: hashrings configmap points to ingester pods in split mode
+    template: receive/configmap-hashrings.yaml
+    values:
+      - _split_defaults.yaml
+    set:
+      receive.ingester.replicaCount: 2
+    asserts:
+      - matchRegex:
+          path: data["hashrings.json"]
+          pattern: "RELEASE-NAME-thanos-receive-ingester-0\\.RELEASE-NAME-thanos-receive-ingester-headless"
+      - matchRegex:
+          path: data["hashrings.json"]
+          pattern: "RELEASE-NAME-thanos-receive-ingester-1\\.RELEASE-NAME-thanos-receive-ingester-headless"
+
+  - it: hashrings configmap points to receive pods in standalone mode
+    template: receive/configmap-hashrings.yaml
+    set:
+      receive.enabled: true
+      receive.replicaCount: 2
+    asserts:
+      - matchRegex:
+          path: data["hashrings.json"]
+          pattern: "RELEASE-NAME-thanos-receive-0\\.RELEASE-NAME-thanos-receive-headless"
+
+  - it: does not render the standalone ingress in split mode
+    template: receive/ingress.yaml
+    values:
+      - _split_defaults.yaml
+    set:
+      receive.ingester.ingress.http.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: does not render the standalone httpRoute in split mode
+    template: receive/httproute.yaml
+    values:
+      - _split_defaults.yaml
+    set:
+      receive.ingester.httpRoute.enabled: true
+      receive.ingester.httpRoute.parentRefs:
+        - name: gateway
+      receive.ingester.httpRoute.hostnames:
+        - thanos.example.com
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # -- Split mode: router ---------------------------------------------------
+
+  - it: does not render the router deployment in standalone mode
+    template: receive/split/router-deployment.yaml
+    set:
+      receive.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: applies ingester pod labels to the ingester pod template in split mode
+    template: receive/statefulset.yaml
+    values:
+      - _split_defaults.yaml
+    set:
+      receive.ingester.podLabels:
+        role: ingester
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels.role
+          value: ingester
+
+  - it: falls back to receive.podLabels for the ingester in split mode
+    template: receive/statefulset.yaml
+    values:
+      - _split_defaults.yaml
+    set:
+      receive.podLabels:
+        tier: write
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels.tier
+          value: write
+
+  - it: applies router pod labels to the router pod template in split mode
+    template: receive/split/router-deployment.yaml
+    values:
+      - _split_defaults.yaml
+    set:
+      receive.router.podLabels:
+        role: router
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels.role
+          value: router
+
+  - it: renders the router deployment in split mode
+    template: receive/split/router-deployment.yaml
+    values:
+      - _split_defaults.yaml
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive-router
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --receive.hashrings-file=/etc/thanos/hashrings.json
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --receive.replication-factor=1
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --label=receive_router_replica="$(POD_NAME)"
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: --tsdb.path=/var/thanos/receive
+
+  - it: applies the configured replication factor on the router
+    template: receive/split/router-deployment.yaml
+    values:
+      - _split_defaults.yaml
+    set:
+      receive.router.replicaCount: 4
+      receive.router.replicationFactor: 3
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 4
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --receive.replication-factor=3
+
+  - it: forwards tenancyHeader to the router when set
+    template: receive/split/router-deployment.yaml
+    values:
+      - _split_defaults.yaml
+    set:
+      receive.ingester.tenancyHeader: THANOS-TENANT
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: --receive.tenant-header=THANOS-TENANT
+
+  - it: renders the router service in split mode
+    template: receive/split/router-service.yaml
+    values:
+      - _split_defaults.yaml
+    asserts:
+      - isKind:
+          of: Service
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive-router
+      - equal:
+          path: spec.selector["app.kubernetes.io/component"]
+          value: receive-router
+
+  - it: does not render the router service in standalone mode
+    template: receive/split/router-service.yaml
+    set:
+      receive.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders the router servicemonitor when enabled in split mode
+    template: receive/split/router-servicemonitor.yaml
+    values:
+      - _split_defaults.yaml
+    set:
+      receive.router.serviceMonitor.enabled: true
+    asserts:
+      - isKind:
+          of: ServiceMonitor
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive-router
+
+  - it: renders the router pdb when enabled in split mode
+    template: receive/split/router-pdb.yaml
+    values:
+      - _split_defaults.yaml
+    set:
+      receive.router.pdb.enabled: true
+      receive.router.pdb.minAvailable: 1
+    asserts:
+      - isKind:
+          of: PodDisruptionBudget
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive-router
+      - equal:
+          path: spec.minAvailable
+          value: 1
+
+  - it: renders the router networkpolicy in split mode when networkPolicies are enabled
+    template: receive/split/router-networkpolicy.yaml
+    values:
+      - _split_defaults.yaml
+    set:
+      global.networkPolicies: true
+    asserts:
+      - isKind:
+          of: NetworkPolicy
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive-router
+
+  - it: renders the router ingress when enabled in split mode
+    template: receive/split/router-ingress.yaml
+    values:
+      - _split_defaults.yaml
+    set:
+      receive.router.ingress.http.enabled: true
+    asserts:
+      - isKind:
+          of: Ingress
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive-router
+
+  - it: renders the router remoteWrite ingress when enabled in split mode
+    template: receive/split/router-ingress.yaml
+    values:
+      - _split_defaults.yaml
+    set:
+      receive.router.ingress.remoteWrite.enabled: true
+      receive.router.ingress.remoteWrite.hosts:
+        - host: thanos-receive-router-remote-write.local
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - isKind:
+          of: Ingress
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive-router-remote-write
+      - equal:
+          path: spec.rules[0].http.paths[0].backend.service.port.name
+          value: remote-write
+
+  - it: renders the router httpRoute when enabled in split mode
+    template: receive/split/router-httproute.yaml
+    values:
+      - _split_defaults.yaml
+    set:
+      receive.router.httpRoute.enabled: true
+      receive.router.httpRoute.parentRefs:
+        - name: gateway
+      receive.router.httpRoute.hostnames:
+        - thanos-receive.example.com
+    asserts:
+      - isKind:
+          of: HTTPRoute
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-receive-router

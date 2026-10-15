@@ -1,0 +1,59 @@
+{{- if .Values.ruler.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    {{- include "thanos.annotations" (dict "Values" .Values "component" "ruler") | nindent 4 }}
+    {{- with .Values.ruler.service.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  labels:
+    app.kubernetes.io/component: ruler
+    {{- include "thanos.labels" . | nindent 4 }}
+    {{- with .Values.ruler.service.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  name: {{ include "thanos.compName" (list . "ruler") }}
+  namespace: {{ include "thanos.namespace" . }}
+spec:
+  ports:
+    - name: http
+      port: {{ .Values.ruler.service.httpPort }}
+      targetPort: http
+      {{- with .Values.ruler.service.httpNodePort }}
+      nodePort: {{ . }}
+      {{- end }}
+  selector:
+    {{- include "thanos.selectorLabels" (dict "root" $ "component" "ruler") | nindent 4 }}
+  type: {{ .Values.ruler.service.type }}
+---
+# Headless Service backing the StatefulSet: stable per-pod DNS for Query's gRPC
+# fan-out. Like the per-shard Store Gateway Services, it intentionally omits the
+# `app.kubernetes.io/component: ruler` metadata label so the shared
+# ServiceMonitor selects only the ClusterIP Service above and does not scrape
+# every pod twice.
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    {{- include "thanos.annotations" (dict "Values" .Values "component" "ruler") | nindent 4 }}
+    {{- with .Values.ruler.service.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  labels:
+    {{- include "thanos.labels" . | nindent 4 }}
+    {{- with .Values.ruler.service.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  name: {{ include "thanos.compName" (list . "ruler") }}-headless
+  namespace: {{ include "thanos.namespace" . }}
+spec:
+  clusterIP: None
+  type: ClusterIP
+  ports:
+    - name: grpc
+      port: {{ .Values.ruler.service.grpcPort }}
+      targetPort: grpc
+  selector:
+    {{- include "thanos.selectorLabels" (dict "root" $ "component" "ruler") | nindent 4 }}
+{{- end }}

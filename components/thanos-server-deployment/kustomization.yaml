@@ -1,0 +1,54 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: thanos-system
+
+resources:
+  - namespace.yaml
+  - objstore-secret.yaml
+  - query-route.yaml
+  - bucket-web-route.yaml
+  - service-ca-bundle.yaml
+  - compactor-safety-vap.yaml
+  - ruler-rbac-namespace-scope.yaml
+  - storegateway-index-cache-config.yaml
+
+# Delete the chart-generated ClusterRole/ClusterRoleBinding — replaced by
+# the namespace-scoped Role/RoleBinding in ruler-rbac-namespace-scope.yaml
+patches:
+  - target:
+      group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: thanos-ruler-rule-importer
+    patch: |
+      $patch: delete
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRole
+      metadata:
+        name: thanos-ruler-rule-importer
+  - target:
+      group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+      name: thanos-ruler-rule-importer
+    patch: |
+      $patch: delete
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: ClusterRoleBinding
+      metadata:
+        name: thanos-ruler-rule-importer
+
+helmGlobals:
+  chartHome: ../../.helm-charts
+
+helmCharts:
+  - name: thanos
+    releaseName: thanos
+    namespace: thanos-system
+    valuesFile: values.yaml
+  - name: memcached
+    releaseName: thanos-memcached-qf
+    namespace: thanos-system
+    valuesFile: values-memcached-qf.yaml
+  - name: memcached
+    releaseName: thanos-memcached-store
+    namespace: thanos-system
+    valuesFile: values-memcached-store.yaml

@@ -1,0 +1,959 @@
+suite: compactor component
+
+tests:
+  # -- StatefulSet basics ---------------------------------------------
+
+  - it: renders statefulset when compactor is enabled
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+    asserts:
+      - isKind:
+          of: StatefulSet
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-compactor
+
+  - it: does not render when compactor is disabled
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: sets the correct replica count
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      compactor.replicaCount: 3
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 3
+
+  - it: renders minReadySeconds when set
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      compactor.minReadySeconds: 30
+    asserts:
+      - equal:
+          path: spec.minReadySeconds
+          value: 30
+
+  - it: omits minReadySeconds when zero
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      compactor.minReadySeconds: 0
+    asserts:
+      - notExists:
+          path: spec.minReadySeconds
+
+  - it: uses the global image repository and app version
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      global.image.registry: quay.io
+      global.image.repository: thanos/thanos
+    chart:
+      appVersion: "x.y.z"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: quay.io/thanos/thanos:x.y.z
+
+  - it: uses the global image repository and tag
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      global.image.registry: quay.io
+      global.image.repository: thanos/thanos
+      global.image.tag: v0.40.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: quay.io/thanos/thanos:v0.40.0
+
+  - it: passes extra CLI args
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      compactor.extraArgs:
+        - --log.level=debug
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--log.level=debug"
+
+  - it: renders default retention flags and --wait
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--retention.resolution-raw=30d"
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--retention.resolution-5m=90d"
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--retention.resolution-1h=365d"
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--wait"
+
+  - it: overrides retention durations via compactor.retention
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      compactor.retention.resolutionRaw: 2d
+      compactor.retention.resolution5m: 10d
+      compactor.retention.resolution1h: 11d
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--retention.resolution-raw=2d"
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--retention.resolution-5m=10d"
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--retention.resolution-1h=11d"
+
+  - it: omits retention flag when the value is empty
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      compactor.retention.resolutionRaw: ""
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: "--retention.resolution-raw="
+          any: true
+
+  - it: always passes --wait to keep the StatefulSet pod alive
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      compactor.extraArgs: []
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--wait"
+
+  - it: creates persistence volume claim template
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      compactor.persistence.enabled: true
+      compactor.persistence.size: 50Gi
+    asserts:
+      - isNotEmpty:
+          path: spec.volumeClaimTemplates
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.resources.requests.storage
+          value: 50Gi
+      - notExists:
+          path: spec.volumeClaimTemplates[0].spec.volumeAttributesClassName
+
+  - it: fail if persistence attribute class is specified but not supported
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      compactor.persistence.enabled: true
+      compactor.persistence.size: 50Gi
+      compactor.persistence.volumeAttributesClassName: "unsupported"
+    asserts:
+      - failedTemplate:
+          errorMessage: "volumeAttributesClassName has been specified for 'compactor'. However, 'storage.k8s.io/v1/VolumeAttributesClass' isn't supported"
+
+  - it: render persistence attribute class if specified and supported
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      compactor.persistence.enabled: true
+      compactor.persistence.size: 50Gi
+      compactor.persistence.volumeAttributesClassName: "supported"
+    capabilities:
+      apiVersions:
+        - storage.k8s.io/v1/VolumeAttributesClass
+    asserts:
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.volumeAttributesClassName
+          value: supported
+
+  - it: uses emptyDir when persistence is disabled
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      compactor.persistence.enabled: false
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: data
+            emptyDir: {}
+
+  - it: mounts existing PVC when existingClaim is set
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      compactor.persistence.enabled: true
+      compactor.persistence.existingClaim: compactor-existing-pvc
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: data
+            persistentVolumeClaim:
+              claimName: compactor-existing-pvc
+      - notExists:
+          path: spec.volumeClaimTemplates
+
+  - it: creates volumeClaimTemplates when existingClaim is empty
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      compactor.persistence.enabled: true
+      compactor.persistence.existingClaim: ""
+      compactor.persistence.size: 50Gi
+    asserts:
+      - isNotEmpty:
+          path: spec.volumeClaimTemplates
+      - equal:
+          path: spec.volumeClaimTemplates[0].spec.resources.requests.storage
+          value: 50Gi
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: data
+            persistentVolumeClaim:
+              claimName: ""
+          any: true
+
+  - it: ignores existingClaim when persistence is disabled
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      compactor.persistence.enabled: false
+      compactor.persistence.existingClaim: compactor-existing-pvc
+    asserts:
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: data
+            emptyDir: {}
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: data
+            persistentVolumeClaim:
+              claimName: compactor-existing-pvc
+          any: true
+      - notExists:
+          path: spec.volumeClaimTemplates
+
+  # -- Annotations and labels -----------------------------------------
+
+  - it: applies component annotations
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      compactor.annotations:
+        custom-annotation: my-value
+    asserts:
+      - equal:
+          path: metadata.annotations.custom-annotation
+          value: my-value
+
+  - it: applies component labels
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      compactor.labels:
+        custom-label: my-value
+    asserts:
+      - equal:
+          path: metadata.labels.custom-label
+          value: my-value
+
+  - it: applies pod labels to the pod template only
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      compactor.podLabels:
+        azure.workload.identity/use: "true"
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels["azure.workload.identity/use"]
+          value: "true"
+      - notExists:
+          path: metadata.labels["azure.workload.identity/use"]
+
+  # -- Extra env vars -------------------------------------------------
+
+  - it: injects component extraEnv
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      compactor.extraEnv:
+        - name: LOG_FORMAT
+          value: json
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: LOG_FORMAT
+            value: json
+
+  - it: merges global and component extraEnv with component winning
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      global.extraEnv:
+        - name: LOG_FORMAT
+          value: json
+        - name: SHARED_VAR
+          value: global-value
+      compactor.extraEnv:
+        - name: SHARED_VAR
+          value: component-value
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: LOG_FORMAT
+            value: json
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SHARED_VAR
+            value: component-value
+
+  # -- Extra envFrom vars -----------------------------------------------
+
+  - it: merges global and component extraEnvFrom with component winning
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      global.extraEnvFrom:
+        - name: GLOBAL_FROM
+          value: global-value
+        - name: SHARED_FROM
+          value: global-value
+      compactor.extraEnvFrom:
+        - name: SHARED_FROM
+          value: component-value
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].envFrom
+          content:
+            name: GLOBAL_FROM
+            value: global-value
+      - contains:
+          path: spec.template.spec.containers[0].envFrom
+          content:
+            name: SHARED_FROM
+            value: component-value
+
+  # -- Security contexts ----------------------------------------------
+
+  - it: applies global container security context
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      global.containerSecurityContext:
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+          value: true
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsNonRoot
+          value: true
+
+  - it: applies component container security context overriding global
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      global.containerSecurityContext:
+        runAsNonRoot: true
+      compactor.containerSecurityContext:
+        runAsNonRoot: false
+        runAsUser: 1001
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsNonRoot
+          value: false
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsUser
+          value: 1001
+
+  - it: applies pod security context
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      compactor.podSecurityContext:
+        fsGroup: 1001
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.fsGroup
+          value: 1001
+
+  # -- DNS configuration -----------------------------------------------
+
+  - it: applies global dnsConfig as fallback
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      global.dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0].name
+          value: ndots
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0].value
+          value: "1"
+
+  - it: applies component dnsConfig overriding global
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      global.dnsConfig:
+        options:
+          - name: ndots
+            value: "5"
+      compactor.dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0].name
+          value: ndots
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0].value
+          value: "1"
+
+  - it: does not render dnsConfig when not set
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+    asserts:
+      - notExists:
+          path: spec.template.spec.dnsConfig
+
+  # -- Scheduling and placement ---------------------------------------
+
+  - it: applies component affinity overriding global
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      global.affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: topology.kubernetes.io/zone
+                    operator: In
+                    values:
+                      - ap-southeast-2a
+      compactor.affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/instance: thanos
+                topologyKey: kubernetes.io/hostname
+    asserts:
+      - isNotEmpty:
+          path: spec.template.spec.affinity.podAntiAffinity
+      - notExists:
+          path: spec.template.spec.affinity.nodeAffinity
+
+  - it: applies global affinity as fallback
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      global.affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: topology.kubernetes.io/zone
+                    operator: In
+                    values:
+                      - ap-southeast-2a
+    asserts:
+      - isNotEmpty:
+          path: spec.template.spec.affinity.nodeAffinity
+
+  - it: applies component nodeSelector overriding global
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      global.nodeSelector:
+        node-role: node
+      compactor.nodeSelector:
+        node-role: thanos
+    asserts:
+      - equal:
+          path: spec.template.spec.nodeSelector.node-role
+          value: thanos
+
+  - it: applies global nodeSelector as fallback
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      global.nodeSelector:
+        node-role: thanos
+    asserts:
+      - equal:
+          path: spec.template.spec.nodeSelector.node-role
+          value: thanos
+
+  - it: applies component tolerations
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      compactor.tolerations:
+        - key: dedicated
+          operator: Equal
+          value: thanos
+          effect: NoSchedule
+    asserts:
+      - contains:
+          path: spec.template.spec.tolerations
+          content:
+            key: dedicated
+            operator: Equal
+            value: thanos
+            effect: NoSchedule
+
+  - it: applies global tolerations as fallback
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      global.tolerations:
+        - key: dedicated
+          operator: Equal
+          value: thanos
+          effect: NoSchedule
+    asserts:
+      - contains:
+          path: spec.template.spec.tolerations
+          content:
+            key: dedicated
+            operator: Equal
+            value: thanos
+            effect: NoSchedule
+
+  - it: applies component topologySpreadConstraints overriding global
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      global.topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: thanos
+      compactor.topologySpreadConstraints:
+        - maxSkew: 2
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: thanos
+    asserts:
+      - contains:
+          path: spec.template.spec.topologySpreadConstraints
+          content:
+            maxSkew: 2
+            topologyKey: topology.kubernetes.io/zone
+            whenUnsatisfiable: ScheduleAnyway
+            labelSelector:
+              matchLabels:
+                app: thanos
+
+  - it: applies global topologySpreadConstraints as fallback
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      global.topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: thanos
+    asserts:
+      - contains:
+          path: spec.template.spec.topologySpreadConstraints
+          content:
+            maxSkew: 1
+            topologyKey: topology.kubernetes.io/zone
+            whenUnsatisfiable: DoNotSchedule
+            labelSelector:
+              matchLabels:
+                app: thanos
+
+  - it: applies component priorityClassName overriding global
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      global.priorityClassName: high-priority
+      compactor.priorityClassName: critical
+    asserts:
+      - equal:
+          path: spec.template.spec.priorityClassName
+          value: critical
+
+  - it: applies global priorityClassName as fallback
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      global.priorityClassName: high-priority
+    asserts:
+      - equal:
+          path: spec.template.spec.priorityClassName
+          value: high-priority
+
+  # -- Extra init and sidecar containers ------------------------------
+
+  - it: merges global and component extraInitContainers
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      global.extraInitContainers:
+        - name: global-init
+          image: busybox:latest
+          command: ["echo", "global"]
+      compactor.extraInitContainers:
+        - name: component-init
+          image: busybox:latest
+          command: ["echo", "component"]
+    asserts:
+      - contains:
+          path: spec.template.spec.initContainers
+          content:
+            name: global-init
+            image: busybox:latest
+            command: ["echo", "global"]
+      - contains:
+          path: spec.template.spec.initContainers
+          content:
+            name: component-init
+            image: busybox:latest
+            command: ["echo", "component"]
+
+  - it: merges global and component extraContainers
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      global.extraContainers:
+        - name: global-init
+          image: busybox:latest
+          command: ["echo", "global"]
+      compactor.extraContainers:
+        - name: component-init
+          image: busybox:latest
+          command: ["echo", "component"]
+    asserts:
+      - contains:
+          path: spec.template.spec.containers
+          content:
+            name: global-init
+            image: busybox:latest
+            command: ["echo", "global"]
+      - contains:
+          path: spec.template.spec.containers
+          content:
+            name: component-init
+            image: busybox:latest
+            command: ["echo", "component"]
+
+  # -- Service --------------------------------------------------------
+
+  - it: applies service annotations
+    template: compactor/service.yaml
+    set:
+      compactor.enabled: true
+      compactor.service.annotations:
+        custom-annotation: my-value
+    asserts:
+      - equal:
+          path: metadata.annotations.custom-annotation
+          value: my-value
+
+  - it: applies service labels
+    template: compactor/service.yaml
+    set:
+      compactor.enabled: true
+      compactor.service.labels:
+        monitoring: "true"
+    asserts:
+      - equal:
+          path: metadata.labels.monitoring
+          value: "true"
+
+  # -- PodDisruptionBudget --------------------------------------------
+
+  - it: renders PDB when component pdb is enabled
+    template: compactor/pdb.yaml
+    set:
+      compactor.enabled: true
+      compactor.pdb.enabled: true
+      compactor.pdb.maxUnavailable: "1"
+    asserts:
+      - isKind:
+          of: PodDisruptionBudget
+      - equal:
+          path: spec.maxUnavailable
+          value: 1
+
+  - it: renders PDB via global pdb.enabled fallback
+    template: compactor/pdb.yaml
+    set:
+      compactor.enabled: true
+      global.pdb.enabled: true
+      global.pdb.minAvailable: "1"
+    asserts:
+      - isKind:
+          of: PodDisruptionBudget
+      - equal:
+          path: spec.minAvailable
+          value: 1
+
+  - it: component PDB values override global
+    template: compactor/pdb.yaml
+    set:
+      compactor.enabled: true
+      global.pdb.enabled: true
+      global.pdb.minAvailable: "1"
+      compactor.pdb.minAvailable: "3"
+    asserts:
+      - equal:
+          path: spec.minAvailable
+          value: 3
+
+  - it: does not render PDB when both component and global pdb are disabled
+    template: compactor/pdb.yaml
+    set:
+      compactor.enabled: true
+      compactor.pdb.enabled: false
+      global.pdb.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # -- Ingress -----------------------------------------------------------
+
+  - it: renders ingress when enabled
+    template: compactor/ingress.yaml
+    set:
+      compactor.enabled: true
+      compactor.ingress.enabled: true
+      compactor.ingress.hosts:
+        - host: thanos.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - isKind:
+          of: Ingress
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-compactor
+
+  - it: applies global.podAnnotations to compactor ingress metadata
+    template: compactor/ingress.yaml
+    set:
+      compactor.enabled: true
+      compactor.ingress.enabled: true
+      compactor.ingress.hosts:
+        - host: thanos.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+      global.podAnnotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+    asserts:
+      - equal:
+          path: metadata.annotations["cluster-autoscaler.kubernetes.io/safe-to-evict"]
+          value: "false"
+
+  - it: applies global.podAnnotations to compactor pod template
+    template: compactor/statefulset.yaml
+    set:
+      compactor.enabled: true
+      global.podAnnotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["cluster-autoscaler.kubernetes.io/safe-to-evict"]
+          value: "false"
+
+  - it: does not render ingress when disabled
+    template: compactor/ingress.yaml
+    set:
+      compactor.enabled: true
+      compactor.ingress.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: sets ingress class name
+    template: compactor/ingress.yaml
+    set:
+      compactor.enabled: true
+      compactor.ingress.enabled: true
+      compactor.ingress.className: nginx
+      compactor.ingress.hosts:
+        - host: thanos.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: nginx
+
+  - it: sets ingress host and path
+    template: query/ingress.yaml
+    set:
+      query.enabled: true
+      query.ingress.enabled: true
+      query.ingress.hosts:
+        - host: thanos.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.rules[0].host
+          value: thanos.example.com
+      - equal:
+          path: spec.rules[0].http.paths[0].path
+          value: /
+
+  # -- ServiceMonitor ----------------------------------------------------
+
+  - it: renders servicemonitor when component enabled
+    template: compactor/servicemonitor.yaml
+    set:
+      compactor.enabled: true
+      compactor.serviceMonitor.enabled: true
+    asserts:
+      - isKind:
+          of: ServiceMonitor
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-compactor
+
+  - it: renders servicemonitor via global fallback
+    template: compactor/servicemonitor.yaml
+    set:
+      compactor.enabled: true
+      global.serviceMonitor.enabled: true
+    asserts:
+      - isKind:
+          of: ServiceMonitor
+
+  - it: does not render servicemonitor when disabled
+    template: compactor/servicemonitor.yaml
+    set:
+      compactor.enabled: true
+      compactor.serviceMonitor.enabled: false
+      global.serviceMonitor.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # -- VerticalPodAutoscaler ---------------------------------------------
+
+  - it: renders VPA when enabled and CRD is available
+    template: compactor/vpa.yaml
+    capabilities:
+      majorVersion: 1
+      minorVersion: 29
+      apiVersions:
+        - autoscaling.k8s.io/v1/VerticalPodAutoscaler
+    set:
+      compactor.enabled: true
+      compactor.vpa.enabled: true
+      compactor.vpa.minAllowed.cpu: 500m
+      compactor.vpa.minAllowed.memory: 512Mi
+      compactor.vpa.maxAllowed.cpu: "4"
+      compactor.vpa.maxAllowed.memory: 8Gi
+    asserts:
+      - isKind:
+          of: VerticalPodAutoscaler
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-compactor
+      - equal:
+          path: spec.resourcePolicy.containerPolicies[0].minAllowed.cpu
+          value: 500m
+      - equal:
+          path: spec.resourcePolicy.containerPolicies[0].maxAllowed.memory
+          value: 8Gi
+
+  - it: does not render VPA when disabled
+    template: compactor/vpa.yaml
+    capabilities:
+      majorVersion: 1
+      minorVersion: 29
+      apiVersions:
+        - autoscaling.k8s.io/v1/VerticalPodAutoscaler
+    set:
+      compactor.enabled: true
+      compactor.vpa.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # -- NetworkPolicy -------------------------------------------------------
+
+  - it: does not render networkpolicy when networkPolicies is disabled
+    template: compactor/networkpolicy.yaml
+    set:
+      compactor.enabled: true
+      global.networkPolicies: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: does not render networkpolicy when compactor is disabled
+    template: compactor/networkpolicy.yaml
+    set:
+      compactor.enabled: false
+      global.networkPolicies: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders networkpolicy when compactor and networkPolicies are enabled
+    template: compactor/networkpolicy.yaml
+    set:
+      compactor.enabled: true
+      global.networkPolicies: true
+    asserts:
+      - isKind:
+          of: NetworkPolicy
+      - equal:
+          path: apiVersion
+          value: networking.k8s.io/v1
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-compactor

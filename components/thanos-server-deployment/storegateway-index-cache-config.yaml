@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: thanos-storegateway-index-cache
+  labels:
+    app.kubernetes.io/name: thanos
+    app.kubernetes.io/component: storegateway
+data:
+  index-cache.yaml: |
+    type: MEMCACHED
+    config:
+      addresses:
+        - dnssrv+_memcache._tcp.thanos-memcached-store-headless.thanos-system.svc
+      timeout: 2s
+      max_idle_connections: 1000
+      max_async_concurrency: 100
+      max_async_buffer_size: 100000
+      max_get_multi_concurrency: 900
+      max_get_multi_batch_size: 1000
+      max_item_size: 1MiB
+      dns_provider_update_interval: 10s

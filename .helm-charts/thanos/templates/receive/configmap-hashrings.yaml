@@ -1,0 +1,16 @@
+{{- $external := include "thanos.receive.hashringsExternal" . | fromYaml -}}
+{{- if and .Values.receive.enabled (not $external.enabled) }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "thanos.receive.hashringsConfigMapName" . }}
+  namespace: {{ include "thanos.namespace" . }}
+  labels:
+    {{- include "thanos.labels" . | nindent 4 }}
+    app.kubernetes.io/component: receive
+  annotations:
+    {{- include "thanos.annotations" (dict "Values" .Values "component" "ingester" "parent" "receive") | nindent 4 }}
+data:
+  hashrings.json: |
+    {{- include "thanos.receive.hashrings" . | nindent 4 }}
+{{- end }}

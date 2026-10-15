@@ -1,0 +1,29 @@
+{{- if .Values.queryFrontend.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "thanos.compName" (list . "query-frontend") }}
+  namespace: {{ include "thanos.namespace" . }}
+  labels:
+    app.kubernetes.io/component: query-frontend
+    {{- include "thanos.labels" . | nindent 4 }}
+    {{- with .Values.queryFrontend.service.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- include "thanos.annotations" (dict "Values" .Values "component" "query-frontend") | nindent 4 }}
+    {{- with .Values.queryFrontend.service.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  type: {{ .Values.queryFrontend.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.queryFrontend.service.port }}
+      targetPort: http
+      {{- with .Values.queryFrontend.service.nodePort }}
+      nodePort: {{ . }}
+      {{- end }}
+  selector:
+    {{- include "thanos.selectorLabels" (dict "root" $ "component" "query-frontend") | nindent 4 }}
+{{- end }}

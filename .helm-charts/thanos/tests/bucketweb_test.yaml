@@ -1,0 +1,979 @@
+suite: bucketweb component
+
+tests:
+  # -- Deployment basics ----------------------------------------------
+
+  - it: renders deployment when bucket and bucketweb are enabled
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+    asserts:
+      - isKind:
+          of: Deployment
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-bucketweb
+
+  - it: does not render when bucket is disabled
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: false
+      bucket.bucketweb.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: does not render when bucketweb is disabled
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: sets the correct replica count
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.replicaCount: 3
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 3
+
+  - it: leaves replicas to the HPA when autoscaling is enabled
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.replicaCount: 3
+      bucket.bucketweb.autoscaling.enabled: true
+    asserts:
+      - notExists:
+          path: spec.replicas
+
+  - it: uses the global image repository and app version
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      global.image.registry: quay.io
+      global.image.repository: thanos/thanos
+    chart:
+      appVersion: "x.y.z"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: quay.io/thanos/thanos:x.y.z
+
+  - it: uses the global image repository and tag
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      global.image.registry: quay.io
+      global.image.repository: thanos/thanos
+      global.image.tag: v0.40.0
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: quay.io/thanos/thanos:v0.40.0
+
+  - it: passes extra CLI args
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.extraArgs:
+        - --log.level=debug
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--log.level=debug"
+
+  # -- Annotations and labels -----------------------------------------
+
+  - it: applies component annotations
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.annotations:
+        custom-annotation: my-value
+    asserts:
+      - equal:
+          path: metadata.annotations.custom-annotation
+          value: my-value
+
+  - it: applies component labels
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.labels:
+        custom-label: my-value
+    asserts:
+      - equal:
+          path: metadata.labels.custom-label
+          value: my-value
+
+  - it: applies pod labels to the pod template only
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.podLabels:
+        azure.workload.identity/use: "true"
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels["azure.workload.identity/use"]
+          value: "true"
+      - notExists:
+          path: metadata.labels["azure.workload.identity/use"]
+
+  # -- Extra env vars -------------------------------------------------
+
+  - it: injects component extraEnv
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.extraEnv:
+        - name: LOG_FORMAT
+          value: json
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: LOG_FORMAT
+            value: json
+
+  - it: merges global and component extraEnv with component winning
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      global.extraEnv:
+        - name: LOG_FORMAT
+          value: json
+        - name: SHARED_VAR
+          value: global-value
+      bucket.bucketweb.extraEnv:
+        - name: SHARED_VAR
+          value: component-value
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: LOG_FORMAT
+            value: json
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: SHARED_VAR
+            value: component-value
+
+  # -- Extra envFrom vars -----------------------------------------------
+
+  - it: merges global and component extraEnvFrom with component winning
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      global.extraEnvFrom:
+        - name: GLOBAL_FROM
+          value: global-value
+        - name: SHARED_FROM
+          value: global-value
+      bucket.bucketweb.extraEnvFrom:
+        - name: SHARED_FROM
+          value: component-value
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].envFrom
+          content:
+            name: GLOBAL_FROM
+            value: global-value
+      - contains:
+          path: spec.template.spec.containers[0].envFrom
+          content:
+            name: SHARED_FROM
+            value: component-value
+
+  # -- Security contexts ----------------------------------------------
+
+  - it: applies global container security context
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      global.containerSecurityContext:
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem
+          value: true
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsNonRoot
+          value: true
+
+  - it: applies component container security context overriding global
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      global.containerSecurityContext:
+        runAsNonRoot: true
+      bucket.bucketweb.containerSecurityContext:
+        runAsNonRoot: false
+        runAsUser: 1001
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsNonRoot
+          value: false
+      - equal:
+          path: spec.template.spec.containers[0].securityContext.runAsUser
+          value: 1001
+
+  - it: applies pod security context
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.podSecurityContext:
+        fsGroup: 1001
+    asserts:
+      - equal:
+          path: spec.template.spec.securityContext.fsGroup
+          value: 1001
+
+  # -- DNS configuration -----------------------------------------------
+
+  - it: applies global dnsConfig as fallback
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      global.dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0].name
+          value: ndots
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0].value
+          value: "1"
+
+  - it: applies component dnsConfig overriding global
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      global.dnsConfig:
+        options:
+          - name: ndots
+            value: "5"
+      bucket.bucketweb.dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
+    asserts:
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0].name
+          value: ndots
+      - equal:
+          path: spec.template.spec.dnsConfig.options[0].value
+          value: "1"
+
+  - it: does not render dnsConfig when not set
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+    asserts:
+      - notExists:
+          path: spec.template.spec.dnsConfig
+
+  # -- Scheduling and placement ---------------------------------------
+
+  - it: applies component affinity overriding global
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      global.affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: topology.kubernetes.io/zone
+                    operator: In
+                    values:
+                      - ap-southeast-2a
+      bucket.bucketweb.affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/instance: thanos
+                topologyKey: kubernetes.io/hostname
+    asserts:
+      - isNotEmpty:
+          path: spec.template.spec.affinity.podAntiAffinity
+      - notExists:
+          path: spec.template.spec.affinity.nodeAffinity
+
+  - it: applies global affinity as fallback
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      global.affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: topology.kubernetes.io/zone
+                    operator: In
+                    values:
+                      - ap-southeast-2a
+    asserts:
+      - isNotEmpty:
+          path: spec.template.spec.affinity.nodeAffinity
+
+  - it: applies component nodeSelector overriding global
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      global.nodeSelector:
+        node-role: node
+      bucket.bucketweb.nodeSelector:
+        node-role: thanos
+    asserts:
+      - equal:
+          path: spec.template.spec.nodeSelector.node-role
+          value: thanos
+
+  - it: applies global nodeSelector as fallback
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      global.nodeSelector:
+        node-role: thanos
+    asserts:
+      - equal:
+          path: spec.template.spec.nodeSelector.node-role
+          value: thanos
+
+  - it: applies component tolerations
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.tolerations:
+        - key: dedicated
+          operator: Equal
+          value: thanos
+          effect: NoSchedule
+    asserts:
+      - contains:
+          path: spec.template.spec.tolerations
+          content:
+            key: dedicated
+            operator: Equal
+            value: thanos
+            effect: NoSchedule
+
+  - it: applies global tolerations as fallback
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      global.tolerations:
+        - key: dedicated
+          operator: Equal
+          value: thanos
+          effect: NoSchedule
+    asserts:
+      - contains:
+          path: spec.template.spec.tolerations
+          content:
+            key: dedicated
+            operator: Equal
+            value: thanos
+            effect: NoSchedule
+
+  - it: applies component topologySpreadConstraints overriding global
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      global.topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: thanos
+      bucket.bucketweb.topologySpreadConstraints:
+        - maxSkew: 2
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: thanos
+    asserts:
+      - contains:
+          path: spec.template.spec.topologySpreadConstraints
+          content:
+            maxSkew: 2
+            topologyKey: topology.kubernetes.io/zone
+            whenUnsatisfiable: ScheduleAnyway
+            labelSelector:
+              matchLabels:
+                app: thanos
+
+  - it: applies global topologySpreadConstraints as fallback
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      global.topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: thanos
+    asserts:
+      - contains:
+          path: spec.template.spec.topologySpreadConstraints
+          content:
+            maxSkew: 1
+            topologyKey: topology.kubernetes.io/zone
+            whenUnsatisfiable: DoNotSchedule
+            labelSelector:
+              matchLabels:
+                app: thanos
+
+  - it: applies component priorityClassName overriding global
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      global.priorityClassName: high-priority
+      bucket.bucketweb.priorityClassName: critical
+    asserts:
+      - equal:
+          path: spec.template.spec.priorityClassName
+          value: critical
+
+  - it: applies global priorityClassName as fallback
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      global.priorityClassName: high-priority
+    asserts:
+      - equal:
+          path: spec.template.spec.priorityClassName
+          value: high-priority
+
+  # -- Extra init and sidecar containers ------------------------------
+
+  - it: merges global and component extraInitContainers
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      global.extraInitContainers:
+        - name: global-init
+          image: busybox:latest
+          command: ["echo", "global"]
+      bucket.bucketweb.extraInitContainers:
+        - name: component-init
+          image: busybox:latest
+          command: ["echo", "component"]
+    asserts:
+      - contains:
+          path: spec.template.spec.initContainers
+          content:
+            name: global-init
+            image: busybox:latest
+            command: ["echo", "global"]
+      - contains:
+          path: spec.template.spec.initContainers
+          content:
+            name: component-init
+            image: busybox:latest
+            command: ["echo", "component"]
+
+  - it: merges global and component extraContainers
+    template: bucket/deployment.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      global.extraContainers:
+        - name: global-init
+          image: busybox:latest
+          command: ["echo", "global"]
+      bucket.bucketweb.extraContainers:
+        - name: component-init
+          image: busybox:latest
+          command: ["echo", "component"]
+    asserts:
+      - contains:
+          path: spec.template.spec.containers
+          content:
+            name: global-init
+            image: busybox:latest
+            command: ["echo", "global"]
+      - contains:
+          path: spec.template.spec.containers
+          content:
+            name: component-init
+            image: busybox:latest
+            command: ["echo", "component"]
+
+  # -- Service --------------------------------------------------------
+
+  - it: applies service annotations
+    template: bucket/service.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.service.annotations:
+        custom-annotation: my-value
+    asserts:
+      - equal:
+          path: metadata.annotations.custom-annotation
+          value: my-value
+
+  - it: applies service labels
+    template: bucket/service.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.service.labels:
+        monitoring: "true"
+    asserts:
+      - equal:
+          path: metadata.labels.monitoring
+          value: "true"
+
+  # -- PodDisruptionBudget --------------------------------------------
+
+  - it: renders PDB when component pdb is enabled
+    template: bucket/pdb.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.pdb.enabled: true
+      bucket.bucketweb.pdb.maxUnavailable: "1"
+    asserts:
+      - isKind:
+          of: PodDisruptionBudget
+      - equal:
+          path: spec.maxUnavailable
+          value: 1
+
+  - it: renders PDB via global pdb.enabled fallback
+    template: bucket/pdb.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      global.pdb.enabled: true
+      global.pdb.minAvailable: "1"
+    asserts:
+      - isKind:
+          of: PodDisruptionBudget
+      - equal:
+          path: spec.minAvailable
+          value: 1
+
+  - it: component PDB values override global
+    template: bucket/pdb.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.pdb.minAvailable: "3"
+      global.pdb.enabled: true
+      global.pdb.minAvailable: "1"
+    asserts:
+      - equal:
+          path: spec.minAvailable
+          value: 3
+
+  - it: does not render PDB when both component and global pdb are disabled
+    template: bucket/pdb.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.pdb.enabled: false
+      global.pdb.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # -- Ingress -----------------------------------------------------------
+
+  - it: renders ingress when enabled
+    template: bucket/ingress.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.ingress.enabled: true
+      bucket.bucketweb.ingress.hosts:
+        - host: thanos.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - isKind:
+          of: Ingress
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-bucketweb
+
+  - it: does not render ingress when disabled
+    template: bucket/ingress.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.ingress.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: sets ingress class name
+    template: bucket/ingress.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.ingress.enabled: true
+      bucket.bucketweb.ingress.className: nginx
+      bucket.bucketweb.ingress.hosts:
+        - host: thanos.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.ingressClassName
+          value: nginx
+
+  - it: sets ingress host and path
+    template: bucket/ingress.yaml
+    set:
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.ingress.enabled: true
+      bucket.bucketweb.ingress.hosts:
+        - host: thanos.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+    asserts:
+      - equal:
+          path: spec.rules[0].host
+          value: thanos.example.com
+      - equal:
+          path: spec.rules[0].http.paths[0].path
+          value: /
+
+  # -- ServiceMonitor ----------------------------------------------------
+
+  - it: renders servicemonitor when component enabled
+    template: bucket/servicemonitor.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.serviceMonitor.enabled: true
+    asserts:
+      - isKind:
+          of: ServiceMonitor
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-bucketweb
+
+  - it: renders servicemonitor via global fallback
+    template: bucket/servicemonitor.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      global.serviceMonitor.enabled: true
+    asserts:
+      - isKind:
+          of: ServiceMonitor
+
+  - it: does not render servicemonitor when disabled
+    template: bucket/servicemonitor.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.serviceMonitor.enabled: false
+      global.serviceMonitor.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # -- HorizontalPodAutoscaler ------------------------------------------
+
+  - it: renders HPA when autoscaling is enabled
+    template: bucket/hpa.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.autoscaling.enabled: true
+      bucket.bucketweb.autoscaling.minReplicas: 1
+      bucket.bucketweb.autoscaling.maxReplicas: 3
+      bucket.bucketweb.autoscaling.targetCPUUtilizationPercentage: 80
+    asserts:
+      - isKind:
+          of: HorizontalPodAutoscaler
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-bucketweb
+      - equal:
+          path: spec.minReplicas
+          value: 1
+      - equal:
+          path: spec.maxReplicas
+          value: 3
+
+  - it: does not render HPA when autoscaling is disabled
+    template: bucket/hpa.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.autoscaling.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: does not render HPA when bucket component is disabled
+    template: bucket/hpa.yaml
+    set:
+      bucket.enabled: false
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.autoscaling.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: does not render HPA when bucketweb is disabled
+    template: bucket/hpa.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: false
+      bucket.bucketweb.autoscaling.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: HPA scaleTargetRef targets bucketweb Deployment by default
+    template: bucket/hpa.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.autoscaling.enabled: true
+    asserts:
+      - equal:
+          path: spec.scaleTargetRef.kind
+          value: Deployment
+      - equal:
+          path: spec.scaleTargetRef.name
+          value: RELEASE-NAME-thanos-bucketweb
+
+  - it: HPA scaleTargetRef uses custom targetKind
+    template: bucket/hpa.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.autoscaling.enabled: true
+      bucket.bucketweb.autoscaling.targetKind: StatefulSet
+    asserts:
+      - equal:
+          path: spec.scaleTargetRef.kind
+          value: StatefulSet
+
+  - it: HPA renders CPU metric with correct averageUtilization
+    template: bucket/hpa.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.autoscaling.enabled: true
+      bucket.bucketweb.autoscaling.targetCPUUtilizationPercentage: 60
+    asserts:
+      - contains:
+          path: spec.metrics
+          content:
+            type: Resource
+            resource:
+              name: cpu
+              target:
+                type: Utilization
+                averageUtilization: 60
+
+  - it: HPA renders memory metric when targetMemoryUtilizationPercentage is set
+    template: bucket/hpa.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.autoscaling.enabled: true
+      bucket.bucketweb.autoscaling.targetCPUUtilizationPercentage: 80
+      bucket.bucketweb.autoscaling.targetMemoryUtilizationPercentage: 75
+    asserts:
+      - contains:
+          path: spec.metrics
+          content:
+            type: Resource
+            resource:
+              name: memory
+              target:
+                type: Utilization
+                averageUtilization: 75
+
+  - it: HPA renders both CPU and memory metrics when both are set
+    template: bucket/hpa.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.autoscaling.enabled: true
+      bucket.bucketweb.autoscaling.targetCPUUtilizationPercentage: 80
+      bucket.bucketweb.autoscaling.targetMemoryUtilizationPercentage: 75
+    asserts:
+      - lengthEqual:
+          path: spec.metrics
+          count: 2
+      - contains:
+          path: spec.metrics
+          content:
+            type: Resource
+            resource:
+              name: cpu
+              target:
+                type: Utilization
+                averageUtilization: 80
+      - contains:
+          path: spec.metrics
+          content:
+            type: Resource
+            resource:
+              name: memory
+              target:
+                type: Utilization
+                averageUtilization: 75
+
+  - it: HPA renders memory-only metric when CPU is not set
+    template: bucket/hpa.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      bucket.bucketweb.autoscaling.enabled: true
+      bucket.bucketweb.autoscaling.targetCPUUtilizationPercentage: null
+      bucket.bucketweb.autoscaling.targetMemoryUtilizationPercentage: 75
+    asserts:
+      - lengthEqual:
+          path: spec.metrics
+          count: 1
+      - contains:
+          path: spec.metrics
+          content:
+            type: Resource
+            resource:
+              name: memory
+              target:
+                type: Utilization
+                averageUtilization: 75
+
+  # -- Secret objstore ---------------------------------------------------
+
+  - it: renders objstore secret when createSecret is true
+    template: bucket/secret-objstore.yaml
+    set:
+      bucket.enabled: true
+      global.objstore.createSecret: true
+      global.objstore.secretName: thanos-objstore
+      global.objstore.secretKey: objstore.yml
+    asserts:
+      - isKind:
+          of: Secret
+      - equal:
+          path: metadata.name
+          value: thanos-objstore
+
+  - it: does not render objstore secret when createSecret is false
+    template: bucket/secret-objstore.yaml
+    set:
+      bucket.enabled: true
+      global.objstore.createSecret: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: does not render objstore secret when bucket is disabled
+    template: bucket/secret-objstore.yaml
+    set:
+      bucket.enabled: false
+      global.objstore.createSecret: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  # -- NetworkPolicy -------------------------------------------------------
+
+  - it: does not render networkpolicy when networkPolicies is disabled
+    template: bucket/networkpolicy.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      global.networkPolicies: false
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: does not render networkpolicy when bucket is disabled
+    template: bucket/networkpolicy.yaml
+    set:
+      bucket.enabled: false
+      bucket.bucketweb.enabled: true
+      global.networkPolicies: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: does not render networkpolicy when bucketweb is disabled
+    template: bucket/networkpolicy.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: false
+      global.networkPolicies: true
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders networkpolicy when bucket, bucketweb, and networkPolicies are enabled
+    template: bucket/networkpolicy.yaml
+    set:
+      bucket.enabled: true
+      bucket.bucketweb.enabled: true
+      global.networkPolicies: true
+    asserts:
+      - isKind:
+          of: NetworkPolicy
+      - equal:
+          path: apiVersion
+          value: networking.k8s.io/v1
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-thanos-bucketweb

@@ -61,6 +61,9 @@ data:
           cpu: 200m
           memory: 500Mi
     prometheusK8s:
+      remoteWrite:
+      - url: http://metrics-collector.thanos-local.svc.cluster.local:19291/api/v1/write
+        writeRelabelConfigs: []
       additionalAlertmanagerConfigs:
       - apiVersion: v2	
         bearerToken:	

@@ -1,0 +1,17 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: thanos-receive-grpc
+  annotations:
+    haproxy.router.openshift.io/backend-protocol-version: h2
+spec:
+  port:
+    targetPort: grpc
+  tls:
+    termination: reencrypt
+    insecureEdgeTerminationPolicy: None
+  to:
+    kind: Service
+    name: thanos-receive
+    weight: 100
+  wildcardPolicy: None
