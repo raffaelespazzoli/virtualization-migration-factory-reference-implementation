@@ -1,0 +1,5 @@
+[mcp_servers.redhat_dataverse]
+url = "https://mcp.dataverse.redhat.com/mcp/"
+
+[mcp_servers.google-workspace]
+url = "https://gworkspace.corp.redhat.com/mcp"

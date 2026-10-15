@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import tomllib
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 
 class ConfigError(ValueError):
@@ -43,13 +44,10 @@ def _detect_keyed_merge_field(items: list[Any]) -> str | None:
                 value = item[candidate]
                 if not isinstance(value, str):
                     raise ConfigError(
-                        f"keyed array identifier `{candidate}` must be a string, "
-                        f"got {type(value).__name__}"
+                        f"keyed array identifier `{candidate}` must be a string, got {type(value).__name__}"
                     )
                 if not value:
-                    raise ConfigError(
-                        f"keyed array identifier `{candidate}` must not be empty"
-                    )
+                    raise ConfigError(f"keyed array identifier `{candidate}` must not be empty")
             return candidate
     return None
 
@@ -100,7 +98,6 @@ def load_central_config(project_root: Path) -> dict[str, Any]:
     return merge_layers(
         (
             load_toml(bmad_dir / "config.toml", required=True),
-            load_toml(bmad_dir / "config.user.toml"),
             load_toml(bmad_dir / "custom" / "config.toml"),
             load_toml(bmad_dir / "custom" / "config.user.toml"),
         )

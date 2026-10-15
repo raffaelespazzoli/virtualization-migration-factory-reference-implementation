@@ -25,13 +25,72 @@ _MISSING = object()
 
 
 def find_project_root(start: Path) -> Path | None:
+    """Nearest ancestor holding `_bmad/`, falling back to the nearest holding `.git`.
+
+    `_bmad/` outranks `.git` at every depth: a submodule or nested repo carries
+    `.git` without being the BMad project, so treating the two as equal stops the
+    walk short of the root that owns `_bmad/custom/`.
+    """
+    git_root: Path | None = None
     current = start.resolve()
     while True:
-        if (current / "_bmad").exists() or (current / ".git").exists():
+        if (current / "_bmad").is_dir():
             return current
+        if git_root is None and (current / ".git").exists():
+            git_root = current
         if current.parent == current:
-            return None
+            return git_root
         current = current.parent
+
+
+def script_project_root() -> Path | None:
+    """Project root implied by this script's own install path.
+
+    Skills invoke `{project-root}/_bmad/scripts/resolve_customization.py`, so when
+    this file sits at that path its grandparent is a project root the caller already
+    resolved.
+    """
+    parents = Path(__file__).resolve().parents
+    if len(parents) >= 3 and parents[0].name == "scripts" and parents[1].name == "_bmad":
+        return parents[2]
+    return None
+
+
+def candidate_project_roots(skill_dir: Path) -> list[Path]:
+    """Plausible project roots, most trustworthy first.
+
+    The working directory leads because the project is where the user is working,
+    not where the skill happens to be installed — a home-installed skill walks up to
+    `~`, and any `~/_bmad` there would otherwise mask the real project's overrides.
+    """
+    ordered: list[Path] = []
+    for root in (
+        find_project_root(Path.cwd()),
+        script_project_root(),
+        find_project_root(skill_dir),
+    ):
+        if root is not None and root not in ordered:
+            ordered.append(root)
+    return ordered
+
+
+def has_override(root: Path, skill_name: str) -> bool:
+    custom_dir = root / "_bmad" / "custom"
+    return any((custom_dir / name).is_file() for name in (f"{skill_name}.toml", f"{skill_name}.user.toml"))
+
+
+def warn_on_masked_override(chosen: Path, rejected: list[Path], skill_name: str) -> None:
+    """Break the silence when a real override exists under a root we did not pick."""
+    if has_override(chosen, skill_name):
+        return
+    for root in rejected:
+        if has_override(root, skill_name):
+            sys.stderr.write(
+                f"note: resolved project root {chosen} has no customization for "
+                f"`{skill_name}`, but {root} does. Using {chosen}; pass "
+                f"--project-root to select the other explicitly.\n"
+            )
+            return
 
 
 def extract_key(data, dotted_key: str):
@@ -52,12 +111,8 @@ def write_json_stdout(output) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Resolve skill customization using three-layer TOML merge."
-    )
-    parser.add_argument(
-        "--skill", "-s", required=True, help="Absolute path to the skill directory"
-    )
+    parser = argparse.ArgumentParser(description="Resolve skill customization using three-layer TOML merge.")
+    parser.add_argument("--skill", "-s", required=True, help="Absolute path to the skill directory")
     parser.add_argument(
         "--project-root",
         "-p",
@@ -73,11 +128,14 @@ def main() -> int:
     args = parser.parse_args()
 
     skill_dir = Path(args.skill).resolve()
-    project_root = (
-        Path(args.project_root).resolve()
-        if args.project_root
-        else find_project_root(skill_dir) or find_project_root(Path.cwd())
-    )
+    if args.project_root:
+        project_root = Path(args.project_root).resolve()
+    else:
+        candidates = candidate_project_roots(skill_dir)
+        project_root = candidates[0] if candidates else None
+        if project_root is not None:
+            warn_on_masked_override(project_root, candidates[1:], skill_dir.name)
+
     try:
         merged = load_customization(project_root, skill_dir)
     except ConfigError as error:
@@ -92,8 +150,23 @@ def main() -> int:
             if value is not _MISSING:
                 output[key] = value
     write_json_stdout(output)
+    report_owed_setup(skill_dir, project_root)
     return 0
 
 
+def report_owed_setup(skill_dir: Path, project_root: Path | None) -> None:
+    # The resolver is the first thing every skill runs, so it is where a skill
+    # learns that setup owes it something. It must never fail the resolve.
+    try:
+        import setup_check
+    except Exception:
+        return
+    setup_check.report(skill_dir, project_root)
+
+
 if __name__ == "__main__":
+    if sys.platform == "win32":
+        # Piped output on Windows defaults to a legacy code page, not UTF-8.
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
     raise SystemExit(main())

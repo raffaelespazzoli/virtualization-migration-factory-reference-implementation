@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.11"
+# dependencies = ["jinja2>=3.1"]
 # ///
 """Render a skill's Markdown sources into an immutable project snapshot."""
 
@@ -13,24 +14,35 @@ import os
 import re
 import shutil
 import sys
-import tempfile
+import tomllib
+from datetime import date, time
 from pathlib import Path
 from typing import Any
+
+import jinja2
 
 # Installed scripts are consumer files, not a location for interpreter caches.
 sys.dont_write_bytecode = True
 
-from config_utils import ConfigError, load_central_config, load_customization, load_toml
+from config_utils import (  # noqa: E402
+    ConfigError,
+    load_central_config,
+    load_customization,
+    load_toml,
+    structural_merge,
+)
 
 
 class RenderError(ValueError):
     """Raised when rendering cannot safely publish a snapshot."""
 
 
-_CONFIG_TOKEN = re.compile(r"\{\{config\.([A-Za-z0-9_.-]+)\}\}")
-_SHORT_CONFIG_TOKEN = re.compile(r"\{\{\.([A-Za-z0-9_]+)\}\}")
-_CUSTOM_TOKEN = re.compile(r"\{workflow\.([A-Za-z0-9_.-]+)\}")
-_SNAPSHOT_TOKEN = re.compile(r"\[\[bmad-snapshot:([A-Za-z0-9_./-]+\.md)\]\]")
+class _ArgumentParser(argparse.ArgumentParser):
+    def error(self, message: str) -> None:
+        raise RenderError(message)
+
+
+_PARAMETER = r"[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*"
 
 
 def _hash_bytes(content: bytes) -> str:
@@ -38,9 +50,81 @@ def _hash_bytes(content: bytes) -> str:
 
 
 def _canonical_json(value: Any) -> bytes:
-    return json.dumps(
-        value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
-    ).encode("utf-8")
+    return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), default=_json_scalar).encode(
+        "utf-8"
+    )
+
+
+def _json_scalar(value: Any) -> str:
+    if isinstance(value, (date, time)):
+        return value.isoformat()
+    raise TypeError(f"unsupported JSON value: {type(value).__name__}")
+
+
+def _toml_literal(text: str, label: str) -> Any:
+    try:
+        parsed = tomllib.loads(f"value = {text}")
+    except tomllib.TOMLDecodeError as error:
+        raise RenderError(f"invalid TOML value for {label}: {error}") from error
+    if set(parsed) != {"value"}:
+        raise RenderError(f"{label} must contain a single TOML value")
+    return parsed["value"]
+
+
+def _invocation_customization(
+    defaults: dict[str, Any], overrides: Path | None, assignments: list[str]
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    file_layer = load_toml(overrides, required=True) if overrides is not None else {}
+    command_layer: dict[str, Any] = {}
+    assigned: list[str] = []
+    for assignment in assignments:
+        path, separator, raw = assignment.partition("=")
+        if not separator or re.fullmatch(_PARAMETER, path) is None:
+            raise RenderError(f"invalid --set assignment {assignment!r}; expected bare dotted key=value")
+        # A repeated or overlapping path is a caller mistake, not a precedence rule.
+        for earlier in assigned:
+            if path == earlier or path.startswith(f"{earlier}.") or earlier.startswith(f"{path}."):
+                raise RenderError(f"--set `{path}` conflicts with earlier --set `{earlier}`")
+        assigned.append(path)
+        default = _lookup(defaults, path, "customization parameter")
+        value = (
+            raw if isinstance(default, str) and not raw.lstrip().startswith(('"', "'")) else _toml_literal(raw, path)
+        )
+        target = command_layer
+        parts = path.split(".")
+        for part in parts[:-1]:
+            target = target.setdefault(part, {})
+        target[parts[-1]] = value
+    return file_layer, command_layer
+
+
+def _leaf_paths(table: dict[str, Any], prefix: str = "") -> set[str]:
+    leaves: set[str] = set()
+    for key, value in table.items():
+        path = f"{prefix}{key}"
+        if isinstance(value, dict):
+            leaves |= _leaf_paths(value, f"{path}.")
+        else:
+            leaves.add(path)
+    return leaves
+
+
+def _declares(defaults: dict[str, Any], path: str) -> bool:
+    node: Any = defaults
+    for part in path.split("."):
+        if not isinstance(node, dict) or part not in node:
+            return False
+        node = node[part]
+    return True
+
+
+def _check_persistent_layers(project_root: Path, skill_dir: Path, defaults: dict[str, Any] | None) -> None:
+    """A persistent override may only set keys the skill declares; a stale or misspelled key halts."""
+    custom_dir = project_root / "_bmad" / "custom"
+    for layer in (custom_dir / f"{skill_dir.name}.toml", custom_dir / f"{skill_dir.name}.user.toml"):
+        undeclared = sorted(path for path in _leaf_paths(load_toml(layer)) if not _declares(defaults or {}, path))
+        if undeclared:
+            raise RenderError(f"{layer} sets keys {skill_dir.name} does not declare: {', '.join(undeclared)}")
 
 
 def _lookup(data: dict[str, Any], dotted_path: str, label: str) -> Any:
@@ -85,9 +169,7 @@ def _require_review_layers(value: Any, label: str) -> list[dict[str, str]]:
         layer = {
             "id": identifier,
             "name": _require_string(item.get("name", identifier), f"{item_label}.name"),
-            "instruction": _require_string(
-                item.get("instruction"), f"{item_label}.instruction", allow_empty=True
-            ),
+            "instruction": _require_string(item.get("instruction"), f"{item_label}.instruction", allow_empty=True),
         }
         if "when" in item:
             layer["when"] = _require_string(item["when"], f"{item_label}.when")
@@ -119,7 +201,7 @@ def _resolve_config_value(value: Any, label: str, project_root: Path) -> str:
     text = _require_string(value, label)
     if "{project-root}" not in text:
         return text
-    resolved = text.replace("{project-root}", str(project_root))
+    resolved = text.replace("{project-root}", project_root.as_posix())
     if not Path(resolved).is_absolute():
         raise RenderError(f"{label} must resolve to an absolute path: {resolved}")
     return resolved
@@ -137,9 +219,7 @@ def _find_config_values(data: Any, key: str, prefix: str = "") -> list[tuple[str
     return matches
 
 
-def _resolve_short_config(
-    central: dict[str, Any], key: str, project_root: Path
-) -> tuple[str, str]:
+def _resolve_short_config(central: dict[str, Any], key: str, project_root: Path) -> tuple[str, str]:
     matches = _find_config_values(central, key)
     if not matches:
         raise RenderError(f"missing config value `{key}`")
@@ -175,96 +255,238 @@ def _format_review_layers(layers: list[dict[str, str]]) -> str:
     return "\n\n".join(sections)
 
 
-def _resolve_customization_value(value: Any, default: Any, label: str) -> tuple[Any, str]:
+def _resolve_customization_value(value: Any, default: Any, label: str) -> Any:
+    """Validate an effective customization leaf against the shape of its shipped default."""
     if isinstance(default, str):
-        allow_empty = not default.strip() or label == "customization.workflow.open_spec"
-        resolved = _require_string(value, label, allow_empty=allow_empty)
-        return resolved, resolved
+        allow_empty = not default.strip()
+        return _require_string(value, label, allow_empty=allow_empty)
     if isinstance(default, list):
         if default and all(isinstance(item, dict) for item in default):
-            resolved = _require_review_layers(value, label)
-            return resolved, _format_review_layers(resolved)
-        resolved = _require_string_list(value, label)
-        return resolved, _format_markdown_list(resolved)
+            return _require_review_layers(value, label)
+        return _require_string_list(value, label)
+    if isinstance(default, (bool, int, float, date, time)):
+        if type(value) is not type(default):
+            raise RenderError(f"{label} must be {type(default).__name__}, got {type(value).__name__}")
+        return value
     raise RenderError(f"{label} has unsupported default type {type(default).__name__}")
 
 
-def _resolve_replacements(
-    sources: dict[str, str],
-    central: dict[str, Any],
-    customization: dict[str, Any],
-    defaults: dict[str, Any] | None,
-    project_root: Path,
-) -> tuple[dict[str, str], dict[str, Any]]:
-    replacements: dict[str, str] = {}
-    input_values: dict[str, Any] = {}
-    for content in sources.values():
-        for match in _SHORT_CONFIG_TOKEN.finditer(content):
-            token, key = match.group(0), match.group(1)
-            path, resolved = _resolve_short_config(central, key, project_root)
-            source = f"config.{path}"
-            replacements[token] = resolved
-            input_values[source] = resolved
-        for match in _CONFIG_TOKEN.finditer(content):
-            token, path = match.group(0), match.group(1)
-            source = f"config.{path}"
-            resolved = _resolve_config_value(
-                _lookup(central, path, "config value"), source, project_root
+class _Text(str):
+    """A customization string. Looping over one is a template mistake, not a walk over its characters."""
+
+    def __new__(cls, value: str, label: str) -> _Text:
+        text = super().__new__(cls, value)
+        text.label = label
+        return text
+
+    def __iter__(self):
+        raise RenderError(f"`{self.label}` is a string, not a list")
+
+
+class _MarkdownList(list):
+    """A string-list customization; inserted directly it renders as the Markdown list it always did."""
+
+    def __str__(self) -> str:
+        return _format_markdown_list(list(self))
+
+
+class _LayerList(list):
+    """A review-layer customization; inserted directly it renders as lens sections."""
+
+    def __str__(self) -> str:
+        return _format_review_layers(list(self))
+
+
+def _bind_customization(value: Any, label: str, destination: Path) -> Any:
+    """Bind `{skill-root}` in customization prose to the generation and wrap lists for insertion."""
+    root = destination.as_posix()
+    if isinstance(value, str):
+        return _Text(value.replace("{skill-root}", root), label)
+    if isinstance(value, list):
+        if value and all(isinstance(item, dict) for item in value):
+            return _LayerList(
+                [{key: text.replace("{skill-root}", root) for key, text in layer.items()} for layer in value]
             )
-            replacements[token] = resolved
-            input_values[source] = resolved
-        for match in _CUSTOM_TOKEN.finditer(content):
-            if defaults is None:
-                raise RenderError("customization tokens require customize.toml")
-            token, relative_path = match.group(0), match.group(1)
-            path = f"workflow.{relative_path}"
-            source = f"customization.{path}"
-            resolved, rendered = _resolve_customization_value(
-                _lookup(customization, path, "customization value"),
-                _lookup(defaults, path, "customization default"),
-                source,
-            )
-            replacements[token] = rendered
-            input_values[source] = resolved
-    return replacements, input_values
+        return _MarkdownList([item.replace("{skill-root}", root) for item in value])
+    return value
 
 
-def _render_sources(
-    sources: dict[str, str], replacements: dict[str, str], destination: Path
-) -> dict[str, str]:
-    """Resolve only tokens authored in installed sources in one opaque pass."""
-    # Workflow customization may reference installed skill files; bind those
-    # references to the immutable generation before inserting the prose.
-    replacements = {
-        token: value.replace("{skill-root}", str(destination))
-        if token.startswith("{workflow.")
-        else value
-        for token, value in replacements.items()
-    }
-    source_names = set(sources)
-    patterns = [
-        *(re.escape(token) for token in sorted(replacements, key=len, reverse=True)),
-        _SNAPSHOT_TOKEN.pattern,
-    ]
-    token_pattern = re.compile("|".join(patterns))
+class _Table:
+    """A dotted namespace over a TOML table. Names never hit Python attributes, so `workflow.items` is a lookup."""
 
-    def replace(match: re.Match[str]) -> str:
-        token = match.group(0)
-        if token in replacements:
-            return replacements[token]
-        snapshot = _SNAPSHOT_TOKEN.fullmatch(token)
-        if snapshot is None:
-            raise RenderError(f"unsupported render token: {token}")
-        target = snapshot.group(1)
-        if target not in source_names:
-            raise RenderError(f"snapshot reference targets undeclared source: {target}")
-        return str(destination / target)
+    def __init__(self, path: str) -> None:
+        self._path = path
 
+    def _child(self, name: str) -> str:
+        return f"{self._path}.{name}"
+
+    def _resolve(self, name: str) -> Any:
+        raise NotImplementedError
+
+    def __getattr__(self, name: str) -> Any:
+        if name.startswith("_"):
+            raise AttributeError(name)
+        return self._resolve(name)
+
+    def __getitem__(self, name: Any) -> Any:
+        if not isinstance(name, str):
+            raise RenderError(f"`{self._path}` is indexed by name, not {name!r}")
+        return self._resolve(name)
+
+    def __str__(self) -> str:
+        raise RenderError(f"`{self._path}` is a table, not a value")
+
+
+class _ConfigTable(_Table):
+    """`config.key` is the short lookup of one scalar anywhere in the central config; `config.a.b.c` is a path."""
+
+    def __init__(self, central: dict[str, Any], table: dict[str, Any], path: str, ctx: _RenderContext) -> None:
+        super().__init__(path)
+        self._central = central
+        self._table = table
+        self._ctx = ctx
+
+    def _resolve(self, name: str) -> Any:
+        if self._path == "config" and name not in self._table:
+            path, resolved = _resolve_short_config(self._central, name, self._ctx.project_root)
+            self._ctx.inputs[f"config.{path}"] = resolved
+            return _Text(resolved, f"config.{path}")
+        label = self._child(name)
+        if name not in self._table:
+            raise RenderError(f"missing config value `{label.removeprefix('config.')}`")
+        value = self._table[name]
+        if isinstance(value, dict):
+            return _ConfigTable(self._central, value, label, self._ctx)
+        resolved = _resolve_config_value(value, label, self._ctx.project_root)
+        self._ctx.inputs[label] = resolved
+        return _Text(resolved, label)
+
+
+class _CustomizationTable(_Table):
+    """The effective customization, each leaf validated against its `customize.toml` default."""
+
+    def __init__(self, defaults: dict[str, Any] | None, values: dict[str, Any], path: str, ctx: _RenderContext) -> None:
+        super().__init__(path)
+        self._defaults = defaults
+        self._values = values
+        self._ctx = ctx
+
+    def _resolve(self, name: str) -> Any:
+        path = self._child(name)
+        if self._defaults is None:
+            raise RenderError(f"`{path}` requires customize.toml")
+        if name not in self._defaults:
+            raise RenderError(f"missing customization parameter `{path}`")
+        if name not in self._values:
+            raise RenderError(f"missing customization value `{path}`")
+        default, value = self._defaults[name], self._values[name]
+        label = f"customization.{path}"
+        if isinstance(default, dict):
+            if not isinstance(value, dict):
+                raise RenderError(f"{label} must be a table, got {type(value).__name__}")
+            return _CustomizationTable(default, value, path, self._ctx)
+        resolved = _resolve_customization_value(value, default, label)
+        self._ctx.inputs[label] = resolved
+        return _bind_customization(resolved, label, self._ctx.destination)
+
+
+class _RenderContext:
+    """One rendering pass: the values it serves and the rendered() links each source makes."""
+
+    def __init__(
+        self,
+        *,
+        central: dict[str, Any],
+        defaults: dict[str, Any] | None,
+        customization: dict[str, Any],
+        source_names: set[str],
+        project_root: Path,
+        destination: Path,
+    ) -> None:
+        self.project_root = project_root
+        self.destination = destination
+        self.inputs: dict[str, Any] = {}
+        self.links: dict[str, set[str]] = {}
+        self._source_names = source_names
+        self.variables = {
+            "config": _ConfigTable(central, central, "config", self),
+            "workflow": _CustomizationTable(
+                None if defaults is None else defaults.get("workflow", {}),
+                customization.get("workflow", {}),
+                "workflow",
+                self,
+            ),
+            "rendered": self._rendered,
+            "halt": self._halt,
+        }
+
+    @staticmethod
+    def _halt(message: Any) -> str:
+        """Let a template reject its inputs; the caller prefixes the source and line."""
+        raise RenderError(str(message))
+
+    @jinja2.pass_context
+    def _rendered(self, context: jinja2.runtime.Context, target: Any) -> str:
+        if not isinstance(target, str) or target not in self._source_names:
+            raise RenderError(f"rendered() targets undeclared source: {target}")
+        self.links.setdefault(context.name or "", set()).add(target)
+        return (self.destination / target).as_posix()
+
+
+class _SourceLoader(jinja2.BaseLoader):
+    """Serve sources by name, and name them so template frames carry `source:line`."""
+
+    def __init__(self, sources: dict[str, str]) -> None:
+        self._sources = sources
+
+    def get_source(self, environment: jinja2.Environment, template: str) -> tuple[str, str, Any]:
+        if template not in self._sources:
+            raise jinja2.TemplateNotFound(template)
+        return self._sources[template], template, lambda: True
+
+
+def _template_location(error: BaseException, source_names: set[str]) -> str | None:
+    if isinstance(error, jinja2.TemplateSyntaxError):
+        return f"{error.name}:{error.lineno}" if error.name else None
+    location = None
+    traceback = error.__traceback__
+    while traceback is not None:
+        filename = traceback.tb_frame.f_code.co_filename
+        if filename in source_names:
+            location = f"{filename}:{traceback.tb_lineno}"
+        traceback = traceback.tb_next
+    return location
+
+
+def _render_sources(sources: dict[str, str], skill_dir: Path, context: _RenderContext) -> dict[str, str]:
+    """Render every source as a Jinja2 template against the context; return the non-empty outputs."""
+    # Skill sources name their bundled non-Markdown files (scripts, assets)
+    # through {skill-root}; those stay in the installed skill directory.
+    bound = {name: content.replace("{skill-root}", skill_dir.as_posix()) for name, content in sources.items()}
+    environment = jinja2.Environment(
+        loader=_SourceLoader(bound),
+        undefined=jinja2.StrictUndefined,
+        autoescape=False,
+        keep_trailing_newline=True,
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
     rendered: dict[str, str] = {}
-    for name, content in sources.items():
-        # Inserted paths and customization prose are never scanned as source tokens.
-        rendered[name] = token_pattern.sub(replace, content)
-    return rendered
+    for name in sources:
+        try:
+            rendered[name] = environment.get_template(name).render(context.variables)
+        except Exception as error:
+            location = _template_location(error, set(sources))
+            message = str(error) if isinstance(error, (RenderError, ConfigError, jinja2.TemplateError)) else repr(error)
+            raise RenderError(f"{location or name}: {message}") from error
+    # A source whose body renders to nothing is left out; links into it from survivors are broken.
+    omitted = {name for name, text in rendered.items() if not text.strip()}
+    if "workflow.md" in omitted:
+        raise RenderError("workflow.md: rendered empty")
+    for name in sorted(set(rendered) - omitted):
+        for target in sorted(context.links.get(name, set()) & omitted):
+            raise RenderError(f"{name}: rendered() targets omitted source: {target}")
+    return {name: text for name, text in rendered.items() if name not in omitted}
 
 
 def _verify_existing(destination: Path, manifest: dict[str, Any]) -> None:
@@ -275,14 +497,14 @@ def _verify_existing(destination: Path, manifest: dict[str, Any]) -> None:
         raise RenderError(f"corrupt existing generation {destination}: {error}") from error
     if existing != manifest:
         raise RenderError(f"generation collision or corruption at {destination}")
-    expected_files = set(manifest["outputs"]) | {"manifest.json"}
-    actual_files = {
-        path.relative_to(destination).as_posix()
-        for path in destination.rglob("*")
-        if path.is_file()
-    }
-    if actual_files != expected_files:
-        raise RenderError(f"generation contains unexpected or missing files: {destination}")
+    # Only the manifest's own files are verified. Anything else in the folder (Thumbs.db,
+    # editor swap files, sync conflict copies) is read by nobody and is left alone.
+    missing = sorted(name for name in manifest["outputs"] if not (destination / name).is_file())
+    if missing:
+        raise RenderError(
+            f"generation is missing rendered files: {', '.join(missing)} in {destination}; "
+            "deleting that folder is safe because the next run renders it again"
+        )
     for name, expected_hash in manifest["outputs"].items():
         try:
             actual_hash = _hash_bytes((destination / name).read_bytes())
@@ -297,14 +519,18 @@ def _publish(destination: Path, outputs: dict[str, bytes], manifest: dict[str, A
     if destination.exists():
         _verify_existing(destination, manifest)
         return
-    staging = Path(tempfile.mkdtemp(prefix=".staging-", dir=destination.parent))
+    # One attempt, not mkdtemp: on Windows, older Pythons' mkdtemp takes "access denied"
+    # for a name collision and tries the next name, some two billion times. The render
+    # would hang in a folder it cannot write to instead of halting.
+    staging = destination.parent / f".staging-{os.urandom(8).hex()}"
+    staging.mkdir(mode=0o700)
     try:
         for name, content in outputs.items():
             path = staging / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(content)
         (staging / "manifest.json").write_bytes(
-            json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8")
+            json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True, default=_json_scalar).encode("utf-8")
             + b"\n"
         )
         try:
@@ -319,7 +545,9 @@ def _publish(destination: Path, outputs: dict[str, bytes], manifest: dict[str, A
             shutil.rmtree(staging, ignore_errors=True)
 
 
-def render(project_root: Path, skill_dir: Path) -> Path:
+def render(
+    project_root: Path, skill_dir: Path, *, overrides: Path | None = None, assignments: list[str] | None = None
+) -> Path:
     project_root = project_root.resolve(strict=True)
     skill_dir = skill_dir.resolve(strict=True)
     if not (project_root / "_bmad").is_dir():
@@ -327,43 +555,55 @@ def render(project_root: Path, skill_dir: Path) -> Path:
 
     sources = _load_sources(skill_dir)
     central = load_central_config(project_root)
-    has_customization = any(
-        _CUSTOM_TOKEN.search(content) for content in sources.values()
-    )
-    defaults = (
-        load_toml(skill_dir / "customize.toml", required=True)
-        if has_customization
-        else None
-    )
-    customization = (
-        load_customization(project_root, skill_dir) if has_customization else {}
-    )
-    replacements, input_values = _resolve_replacements(
-        sources, central, customization, defaults, project_root
-    )
-    source_hashes = {
-        name: _hash_bytes(content.encode("utf-8")) for name, content in sources.items()
-    }
+    has_customization = bool(overrides is not None or assignments) or (skill_dir / "customize.toml").is_file()
+    defaults = load_toml(skill_dir / "customize.toml", required=True) if has_customization else None
+    _check_persistent_layers(project_root, skill_dir, defaults)
+    customization = load_customization(project_root, skill_dir) if has_customization else {}
+    supplied: set[str] = set()
+    if defaults is not None:
+        file_layer, command_layer = _invocation_customization(defaults, overrides, assignments or [])
+        customization = structural_merge(structural_merge(customization, file_layer), command_layer)
+        supplied = _leaf_paths(file_layer) | _leaf_paths(command_layer)
+
+    source_hashes = {name: _hash_bytes(content.encode("utf-8")) for name, content in sources.items()}
     root_hash = _hash_bytes(str(project_root).encode("utf-8"))[:12]
     slug = re.sub(r"[^a-z0-9]+", "-", project_root.name.lower()).strip("-") or "project"
     slug = slug[:80].rstrip("-") or "project"
+    namespace = project_root / "_bmad" / "render" / skill_dir.name / f"{slug}-{root_hash}"
+
+    def render_pass(destination: Path) -> tuple[_RenderContext, dict[str, str]]:
+        context = _RenderContext(
+            central=central,
+            defaults=defaults,
+            customization=customization,
+            source_names=set(sources),
+            project_root=project_root,
+            destination=destination,
+        )
+        return context, _render_sources(sources, skill_dir, context)
+
+    # The generation path is keyed by the values the templates reach, and the
+    # templates insert that path, so a first pass against a placeholder
+    # destination collects the inputs and the real pass renders the output.
+    probe, _ = render_pass(namespace / "pending")
+    # An override may only name a key some template actually read; values are validated where consumed.
+    unused = sorted(path for path in supplied if f"customization.{path}" not in probe.inputs)
+    if unused:
+        raise RenderError(f"invocation override not used by this render: {', '.join(unused)}")
+    # Store TOML date/time inputs in the same JSON representation used on disk.
+    input_values = json.loads(_canonical_json(probe.inputs))
     renderer_hash = _hash_bytes(Path(__file__).read_bytes())
     identity = {
         "project_root": str(project_root),
+        "skill_root": str(skill_dir),
         "renderer_sha256": renderer_hash,
+        "jinja2_version": jinja2.__version__,
         "resolved_values": input_values,
         "source_sha256": source_hashes,
     }
     generation_hash = _hash_bytes(_canonical_json(identity))[:20]
-    destination = (
-        project_root
-        / "_bmad"
-        / "render"
-        / skill_dir.name
-        / f"{slug}-{root_hash}"
-        / generation_hash
-    )
-    rendered = _render_sources(sources, replacements, destination)
+    destination = namespace / generation_hash
+    _, rendered = render_pass(destination)
     outputs = {name: content.encode("utf-8") for name, content in rendered.items()}
     output_hashes = {name: _hash_bytes(content) for name, content in outputs.items()}
     manifest = {
@@ -380,22 +620,41 @@ def render(project_root: Path, skill_dir: Path) -> Path:
     return destination / "workflow.md"
 
 
+def report_owed_setup(skill_dir: Path, project_root: Path) -> None:
+    # Runs before rendering so the note lands ahead of the instruction to follow,
+    # and still shows when rendering halts. It must never fail the render.
+    try:
+        import setup_check
+    except Exception:
+        return
+    setup_check.report(skill_dir, project_root)
+
+
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = _ArgumentParser(description=__doc__)
     parser.add_argument("--project-root", required=True)
     parser.add_argument("--skill", required=True)
-    args = parser.parse_args()
+    parser.add_argument("--overrides", type=Path, help="invocation-only customization TOML file")
+    parser.add_argument("--set", dest="assignments", action="append", default=[], metavar="KEY=VALUE")
     reconfigure = getattr(sys.stdout, "reconfigure", None)
     if reconfigure is not None:
         reconfigure(encoding="utf-8")
     try:
-        entry = render(Path(args.project_root), Path(args.skill))
+        args = parser.parse_args()
+        report_owed_setup(Path(args.skill).resolve(), Path(args.project_root).resolve())
+        entry = render(
+            Path(args.project_root), Path(args.skill), overrides=args.overrides, assignments=args.assignments
+        )
     except (ConfigError, RenderError, OSError, UnicodeError, ValueError) as error:
-        sys.stdout.write(f"HALT: {error}\n")
+        sys.stdout.write(f"HALT: {' '.join(str(error).splitlines())}\n")
         return 1
     sys.stdout.write(f"read and follow {entry}\n")
     return 0
 
 
 if __name__ == "__main__":
+    if sys.platform == "win32":
+        # Piped output on Windows defaults to a legacy code page, not UTF-8.
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
     raise SystemExit(main())

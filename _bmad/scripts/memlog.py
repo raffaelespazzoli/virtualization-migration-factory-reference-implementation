@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # /// script
-# requires-python = ">=3.8"
+# requires-python = ">=3.11"
 # ///
 """memlog — an append-only memory log: LLM-optimal working memory for a skill.
 
@@ -66,6 +66,7 @@ Commands:
 Addressing: `--workspace` is the run folder, and the memlog is always {workspace}/.memlog.md.
 `--path` points straight at the memlog file instead, for callers that already hold the path.
 """
+
 from __future__ import annotations  # keep type-hint syntax lazy so the script runs on 3.8+
 
 import argparse
@@ -104,7 +105,7 @@ def split(text: str) -> tuple[dict, str]:
         if ":" in line:
             k, v = line.split(":", 1)
             meta[k.strip()] = v.strip()
-    return meta, "\n".join(lines[end + 1:]).lstrip("\n")
+    return meta, "\n".join(lines[end + 1 :]).lstrip("\n")
 
 
 def render(meta: dict, body: str) -> str:
@@ -135,11 +136,15 @@ def entry_count(body: str) -> int:
 
 def ack(path: Path, body: str) -> None:
     """Echo new state so the caller never re-reads the file to know where it stands."""
-    print(json.dumps({
-        "ok": True,
-        "memlog": str(path),
-        "entries": entry_count(body),
-    }))
+    print(
+        json.dumps(
+            {
+                "ok": True,
+                "memlog": str(path),
+                "entries": entry_count(body),
+            }
+        )
+    )
 
 
 def cmd_init(args) -> int:
@@ -221,4 +226,8 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    if sys.platform == "win32":
+        # Piped output on Windows defaults to a legacy code page, not UTF-8.
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
     sys.exit(main())
