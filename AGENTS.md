@@ -44,3 +44,8 @@ GitOps reference implementation for deploying a multi-cluster OpenShift virtuali
 - ArgoCD is configured with `--load-restrictor LoadRestrictionsNone` and `--enable-alpha-plugins` — Kustomize restrictions are intentionally lifted. Do not add a restrictor.
 
 <!-- /bmad:context -->
+
+## Agent workflow rules
+
+- **Never auto-commit.** When asked to make changes, apply the edits but do not run `git commit`. The user wants to review modifications before committing.
+

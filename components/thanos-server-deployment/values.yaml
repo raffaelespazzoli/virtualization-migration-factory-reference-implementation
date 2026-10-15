@@ -118,6 +118,8 @@ query:
     - --grpc-client-tls-secure
     - --grpc-client-tls-ca=/etc/tls/service-ca/service-ca.crt
 
+  # Query is internal-only (no Route). QF and Ruler connect to it via
+  # http://thanos-query:9090 inside the cluster — no auth sidecar needed.
   extraVolumes:
     - name: grpc-tls
       secret:
@@ -125,12 +127,6 @@ query:
     - name: service-ca
       configMap:
         name: thanos-service-ca
-    - name: proxy-tls
-      secret:
-        secretName: thanos-query-tls
-    - name: rbac-proxy-config
-      configMap:
-        name: thanos-rbac-proxy-config
 
   extraVolumeMounts:
     - name: grpc-tls
@@ -139,31 +135,6 @@ query:
     - name: service-ca
       mountPath: /etc/tls/service-ca
       readOnly: true
-
-  # kube-rbac-proxy sidecar — secures the Query HTTP endpoint.
-  # Only users with cluster-reader role can access.
-  extraContainers:
-    - name: kube-rbac-proxy
-      image: registry.redhat.io/openshift4/ose-kube-rbac-proxy-rhel9:latest
-      args:
-        - --secure-listen-address=0.0.0.0:9091
-        - --upstream=http://127.0.0.1:9090/
-        - --tls-cert-file=/etc/tls/proxy/tls.crt
-        - --tls-private-key-file=/etc/tls/proxy/tls.key
-        - --upstream-force-h2c=false
-        - --config-file=/etc/kube-rbac-proxy/config.yaml
-        - --logtostderr=true
-        - --v=2
-      ports:
-        - containerPort: 9091
-          name: https
-      volumeMounts:
-        - name: proxy-tls
-          mountPath: /etc/tls/proxy
-          readOnly: true
-        - name: rbac-proxy-config
-          mountPath: /etc/kube-rbac-proxy
-          readOnly: true
 
   resources:
     requests:
