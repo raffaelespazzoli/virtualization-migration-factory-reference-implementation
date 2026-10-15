@@ -5,12 +5,18 @@ namespace: thanos-system
 resources:
   - namespace.yaml
   - objstore-secret.yaml
-  - query-route.yaml
+  - query-frontend-route.yaml
   - bucket-web-route.yaml
   - service-ca-bundle.yaml
   - compactor-safety-vap.yaml
   - ruler-rbac-namespace-scope.yaml
   - storegateway-index-cache-config.yaml
+  - global-routes-certificate.yaml
+  - global-query-frontend-route.yaml
+  - global-bucket-web-route.yaml
+  - router-certs-rbac.yaml
+  - consolelink-query-frontend.yaml
+  - consolelink-bucket-web.yaml
 
 # Delete the chart-generated ClusterRole/ClusterRoleBinding — replaced by
 # the namespace-scoped Role/RoleBinding in ruler-rbac-namespace-scope.yaml

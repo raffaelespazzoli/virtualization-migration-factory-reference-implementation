@@ -1,0 +1,29 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: thanos-global-query-frontend
+spec:
+  secretName: thanos-global-qf-tls
+  duration: 168h0m0s
+  renewBefore: 1h0m0s
+  dnsNames:
+    - thanos-query-frontend.global.${PLATFORM_BASE_DOMAIN}
+  issuerRef:
+    name: letsencrypt-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: thanos-global-bucket-web
+spec:
+  secretName: thanos-global-bw-tls
+  duration: 168h0m0s
+  renewBefore: 1h0m0s
+  dnsNames:
+    - thanos-bucket-web.global.${PLATFORM_BASE_DOMAIN}
+  issuerRef:
+    name: letsencrypt-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io

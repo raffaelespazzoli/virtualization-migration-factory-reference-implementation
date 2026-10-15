@@ -54,6 +54,18 @@ metrics:
     limits:
       memory: 128Mi
 
+# Spread Store memcached replicas across different nodes.
+# Uses the instance label so only Store pods repel each other, not QF pods.
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/instance: thanos-memcached-store
+          topologyKey: kubernetes.io/hostname
+
 # Disable network policy — OpenShift uses its own SDN policy model.
 networkPolicy:
   enabled: false

@@ -1,0 +1,11 @@
+apiVersion: console.openshift.io/v1
+kind: ConsoleLink
+metadata:
+  name: thanos-bucket-web-link
+spec:
+  applicationMenu:
+    section: Observability
+    imageURL: data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzAiIGZpbGw9IiM2QzJEQzciLz48cGF0aCBkPSJNMjAgMjBoMjR2NEgyMHptMiA2aDIwdjE4YzAgMi0yIDQtNCA0SDI2Yy0yIDAtNC0yLTQtNHoiIGZpbGw9IndoaXRlIiBvcGFjaXR5PSIwLjkiLz48L3N2Zz4=
+  href: "https://thanos-bucket-web-thanos-system.apps.${CLUSTER_BASE_DOMAIN}"
+  location: ApplicationMenu
+  text: Thanos Bucket Web

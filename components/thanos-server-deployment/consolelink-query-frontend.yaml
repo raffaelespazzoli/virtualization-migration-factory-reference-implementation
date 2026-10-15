@@ -1,0 +1,11 @@
+apiVersion: console.openshift.io/v1
+kind: ConsoleLink
+metadata:
+  name: thanos-query-frontend-link
+spec:
+  applicationMenu:
+    section: Observability
+    imageURL: data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzAiIGZpbGw9IiM2QzJEQzciLz48cGF0aCBkPSJNMjIgMThoMjB2OEgzNnYyMGgtOFYyNkgyMnoiIGZpbGw9IndoaXRlIi8+PC9zdmc+
+  href: "https://thanos-query-frontend-thanos-system.apps.${CLUSTER_BASE_DOMAIN}"
+  location: ApplicationMenu
+  text: Thanos Query Frontend

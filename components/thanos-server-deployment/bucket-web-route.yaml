@@ -4,7 +4,7 @@ metadata:
   name: thanos-bucket-web
 spec:
   port:
-    targetPort: http
+    targetPort: https
   tls:
     termination: reencrypt
     insecureEdgeTerminationPolicy: Redirect

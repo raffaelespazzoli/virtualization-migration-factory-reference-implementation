@@ -1,0 +1,18 @@
+apiVersion: externaldns.k8s.io/v1alpha1
+kind: DNSEndpoint
+metadata:
+  name: thanos-global-dns
+spec:
+  endpoints:
+    - dnsName: thanos-query-frontend.global.${PLATFORM_BASE_DOMAIN}
+      recordTTL: 180
+      recordType: A
+      targets:
+        - 10.9.52.143  # etl6 router VIP
+        - 10.9.53.6    # etl7 router VIP
+    - dnsName: thanos-bucket-web.global.${PLATFORM_BASE_DOMAIN}
+      recordTTL: 180
+      recordType: A
+      targets:
+        - 10.9.52.143  # etl6 router VIP
+        - 10.9.53.6    # etl7 router VIP

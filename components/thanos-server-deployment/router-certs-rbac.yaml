@@ -1,0 +1,26 @@
+# Grant the OpenShift router service account read access to the cert-manager
+# TLS secrets so that Routes with externalCertificate can load them.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: router-certs-reader
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames:
+      - thanos-global-qf-tls
+      - thanos-global-bw-tls
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: router-certs-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: router-certs-reader
+subjects:
+  - kind: ServiceAccount
+    name: router
+    namespace: openshift-ingress

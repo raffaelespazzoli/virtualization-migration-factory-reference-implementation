@@ -201,6 +201,38 @@ queryFrontend:
   extraArgs:
     - --log.level=info
 
+  extraVolumes:
+    - name: proxy-tls
+      secret:
+        secretName: thanos-query-frontend-tls
+
+  extraVolumeMounts: []
+
+  # kube-rbac-proxy sidecar — secures the QF HTTP endpoint.
+  # Only users with cluster-reader role can access. This is the endpoint
+  # that Grafana / Perses dashboards should use as a Prometheus datasource.
+  extraContainers:
+    - name: kube-rbac-proxy
+      image: registry.redhat.io/openshift4/ose-kube-rbac-proxy-rhel9:latest
+      args:
+        - --secure-listen-address=0.0.0.0:9091
+        - --upstream=http://127.0.0.1:9090/
+        - --tls-cert-file=/etc/tls/proxy/tls.crt
+        - --tls-private-key-file=/etc/tls/proxy/tls.key
+        - --upstream-force-h2c=false
+        - --logtostderr=true
+        - --v=2
+        - --authorization-resourceattributes-resource=namespaces
+        - --authorization-resourceattributes-verb=get
+        - --authorization-resourceattributes-apigroup=
+      ports:
+        - containerPort: 9091
+          name: https
+      volumeMounts:
+        - name: proxy-tls
+          mountPath: /etc/tls/proxy
+          readOnly: true
+
   resources:
     requests:
       cpu: 250m
@@ -254,12 +286,42 @@ bucket:
   enabled: true
   bucketweb:
     enabled: true
-    replicaCount: 1
+    replicaCount: 2
 
     service:
       type: ClusterIP
       annotations:
         service.beta.openshift.io/serving-cert-secret-name: thanos-bucketweb-tls
+
+    extraVolumes:
+      - name: proxy-tls
+        secret:
+          secretName: thanos-bucketweb-tls
+
+    extraVolumeMounts: []
+
+    # kube-rbac-proxy sidecar — secures the Bucket Web HTTP endpoint.
+    extraContainers:
+      - name: kube-rbac-proxy
+        image: registry.redhat.io/openshift4/ose-kube-rbac-proxy-rhel9:latest
+        args:
+          - --secure-listen-address=0.0.0.0:9091
+          - --upstream=http://127.0.0.1:10902/
+          - --tls-cert-file=/etc/tls/proxy/tls.crt
+          - --tls-private-key-file=/etc/tls/proxy/tls.key
+          - --upstream-force-h2c=false
+          - --logtostderr=true
+          - --v=2
+          - --authorization-resourceattributes-resource=namespaces
+          - --authorization-resourceattributes-verb=get
+          - --authorization-resourceattributes-apigroup=
+        ports:
+          - containerPort: 9091
+            name: https
+        volumeMounts:
+          - name: proxy-tls
+            mountPath: /etc/tls/proxy
+            readOnly: true
 
     resources:
       requests:

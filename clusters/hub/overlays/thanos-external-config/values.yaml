@@ -1,0 +1,19 @@
+tenant:
+  configSecret:
+    name: thanos-minio-env-configuration
+    accessKey: thanos
+    secretKey: thanosthanos
+  configuration:
+    name: thanos-minio-env-configuration
+  name: thanos
+  pools:
+    - name: pool-0
+      servers: 1
+      storageClassName: ontap-nas
+      volumesPerServer: 4
+      size: 100Gi
+  buckets:
+    - name: thanos
+      objectLock: false
+  certificate:
+    requestAutoCert: false

@@ -1,0 +1,18 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: thanos-query-frontend-global
+spec:
+  host: thanos-query-frontend.global.${PLATFORM_BASE_DOMAIN}
+  port:
+    targetPort: https
+  tls:
+    termination: reencrypt
+    insecureEdgeTerminationPolicy: Redirect
+    externalCertificate:
+      name: thanos-global-qf-tls
+  to:
+    kind: Service
+    name: thanos-query-frontend
+    weight: 100
+  wildcardPolicy: None
