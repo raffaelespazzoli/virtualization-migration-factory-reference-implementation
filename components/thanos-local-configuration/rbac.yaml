@@ -8,5 +8,5 @@ roleRef:
   name: system:openshift:scc:nonroot-v2
 subjects:
   - kind: ServiceAccount
-    name: thanos-local-thanos
+    name: thanos-thanos
     namespace: thanos-local
