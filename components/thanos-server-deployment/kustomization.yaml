@@ -12,6 +12,7 @@ resources:
   - ruler-rbac-namespace-scope.yaml
   - storegateway-index-cache-config.yaml
   - rbac-proxy-config.yaml
+  - rbac.yaml
   - global-routes-certificate.yaml
   - global-query-frontend-route.yaml
   - global-bucket-web-route.yaml

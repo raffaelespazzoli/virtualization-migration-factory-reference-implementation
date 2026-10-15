@@ -268,7 +268,7 @@ applications:
   thanos-local-configuration:
     annotations:
       argocd.argoproj.io/compare-options: IgnoreExtraneous
-      argocd.argoproj.io/sync-wave: '15'
+      argocd.argoproj.io/sync-wave: '25'
       argocd.argoproj.io/manifest-generate-paths: ".;/components/thanos-local-configuration"
     destination:
       namespace: thanos-local

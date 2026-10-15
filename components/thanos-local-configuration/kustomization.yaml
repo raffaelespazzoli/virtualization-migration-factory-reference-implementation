@@ -8,6 +8,7 @@ resources:
   - otel-metrics-collector.yaml
   - receive-route.yaml
   - service-ca-bundle.yaml
+  - rbac.yaml
 
 helmGlobals:
   chartHome: ../../.helm-charts
