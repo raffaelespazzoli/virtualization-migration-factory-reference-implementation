@@ -63,7 +63,7 @@ data:
     prometheusK8s:
       remoteWrite:
       - url: http://metrics-collector.thanos-local.svc.cluster.local:19291/api/v1/write
-        protobuf_message: prometheus.WriteRequest
+        protobuf_message: io.prometheus.write.v2.Request
         writeRelabelConfigs: []
       additionalAlertmanagerConfigs:
       - apiVersion: v2	
