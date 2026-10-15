@@ -52,7 +52,6 @@ spec:
       # Accepts Prometheus remote-write from the cluster Prometheus
       prometheusremotewrite:
         endpoint: 0.0.0.0:19291
-
     processors:
       batch:
         send_batch_size: 10000
