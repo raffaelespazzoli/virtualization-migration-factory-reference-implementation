@@ -30,7 +30,7 @@ spec:
             - name: GARAGE_DEFAULT_ACCESS_KEY
               value: thanosadmin
             - name: GARAGE_DEFAULT_SECRET_KEY
-              value: thanosthanos
+              value: thanosthanossecret
             - name: GARAGE_DEFAULT_BUCKET
               value: thanos
           ports:
