@@ -43,6 +43,31 @@ patches:
       kind: ClusterRoleBinding
       metadata:
         name: thanos-ruler-rule-importer
+  # Expose the kube-rbac-proxy sidecar port on the chart-generated services.
+  # The Bitnami chart only creates ports for the main container; the reencrypt
+  # routes need to reach the sidecar's HTTPS port (9091).
+  - target:
+      kind: Service
+      name: thanos-query-frontend
+    patch: |
+      - op: add
+        path: /spec/ports/-
+        value:
+          name: https
+          port: 9091
+          targetPort: 9091
+          protocol: TCP
+  - target:
+      kind: Service
+      name: thanos-bucketweb
+    patch: |
+      - op: add
+        path: /spec/ports/-
+        value:
+          name: https
+          port: 9091
+          targetPort: 9091
+          protocol: TCP
 
 helmGlobals:
   chartHome: ../../.helm-charts
