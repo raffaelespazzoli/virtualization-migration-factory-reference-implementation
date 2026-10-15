@@ -72,6 +72,19 @@ patches:
           port: 9091
           targetPort: 9091
           protocol: TCP
+  # The Ruler ClusterIP service only exposes http:10902. Query connects to
+  # the gRPC StoreAPI on port 10901, so we must add it.
+  - target:
+      kind: Service
+      name: thanos-ruler
+    patch: |
+      - op: add
+        path: /spec/ports/-
+        value:
+          name: grpc
+          port: 10901
+          targetPort: 10901
+          protocol: TCP
   # Bucket Web pods must run as the oauth-proxy SA so the OAuth redirect
   # annotation is honoured.
   - target:
