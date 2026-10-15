@@ -6,6 +6,8 @@ tenant:
   configuration:
     name: thanos-minio-env-configuration
   name: thanos
+  # Pin to digest — the RELEASE tag was removed from quay.io
+  image: quay.io/minio/minio@sha256:79f5beef4fe27220c1b55fe8d38a4dc88544870891b871bea6fe113b90256297
   pools:
     - name: pool-0
       servers: 1
