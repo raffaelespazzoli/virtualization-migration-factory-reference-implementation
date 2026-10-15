@@ -5,7 +5,7 @@ namespace: thanos-local
 resources:
   - namespace.yaml
   - objstore-secret.yaml
-  - otel-metrics-collector.yaml
+  #- otel-metrics-collector.yaml
   - receive-route.yaml
   - service-ca-bundle.yaml
   - rbac.yaml

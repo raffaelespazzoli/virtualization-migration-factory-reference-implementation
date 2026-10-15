@@ -5,6 +5,7 @@ metadata:
   namespace: openshift-ingress-operator
   annotations:
     argocd.argoproj.io/sync-options: Delete=false,ServerSideApply=true
+    ingress.operator.openshift.io/default-enable-http2: "true"
 spec:
   defaultCertificate:
     name: cluster-ingress-certs-tls
