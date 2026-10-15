@@ -245,7 +245,7 @@ compactor:
     - --log.level=info
     - --compact.concurrency=4
     - --downsample.concurrency=4
-    - --wait
+    # --wait is already hardcoded in the chart template
     - --delete-delay=48h
     - --consistency-delay=30m
     - --deduplication.replica-label=prometheus_replica
