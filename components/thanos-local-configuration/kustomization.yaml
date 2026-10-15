@@ -10,6 +10,21 @@ resources:
   - service-ca-bundle.yaml
   - rbac.yaml
 
+# The chart-generated Receive ClusterIP service only exposes http and
+# remote-write ports. Query connects to the gRPC StoreAPI on 10901.
+patches:
+  - target:
+      kind: Service
+      name: thanos-receive
+    patch: |
+      - op: add
+        path: /spec/ports/-
+        value:
+          name: grpc
+          port: 10901
+          targetPort: 10901
+          protocol: TCP
+
 helmGlobals:
   chartHome: ../../.helm-charts
 

@@ -119,6 +119,13 @@ query:
     annotations:
       service.beta.openshift.io/serving-cert-secret-name: thanos-query-tls
 
+  # Disable gRPC ALPN enforcement (grpc-go ≥1.67). HAProxy reencrypt routes
+  # don't negotiate h2 ALPN, which causes gRPC handshake failures on
+  # route-based Receive endpoints. TLS is still verified via the CA bundle.
+  extraEnv:
+    - name: GRPC_ENFORCE_ALPN_ENABLED
+      value: "false"
+
   extraArgs:
     - --log.level=info
     - --grpc-server-tls-cert=/etc/tls/grpc/tls.crt
