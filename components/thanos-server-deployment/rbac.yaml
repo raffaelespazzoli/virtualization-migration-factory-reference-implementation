@@ -16,3 +16,21 @@ subjects:
   - kind: ServiceAccount
     name: thanos-bucketweb-oauth
     namespace: thanos-system
+---
+# kube-rbac-proxy needs to create tokenreviews and subjectaccessreviews
+# to authenticate and authorize incoming bearer tokens.
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: thanos-server-auth-delegator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: thanos-thanos
+    namespace: thanos-system
+  - kind: ServiceAccount
+    name: thanos-bucketweb-oauth
+    namespace: thanos-system
