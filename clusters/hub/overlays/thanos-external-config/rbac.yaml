@@ -1,12 +1,12 @@
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: thanos-minio-tenant-nonroot-v2-scc
+  name: thanos-garage-nonroot-v2-scc
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: system:openshift:scc:nonroot-v2
 subjects:
 - kind: ServiceAccount
-  name: thanos-sa
-  namespace: thanos-minio
+  name: default
+  namespace: thanos-garage

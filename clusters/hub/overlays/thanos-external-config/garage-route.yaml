@@ -1,0 +1,14 @@
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: thanos-s3-api
+spec:
+  to:
+    kind: Service
+    name: garage-s3-api
+    weight: 100
+  port:
+    targetPort: s3-api
+  tls:
+    termination: edge
+  wildcardPolicy: None

@@ -1,31 +1,13 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: thanos-minio
+namespace: thanos-garage
 
 resources:
-  - ./namespace.yaml
-  - thanos-minio-route.yaml
+  - namespace.yaml
+  - garage-config.yaml
+  - garage-statefulset.yaml
+  - garage-service.yaml
+  - garage-route.yaml
   - rbac.yaml
   - dns-endpoints.yaml
-
-# Pin MinIO image to digest — the RELEASE.2025-04-08T15-41-24Z tag was
-# removed from quay.io. The chart template uses ":" for digests (bug),
-# so we patch the rendered Tenant CR directly.
-patches:
-  - target:
-      group: minio.min.io
-      version: v2
-      kind: Tenant
-      name: thanos
-    patch: |
-      - op: replace
-        path: /spec/image
-        value: "quay.io/minio/minio@sha256:79f5beef4fe27220c1b55fe8d38a4dc88544870891b871bea6fe113b90256297"
-
-helmCharts:
-  - name: tenant
-    repo: https://operator.min.io
-    releaseName: thanos
-    namespace: thanos-minio
-    valuesFile: values.yaml
