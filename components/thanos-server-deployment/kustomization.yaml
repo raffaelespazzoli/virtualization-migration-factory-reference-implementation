@@ -14,8 +14,8 @@ resources:
   - rbac-proxy-config.yaml
   - rbac.yaml
   - global-routes-certificate.yaml
-  - global-query-frontend-route.yaml
-  - global-bucket-web-route.yaml
+  #- global-query-frontend-route.yaml
+  #- global-bucket-web-route.yaml
   - router-certs-rbac.yaml
   - consolelink-query-frontend.yaml
   - consolelink-bucket-web.yaml

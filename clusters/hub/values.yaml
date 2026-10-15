@@ -262,5 +262,11 @@ applications:
       namespace: thanos-garage
     source:
       path: clusters/hub/overlays/thanos-external-config
+    extraFields: |
+      ignoreDifferences:
+      - group: apps
+        kind: StatefulSet
+        jsonPointers:
+          - /spec/volumeClaimTemplates
 
    
