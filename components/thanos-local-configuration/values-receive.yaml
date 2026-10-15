@@ -38,6 +38,8 @@ receive:
     - --log.level=info
     - --grpc-server-tls-cert=/etc/tls/grpc/tls.crt
     - --grpc-server-tls-key=/etc/tls/grpc/tls.key
+    - --remote-write.server-tls-cert=/etc/tls/grpc/tls.crt
+    - --remote-write.server-tls-key=/etc/tls/grpc/tls.key
     # Write-path durability: every write is replicated to 2 of the 3 Receive
     # instances. A single Receive pod failure cannot lose data that was acked.
     - --receive.replication-factor=2
