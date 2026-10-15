@@ -275,34 +275,49 @@ bucket:
       - name: proxy-tls
         secret:
           secretName: thanos-bucketweb-tls
-      - name: rbac-proxy-config
+      - name: oauth-cookie-secret
+        secret:
+          secretName: thanos-bucketweb-oauth-cookie
+      - name: oauth-ca-bundle
         configMap:
-          name: thanos-rbac-proxy-config
+          name: thanos-bucketweb-oauth-ca-bundle
 
     extraVolumeMounts: []
 
-    # kube-rbac-proxy sidecar — secures the Bucket Web HTTP endpoint.
+    # oauth-proxy sidecar — browser-based OpenShift OAuth for Bucket Web UI.
+    # Users are redirected to the OCP login page; cluster-reader role required.
     extraContainers:
-      - name: kube-rbac-proxy
-        image: registry.redhat.io/openshift4/ose-kube-rbac-proxy-rhel9:latest
+      - name: oauth-proxy
+        image: quay.io/openshift/origin-oauth-proxy:latest
         args:
-          - --secure-listen-address=0.0.0.0:9091
-          - --upstream=http://127.0.0.1:10902/
-          - --tls-cert-file=/etc/tls/proxy/tls.crt
-          - --tls-private-key-file=/etc/tls/proxy/tls.key
-          - --upstream-force-h2c=false
-          - --config-file=/etc/kube-rbac-proxy/config.yaml
-          - --logtostderr=true
-          - --v=2
+          - -provider=openshift
+          - -pass-basic-auth=false
+          - -https-address=:9091
+          - -http-address=
+          - -email-domain=*
+          - -upstream=http://127.0.0.1:10902/
+          - '-openshift-sar={"resource": "namespaces", "verb": "get"}'
+          - '-openshift-delegate-urls={"/": {"resource": "namespaces", "verb": "get"}}'
+          - -tls-cert=/etc/tls/private/tls.crt
+          - -tls-key=/etc/tls/private/tls.key
+          - -client-secret-file=/var/run/secrets/kubernetes.io/serviceaccount/token
+          - -cookie-secret-file=/etc/proxy/secrets/session_secret
+          - -openshift-service-account=thanos-bucketweb-oauth
+          - -openshift-ca=/etc/pki/tls/cert.pem
+          - -openshift-ca=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          - -openshift-ca=/etc/proxy/certs/ca-bundle.crt
         ports:
           - containerPort: 9091
             name: https
         volumeMounts:
           - name: proxy-tls
-            mountPath: /etc/tls/proxy
+            mountPath: /etc/tls/private
             readOnly: true
-          - name: rbac-proxy-config
-            mountPath: /etc/kube-rbac-proxy
+          - name: oauth-cookie-secret
+            mountPath: /etc/proxy/secrets
+            readOnly: true
+          - name: oauth-ca-bundle
+            mountPath: /etc/proxy/certs
             readOnly: true
 
     resources:

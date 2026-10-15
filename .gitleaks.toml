@@ -9,5 +9,6 @@
     'clusters/etl6/overlays/trilio-vm-tests/fedora-vms.yaml',
     'clusters/etl4/overlays/persistent-reservations/vm.yaml',
     'components/trident-protect-configuration/object-store-secret.yaml',
-    'clusters/etl6/overlays/vm-disk-test/vm-disk-test/templates/virtio-blk-vm.yaml'
+    'clusters/etl6/overlays/vm-disk-test/vm-disk-test/templates/virtio-blk-vm.yaml',
+    'components/thanos-server-deployment/bucketweb-oauth-cookie.yaml'
   ]

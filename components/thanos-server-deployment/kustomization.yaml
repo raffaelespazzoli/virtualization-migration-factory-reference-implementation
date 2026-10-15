@@ -19,6 +19,9 @@ resources:
   - router-certs-rbac.yaml
   - consolelink-query-frontend.yaml
   - consolelink-bucket-web.yaml
+  - bucketweb-oauth-sa.yaml
+  - bucketweb-oauth-cookie.yaml
+  - bucketweb-oauth-ca-bundle.yaml
 
 # Delete the chart-generated ClusterRole/ClusterRoleBinding — replaced by
 # the namespace-scoped Role/RoleBinding in ruler-rbac-namespace-scope.yaml
@@ -43,9 +46,9 @@ patches:
       kind: ClusterRoleBinding
       metadata:
         name: thanos-ruler-rule-importer
-  # Expose the kube-rbac-proxy sidecar port on the chart-generated services.
-  # The Bitnami chart only creates ports for the main container; the reencrypt
-  # routes need to reach the sidecar's HTTPS port (9091).
+  # Expose the auth-proxy HTTPS port (9091) on the chart-generated services.
+  # The chart only creates ports for the main container; the reencrypt routes
+  # need to reach the sidecar port.
   - target:
       kind: Service
       name: thanos-query-frontend
@@ -68,6 +71,15 @@ patches:
           port: 9091
           targetPort: 9091
           protocol: TCP
+  # Bucket Web pods must run as the oauth-proxy SA so the OAuth redirect
+  # annotation is honoured.
+  - target:
+      kind: Deployment
+      name: thanos-bucketweb
+    patch: |
+      - op: add
+        path: /spec/template/spec/serviceAccountName
+        value: thanos-bucketweb-oauth
 
 helmGlobals:
   chartHome: ../../.helm-charts

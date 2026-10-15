@@ -13,3 +13,6 @@ subjects:
   - kind: ServiceAccount
     name: default
     namespace: thanos-system
+  - kind: ServiceAccount
+    name: thanos-bucketweb-oauth
+    namespace: thanos-system

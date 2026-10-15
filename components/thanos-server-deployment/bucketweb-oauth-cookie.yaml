@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: thanos-bucketweb-oauth-cookie
+type: Opaque
+stringData:
+  session_secret: UHGpp5Boi6D5lt3f_Z5cAX3mJxF_1NDE2PdZfV2lLy0
