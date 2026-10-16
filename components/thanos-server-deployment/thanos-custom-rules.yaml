@@ -1,0 +1,57 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: thanos-custom-rules
+  labels:
+    thanos-ruler: "true"
+    app.kubernetes.io/part-of: thanos
+spec:
+  groups:
+    # Recording rules evaluated by Thanos Ruler against the full historical
+    # dataset (Receives + Store Gateway). Results are written back to S3.
+    # NOTE: only container_* metrics are remote-written from Prometheus,
+    # so all rules here must use that metric family.
+    - name: container-resource-aggregates
+      interval: 2m
+      rules:
+        # Total CPU usage across all containers per namespace.
+        - record: namespace:container_cpu_usage_seconds:rate5m
+          expr: |
+            sum by (namespace) (
+              rate(container_cpu_usage_seconds_total{container!="", image!=""}[5m])
+            )
+
+        # Total memory working set per namespace.
+        - record: namespace:container_memory_working_set_bytes:sum
+          expr: |
+            sum by (namespace) (
+              container_memory_working_set_bytes{container!="", image!=""}
+            )
+
+        # CPU usage per node (sum of all container CPU on each node).
+        - record: node:container_cpu_usage_seconds:rate5m
+          expr: |
+            sum by (node) (
+              rate(container_cpu_usage_seconds_total{container!="", image!=""}[5m])
+            )
+
+        # Memory usage per node.
+        - record: node:container_memory_working_set_bytes:sum
+          expr: |
+            sum by (node) (
+              container_memory_working_set_bytes{container!="", image!=""}
+            )
+
+        # Container restart count per namespace (useful for stability tracking).
+        - record: namespace:container_restarts:rate5m
+          expr: |
+            sum by (namespace) (
+              rate(container_restart_count[5m])
+            )
+
+        # Total number of running containers per namespace.
+        - record: namespace:container_count:sum
+          expr: |
+            count by (namespace) (
+              container_cpu_usage_seconds_total{container!="", image!=""}
+            )

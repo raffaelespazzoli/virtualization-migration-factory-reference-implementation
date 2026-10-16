@@ -19,7 +19,12 @@ receive:
     walCompression: true
 
   replication:
-    protocol: protobuf
+    # Cap'n Proto replication uses port 19391 which is plaintext.
+    # Protobuf replication uses gRPC port 10901 which has TLS enabled
+    # (--grpc-server-tls-cert/key), but the forwarding gRPC client has
+    # no client-TLS flags, so inter-Receive forwarding fails with
+    # "error reading server preface: EOF".
+    protocol: capnproto
 
   service:
     type: ClusterIP

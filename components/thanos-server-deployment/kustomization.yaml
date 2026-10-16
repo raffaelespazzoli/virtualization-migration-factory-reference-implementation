@@ -19,6 +19,7 @@ resources:
   - router-certs-rbac.yaml
   - consolelink-query-frontend.yaml
   - consolelink-bucket-web.yaml
+  - thanos-custom-rules.yaml
   - query-combined-ca.yaml
   - query-http-config.yaml
   - qf-downstream-tls.yaml
@@ -102,6 +103,60 @@ patches:
             http_config:
               tls_config:
                 ca_file: /etc/tls/service-ca/service-ca.crt
+  # The rule-importer sidecar script uses `-A` (all namespaces) which needs
+  # a ClusterRole. We only grant a namespace-scoped Role, so restrict the
+  # lookup to thanos-system. This keeps the SA least-privilege.
+  - target:
+      kind: ConfigMap
+      name: thanos-ruler-rule-importer
+    patch: |
+      - op: replace
+        path: /data/import.sh
+        value: |
+          set -e
+
+          SELECTOR="thanos-ruler=true"
+          NAMESPACE="thanos-system"
+
+          if [ -z "$SELECTOR" ]; then
+            echo "No label selector provided, importing ALL PrometheusRules"
+            SELECTOR_ARG=""
+          else
+            echo "Using label selector: $SELECTOR"
+            SELECTOR_ARG="-l $SELECTOR"
+          fi
+
+          PREV_SUM=""
+
+          while true; do
+            echo "Syncing PrometheusRules"
+
+            rm -f /generated/*.yaml || true
+
+            kubectl get prometheusrules.monitoring.coreos.com -n $NAMESPACE $SELECTOR_ARG \
+              -o jsonpath='{range .items[*]}{.metadata.name}|{.metadata.namespace}{"\n"}{end}' | \
+            while read line; do
+              name=$(echo "$line" | cut -d"|" -f1)
+              ns=$(echo "$line" | cut -d"|" -f2)
+
+              echo "Processing $ns/$name"
+
+              kubectl get prometheusrule "$name" -n "$ns" -o jsonpath='{.spec}' \
+                > "/generated/${ns}-${name}.yaml"
+            done
+
+            CURRENT_SUM=$(find /generated -type f -name '*.yaml' -exec cat {} + 2>/dev/null | md5sum | cut -d' ' -f1)
+            if [ "$CURRENT_SUM" != "$PREV_SUM" ]; then
+              echo "Rule files changed, triggering Thanos Ruler reload"
+              if curl -sf -X POST http://localhost:10902/-/reload; then
+                PREV_SUM="$CURRENT_SUM"
+              else
+                echo "Failed to reload Thanos Ruler, will retry next cycle"
+              fi
+            fi
+
+            sleep 60
+          done
   # Bucket Web pods must run as the oauth-proxy SA so the OAuth redirect
   # annotation is honoured.
   - target:
