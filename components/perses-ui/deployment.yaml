@@ -47,6 +47,28 @@ spec:
                           Authorization: "Bearer ${TOKEN}"
               EOF
 
+              cat > /provisioning/datasource-thanos.yaml <<EOF
+              kind: GlobalDatasource
+              metadata:
+                name: ThanosLongTerm
+              spec:
+                default: false
+                plugin:
+                  kind: PrometheusDatasource
+                  spec:
+                    proxy:
+                      kind: HTTPProxy
+                      spec:
+                        url: https://thanos-query-frontend.thanos-system.svc:9091
+                        allowedEndpoints:
+                          - endpointPattern: /api/v1/.*
+                            method: GET
+                          - endpointPattern: /api/v1/.*
+                            method: POST
+                        headers:
+                          Authorization: "Bearer ${TOKEN}"
+              EOF
+
               cat > /provisioning/project.yaml <<EOF
               kind: Project
               metadata:

@@ -20,12 +20,15 @@ Deploys the upstream [Perses](https://perses.dev/) v0.54.0 as a companion UI alo
 ```
 Browser → Route (TLS edge) → Service → Perses container (port 8080)
                                             ↓ proxy
-                              Thanos querier (openshift-monitoring, port 9091)
+                              Thanos querier (openshift-monitoring, port 9091)  ← "PrometheusDemo" datasource
+                              Thanos QF     (thanos-system, port 9091)          ← "ThanosLongTerm" datasource
 ```
 
 The init container:
 1. Reads the projected SA token from `/var/run/secrets/kubernetes.io/serviceaccount/token`
-2. Generates a `GlobalDatasource` YAML with the bearer token in the `Authorization` header
+2. Generates two `GlobalDatasource` YAMLs with the bearer token in the `Authorization` header:
+   - **PrometheusDemo** (default) — OCP built-in Thanos querier at `thanos-querier.openshift-monitoring.svc:9091`. Short-term data directly from Prometheus.
+   - **ThanosLongTerm** — Custom Thanos Query Frontend at `thanos-query-frontend.thanos-system.svc:9091`. Long-term `container_*` metrics from the Thanos Receive → S3 pipeline, spanning days/weeks of historical data.
 3. Creates a `Project` YAML for `perses`
 4. Copies dashboard YAML files from the `perses-ui-dashboards` ConfigMap
 5. All files land in `/etc/perses/provisioning/` — Perses loads them at startup
