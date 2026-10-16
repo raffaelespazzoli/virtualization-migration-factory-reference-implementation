@@ -20,6 +20,8 @@ resources:
   - consolelink-query-frontend.yaml
   - consolelink-bucket-web.yaml
   - query-combined-ca.yaml
+  - query-http-config.yaml
+  - qf-downstream-tls.yaml
   - bucketweb-oauth-sa.yaml
   - bucketweb-oauth-cookie.yaml
   - bucketweb-oauth-ca-bundle.yaml
@@ -85,6 +87,21 @@ patches:
           port: 10901
           targetPort: 10901
           protocol: TCP
+  # The chart generates scheme: https from the URL but does not emit
+  # http_config.tls_config. Patch the ConfigMap to add the service CA.
+  - target:
+      kind: ConfigMap
+      name: thanos-ruler-query
+    patch: |
+      - op: replace
+        path: /data/query-urls.yaml
+        value: |
+          - static_configs:
+              - thanos-query.thanos-system.svc.cluster.local:9090
+            scheme: https
+            http_config:
+              tls_config:
+                ca_file: /etc/tls/service-ca/service-ca.crt
   # Bucket Web pods must run as the oauth-proxy SA so the OAuth redirect
   # annotation is honoured.
   - target:

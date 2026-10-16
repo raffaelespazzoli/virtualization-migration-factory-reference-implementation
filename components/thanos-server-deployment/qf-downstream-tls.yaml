@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: thanos-qf-downstream-tls
+data:
+  downstream-tls.yaml: |
+    tls_config:
+      ca_file: /etc/tls/service-ca/service-ca.crt

@@ -1,0 +1,26 @@
+# cert-manager Certificate for the Receive gRPC passthrough route.
+# Issues a TLS cert whose SAN matches the route FQDN, so the Receive can
+# serve it on the gRPC port and passthrough routes work without SAN mismatch.
+#
+# NOT in kustomization.yaml — add when cert-manager is operational.
+# When enabling:
+#   1. Add this resource to kustomization.yaml
+#   2. Replace receive-route.yaml with receive-route-passthrough.yaml
+#   3. In values-receive.yaml, re-enable --grpc-server-tls-cert/key and
+#      change the secret mount from thanos-receive-tls to thanos-receive-grpc-route-tls
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: thanos-receive-grpc-route
+spec:
+  secretName: thanos-receive-grpc-route-tls
+  duration: 168h0m0s
+  renewBefore: 1h0m0s
+  dnsNames:
+    # The route FQDN — CLUSTER_NAME and CLUSTER_BASE_DOMAIN are interpolated
+    # by the ArgoCD envsubst CMP sidecar at render time.
+    - thanos-receive-grpc-thanos-local.apps.${CLUSTER_BASE_DOMAIN}
+  issuerRef:
+    name: letsencrypt-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io

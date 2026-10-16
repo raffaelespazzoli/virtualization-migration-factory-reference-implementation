@@ -107,7 +107,11 @@ query:
       - thanos-storegateway.thanos-system.svc.cluster.local:10901
       - thanos-ruler.thanos-system.svc.cluster.local:10901
 
-  # Receive on both clusters via Routes (reencrypt + h2).
+  # Receive on both clusters via Routes.
+  # Currently plain HTTP (port 80) to bypass HAProxy h2 reencrypt streaming
+  # issues. --grpc-client-tls-secure is incompatible with these endpoints;
+  # requires per-endpoint TLS config, endpoint SD, or passthrough routes
+  # with cert-manager certs. See thanos-local-configuration/readme.md.
   stores:
     - thanos-receive-grpc-thanos-local.apps.etl6.ocp.rht-labs.com:443
     - thanos-receive-grpc-thanos-local.apps.etl7.ocp.rht-labs.com:443
@@ -126,15 +130,21 @@ query:
     - name: GRPC_ENFORCE_ALPN_ENABLED
       value: "false"
 
+  # TLS on the HTTP endpoint. The scheme must be set so liveness/readiness
+  # probes use HTTPS (kubelet skips certificate verification).
+  probes:
+    scheme: HTTPS
+
   extraArgs:
     - --log.level=info
+    - --http.config=/etc/thanos/http-config.yaml
     - --grpc-server-tls-cert=/etc/tls/grpc/tls.crt
     - --grpc-server-tls-key=/etc/tls/grpc/tls.key
     - --grpc-client-tls-secure
     - --grpc-client-tls-ca=/etc/tls/combined-ca/ca.crt
 
   # Query is internal-only (no Route). QF and Ruler connect to it via
-  # http://thanos-query:9090 inside the cluster — no auth sidecar needed.
+  # https://thanos-query:9090 inside the cluster — no auth sidecar needed.
 
   # Init container merges the service CA and system CA bundle into one file.
   # The combined CA lets gRPC verify both in-cluster certs (service CA) and
@@ -157,6 +167,9 @@ query:
     - name: grpc-tls
       secret:
         secretName: thanos-query-tls
+    - name: http-config
+      configMap:
+        name: thanos-query-http-config
     - name: service-ca
       configMap:
         name: thanos-service-ca
@@ -169,6 +182,10 @@ query:
   extraVolumeMounts:
     - name: grpc-tls
       mountPath: /etc/tls/grpc
+      readOnly: true
+    - name: http-config
+      mountPath: /etc/thanos/http-config.yaml
+      subPath: http-config.yaml
       readOnly: true
     - name: combined-ca
       mountPath: /etc/tls/combined-ca
@@ -187,6 +204,9 @@ query:
 queryFrontend:
   enabled: true
   replicaCount: 2
+
+  # Downstream URL — connect to Query over HTTPS using the service-serving CA.
+  downstreamUrl: https://thanos-query.thanos-system.svc.cluster.local:9090
 
   service:
     type: ClusterIP
@@ -212,6 +232,7 @@ queryFrontend:
 
   extraArgs:
     - --log.level=info
+    - --query-frontend.downstream-tripper-config-file=/etc/thanos/downstream-tls.yaml
 
   extraVolumes:
     - name: proxy-tls
@@ -220,8 +241,21 @@ queryFrontend:
     - name: rbac-proxy-config
       configMap:
         name: thanos-rbac-proxy-config
+    - name: service-ca
+      configMap:
+        name: thanos-service-ca
+    - name: downstream-tls
+      configMap:
+        name: thanos-qf-downstream-tls
 
-  extraVolumeMounts: []
+  extraVolumeMounts:
+    - name: service-ca
+      mountPath: /etc/tls/service-ca
+      readOnly: true
+    - name: downstream-tls
+      mountPath: /etc/thanos/downstream-tls.yaml
+      subPath: downstream-tls.yaml
+      readOnly: true
 
   # kube-rbac-proxy sidecar — secures the QF HTTP endpoint.
   # Only users with cluster-reader role can access. This is the endpoint
@@ -373,10 +407,10 @@ ruler:
   enabled: true
   replicaCount: 2
 
-  # Query endpoints used by Ruler to evaluate PromQL rules
+  # Query endpoints used by Ruler to evaluate PromQL rules (HTTPS).
   query:
     urls:
-      - http://thanos-query.thanos-system.svc.cluster.local:9090
+      - https://thanos-query.thanos-system.svc.cluster.local:9090
 
   # Alertmanager routing — uncomment when an Alertmanager is available.
   # Without this, the Ruler is still useful for recording rules — it evaluates
@@ -421,10 +455,16 @@ ruler:
     - name: grpc-tls
       secret:
         secretName: thanos-ruler-tls
+    - name: service-ca
+      configMap:
+        name: thanos-service-ca
 
   extraVolumeMounts:
     - name: grpc-tls
       mountPath: /etc/tls/grpc
+      readOnly: true
+    - name: service-ca
+      mountPath: /etc/tls/service-ca
       readOnly: true
 
   resources:

@@ -1,0 +1,24 @@
+# Passthrough route for Thanos Receive gRPC StoreAPI.
+# HAProxy tunnels raw TCP/TLS — HTTP/2 ALPN and gRPC streaming work natively.
+#
+# Requires: receive-certificate.yaml (cert-manager cert covering the route FQDN).
+# The Receive must serve that cert on its gRPC port via:
+#   --grpc-server-tls-cert=/etc/tls/grpc/tls.crt
+#   --grpc-server-tls-key=/etc/tls/grpc/tls.key
+# using the cert-manager-issued secret instead of the service-serving cert.
+#
+# NOT in kustomization.yaml — add when cert-manager is operational.
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: thanos-receive-grpc
+spec:
+  port:
+    targetPort: grpc
+  tls:
+    termination: passthrough
+  to:
+    kind: Service
+    name: thanos-receive
+    weight: 100
+  wildcardPolicy: None
