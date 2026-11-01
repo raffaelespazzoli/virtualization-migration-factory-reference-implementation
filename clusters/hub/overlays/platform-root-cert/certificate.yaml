@@ -1,0 +1,29 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: platform-root-ca
+spec:
+  isCA: true
+  commonName: Platform Root CA
+  secretName: platform-root-ca-tls
+  duration: 87600h # 10 years
+  renewBefore: 8760h # 1 year
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: selfsigned-issuer
+    kind: Issuer
+    group: cert-manager.io
+  subject:
+    countries:
+      - US
+    organizationalUnits:
+      - Platform
+    organizations:
+      - ETL Lab
+  usages:
+    - crl sign
+    - cert sign
+    - signing
+    - digital signature

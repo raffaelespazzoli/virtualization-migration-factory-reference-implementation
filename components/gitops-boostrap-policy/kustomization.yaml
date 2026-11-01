@@ -16,6 +16,7 @@ resources:
 - volume-group-replication-class-policy.yaml
 - soteria-root-ca-policy.yaml
 - argocd-agent-ca-policy.yaml
+- platform-root-ca-policy.yaml
 - policy-add-policy-generator-to-argocd.yaml
 
 generators:

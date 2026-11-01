@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
   - ./letsencrypt-issuer.yaml
   - ./cert-manager-patch.yaml
+  - ./platform-ca-issuer.yaml

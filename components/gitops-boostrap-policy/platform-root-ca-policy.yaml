@@ -1,0 +1,60 @@
+apiVersion: policy.open-cluster-management.io/v1
+kind: Policy
+metadata:
+  name: platform-root-ca-policy
+  namespace: acm-policies
+spec:
+  remediationAction: enforce
+  disabled: false
+  hubTemplateOptions:
+    serviceAccountName: policy-admin
+  policy-templates:
+    - objectDefinition:
+        apiVersion: policy.open-cluster-management.io/v1
+        kind: ConfigurationPolicy
+        metadata:
+          name: platform-root-ca-policy
+        spec:
+          remediationAction: enforce
+          severity: low
+          object-templates-raw: |-
+            - complianceType: mustonlyhave
+              objectDefinition:
+                apiVersion: v1
+                kind: Secret
+                metadata:
+                  name: platform-root-ca-tls
+                  namespace: cert-manager
+                type: kubernetes.io/tls
+                data:
+                  tls.crt: {{hub (index (lookup "v1" "Secret" "cert-manager" "platform-root-ca-tls").data "tls.crt") hub}}
+                  tls.key: {{hub (index (lookup "v1" "Secret" "cert-manager" "platform-root-ca-tls").data "tls.key") hub}}
+                  ca.crt: {{hub (index (lookup "v1" "Secret" "cert-manager" "platform-root-ca-tls").data "ca.crt") hub}}
+---
+apiVersion: cluster.open-cluster-management.io/v1beta1
+kind: Placement
+metadata:
+  name: platform-root-ca-placement
+  namespace: acm-policies
+spec:
+  clusterSets:
+  - global
+  predicates:
+    - requiredClusterSelector:
+        labelSelector:
+          matchLabels:
+            gitops: deploy
+---
+apiVersion: policy.open-cluster-management.io/v1
+kind: PlacementBinding
+metadata:
+  name: platform-root-ca-binding
+  namespace: acm-policies
+subjects:
+  - kind: Policy
+    apiGroup: policy.open-cluster-management.io
+    name: platform-root-ca-policy
+placementRef:
+  kind: Placement
+  apiGroup: cluster.open-cluster-management.io
+  name: platform-root-ca-placement
